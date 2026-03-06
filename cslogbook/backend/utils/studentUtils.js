@@ -94,10 +94,21 @@ const loadDynamicConstants = async () => {
   try {
     logger.info("⚙️ กำลังโหลดค่า constants จากฐานข้อมูล...");
 
-    // โหลดข้อมูล Academic
-    const academicData = await Academic.findOne({
-      order: [["created_at", "DESC"]], // ใช้ snake_case ตามชื่อคอลัมน์ในฐานข้อมูล
+    // โหลดข้อมูล Academic — ใช้ status='active' ก่อน, fallback เป็น isCurrent=true, แล้ว latest
+    let academicData = await Academic.findOne({
+      where: { status: 'active' },
     });
+    if (!academicData) {
+      academicData = await Academic.findOne({
+        where: { isCurrent: true },
+        order: [["updated_at", "DESC"]],
+      });
+    }
+    if (!academicData) {
+      academicData = await Academic.findOne({
+        order: [["created_at", "DESC"]],
+      });
+    }
 
     if (academicData) {
       logSection("📚 ข้อมูล Academic", [
@@ -692,4 +703,5 @@ module.exports = {
   calculateStudentStatus,
   calculateAcademicInfo,
   validateStudentCode,
+  reloadDynamicConstants: loadDynamicConstants,
 };

@@ -222,6 +222,12 @@ export default function CurriculumSettingsPage() {
       return;
     }
 
+    if (formState.startYear && formState.endYear && formState.startYear > formState.endYear) {
+      setMessageTone("warning");
+      setMessage("ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด");
+      return;
+    }
+
     const toNullableNumber = (value: number | "") => (value === "" ? null : value);
     const toNullableString = (value: string) => (value.trim() ? value.trim() : null);
 
@@ -287,12 +293,8 @@ export default function CurriculumSettingsPage() {
   };
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
-      <div className={styles.page}>
-        <header className={styles.header}>
-          <h1>จัดการหลักสูตรการศึกษา</h1>
-          <p className={styles.subtitle}>กำหนดและจัดการหลักสูตร รวมถึงเกณฑ์หน่วยกิตสำหรับฝึกงานและโครงงาน</p>
-        </header>
+    <div className={styles.page}>
+        <p className={styles.subtitle}>กำหนดและจัดการหลักสูตร รวมถึงเกณฑ์หน่วยกิตสำหรับฝึกงานและโครงงาน</p>
 
         {message ? (
           <div
@@ -308,9 +310,9 @@ export default function CurriculumSettingsPage() {
           </div>
         ) : null}
 
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionAccent}`}>
           <div className={styles.sectionHeader}>
-            <strong>{formState.id ? "แก้ไขหลักสูตร" : "เพิ่มหลักสูตรใหม่"}</strong>
+            <strong><span className={styles.sectionIcon}>📚</span> {formState.id ? "แก้ไขหลักสูตร" : "เพิ่มหลักสูตรใหม่"}</strong>
             <div className={styles.actions}>
               <button type="button" className={btn.button} onClick={resetForm} disabled={loading}>
                 ล้างฟอร์ม
@@ -449,7 +451,7 @@ export default function CurriculumSettingsPage() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <strong>รายการหลักสูตร</strong>
+            <strong><span className={styles.sectionIcon}>📋</span> รายการหลักสูตร</strong>
             <button type="button" className={btn.button} onClick={loadData} disabled={loading}>
               รีเฟรช
             </button>
@@ -510,10 +512,15 @@ export default function CurriculumSettingsPage() {
                 })}
               </tbody>
             </table>
-            {!listRows.length ? <div className={styles.cardMeta}>ไม่พบข้อมูลหลักสูตร</div> : null}
           </div>
+          {!listRows.length && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateIcon}>📚</div>
+              <div className={styles.emptyStateText}>ไม่พบข้อมูลหลักสูตร</div>
+              <div className={styles.emptyStateHint}>เพิ่มหลักสูตรใหม่โดยกรอกฟอร์มด้านบน</div>
+            </div>
+          )}
         </section>
       </div>
-    </RoleGuard>
   );
 }

@@ -1,6 +1,7 @@
 const { Curriculum, Academic, sequelize } = require('../models');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
+const { reloadDynamicConstants } = require('../utils/studentUtils');
 
 /**
  * CurriculumService - บริการสำหรับจัดการข้อมูลหลักสูตร
@@ -94,35 +95,6 @@ class CurriculumService {
     } catch (error) {
       logger.error('CurriculumService: Error fetching active curriculum', error);
       throw new Error('ไม่สามารถดึงข้อมูลหลักสูตรที่ใช้งานอยู่ได้: ' + error.message);
-    }
-  }
-
-  /**
-   * อัปเดตสถานะ active ของหลักสูตร (ทำให้หลักสูตรอื่นไม่ active)
-   * @param {number} activeId - ID ของหลักสูตรที่จะตั้งเป็น active
-   * @param {Object} transaction - Transaction object สำหรับ Sequelize
-   */
-  async updateActiveStatus(activeId = null, transaction = null) {
-    try {
-      let whereClause = {};
-      
-      if (activeId) {
-        whereClause.curriculumId = { [Op.ne]: activeId }; // เปลี่ยนจาก sequelize.Op.ne เป็น Op.ne
-      }
-      
-      const options = { where: whereClause };
-      
-      if (transaction) {
-        options.transaction = transaction;
-      }
-      
-      logger.info(`CurriculumService: Setting all curriculums to inactive (excluding ID: ${activeId || 'none'})`);
-      
-      await Curriculum.update({ active: false }, options);
-      
-    } catch (error) {
-      logger.error('CurriculumService: Error updating active status', error);
-      throw new Error('ไม่สามารถอัปเดตสถานะหลักสูตรได้: ' + error.message);
     }
   }
 
@@ -281,10 +253,15 @@ class CurriculumService {
       await this.updateAcademicSettings(id, curriculumActive, t);
       
       await t.commit();
-      
+
+      // รีโหลด constants หลังแก้ curriculum (credit thresholds อาจเปลี่ยน)
+      await reloadDynamicConstants().catch((err) => {
+        logger.error('CurriculumService: Failed to reload dynamic constants after update', err);
+      });
+
       // ดึงข้อมูลหลักสูตรที่อัปเดตแล้ว
       const result = await Curriculum.findByPk(id);
-      
+
       logger.info(`CurriculumService: Successfully updated curriculum: ${result.name} (${result.code}) with ID: ${result.curriculumId}`);
       return result;
       
@@ -301,30 +278,52 @@ class CurriculumService {
    * @returns {number} จำนวนรายการที่ลบสำเร็จ
    */
   async deleteCurriculum(id) {
+    const t = await sequelize.transaction();
     try {
       logger.info(`CurriculumService: Deleting curriculum with ID: ${id}`);
-      
+
+      let wasActiveCurriculum = false;
+
       // ตรวจสอบว่าหลักสูตรนี้เป็นหลักสูตรที่ใช้งานอยู่ในการตั้งค่าปีการศึกษาหรือไม่
-      const curriculum = await Curriculum.findByPk(id);
+      const curriculum = await Curriculum.findByPk(id, { transaction: t });
       if (curriculum && curriculum.active) {
-        const currentAcademicSettings = await Academic.findOne({ where: { isCurrent: true, activeCurriculumId: id } });
+        const currentAcademicSettings = await Academic.findOne({
+          where: { isCurrent: true, activeCurriculumId: id },
+          transaction: t,
+        });
         if (currentAcademicSettings) {
           // ล้างการอ้างอิงหลักสูตรในการตั้งค่าปีการศึกษา
-          await Academic.update({ activeCurriculumId: null }, { where: { isCurrent: true } });
+          await Academic.update(
+            { activeCurriculumId: null },
+            { where: { isCurrent: true }, transaction: t },
+          );
+          wasActiveCurriculum = true;
         }
       }
-      
-      const deleted = await Curriculum.destroy({ where: { curriculumId: id } });
-      
+
+      const deleted = await Curriculum.destroy({ where: { curriculumId: id }, transaction: t });
+
+      await t.commit();
+
       if (deleted === 0) {
         logger.warn(`CurriculumService: No curriculum found with ID: ${id} to delete`);
       } else {
         logger.info(`CurriculumService: Successfully deleted curriculum with ID: ${id}`);
       }
-      
+
+      // รีโหลด constants หลังลบ active curriculum (credit thresholds อาจเปลี่ยน)
+      if (wasActiveCurriculum) {
+        await reloadDynamicConstants().catch((err) => {
+          logger.error('CurriculumService: Failed to reload dynamic constants after delete', err);
+        });
+      }
+
       return deleted;
-      
+
     } catch (error) {
+      if (t && !t.finished) {
+        await t.rollback();
+      }
       logger.error(`CurriculumService: Error deleting curriculum with ID: ${id}`, error);
       throw new Error('ไม่สามารถลบหลักสูตรได้: ' + error.message);
     }

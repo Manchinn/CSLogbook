@@ -13,6 +13,7 @@ import {
 } from "@/lib/services/reportService";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
+import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "ยังไม่เริ่ม",
@@ -35,12 +36,6 @@ function formatDate(value?: string | null) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "-";
   return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", { dateStyle: "short" }).format(d);
-}
-
-function currentBuddhistYear() {
-  const now = new Date();
-  const buddhistYear = now.getFullYear() + 543;
-  return now.getMonth() < 5 ? buddhistYear - 1 : buddhistYear;
 }
 
 type EditForm = {

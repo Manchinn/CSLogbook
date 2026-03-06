@@ -11,11 +11,7 @@ import {
 } from "@/lib/services/reportService";
 import { apiFetch } from "@/lib/api/client";
 import styles from "../internship/page.module.css";
-
-function currentBuddhistYear() {
-  const now = new Date();
-  return now.getMonth() < 5 ? now.getFullYear() + 543 - 1 : now.getFullYear() + 543;
-}
+import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   draft: "แบบร่าง",

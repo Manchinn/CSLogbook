@@ -698,6 +698,32 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | Hotfix: เพิ่ม `getAcademicDashboard` controller กลับ — ถูกลบผิดใน Session 21 (false positive: frontend ยังใช้ `/teachers/academic/dashboard`) | `backend/controllers/teacherController.js` |
 | Hotfix: เพิ่ม route `GET /academic/dashboard` กลับ พร้อม RBAC `teachers.academicOnly` | `backend/routes/teacherRoutes.js` |
 
+#### Session 23 (claude, 2026-03-06) — Academic/Curriculum Bug Fixes & Admin Settings Redesign
+
+**Bug Fixes (8 items):**
+
+| Bug | งาน | ไฟล์ที่เปลี่ยน |
+|---|---|---|
+| B1 | `loadDynamicConstants()` ดึง Academic record ล่าสุดแทน active — เปลี่ยนเป็น cascading fallback: `status='active'` → `isCurrent=true` → latest | `backend/utils/studentUtils.js` |
+| B2 | In-memory CONSTANTS ไม่ refresh เมื่อ admin แก้ curriculum/academic — export `reloadDynamicConstants` + wire หลัง activate/update/delete | `backend/utils/studentUtils.js`, `backend/services/academicService.js`, `backend/services/curriculumService.js` |
+| B5 | `deleteCurriculum()` ไม่มี transaction — wrap ด้วย `sequelize.transaction()` + rollback | `backend/services/curriculumService.js` |
+| B6 | ลบ dead code `updateActiveStatus()` (confirmed zero callers) | `backend/services/curriculumService.js` |
+| F1 | ตาราง schedule แสดง raw `activeCurriculumId` แทนชื่อ — lookup curriculum name จาก array | `frontend-next/src/app/(app)/admin/settings/academic/page.tsx` |
+| F2 | `currentBuddhistYear()` ซ้ำ 3 ไฟล์ — deduplicate ไปใช้ shared util | `frontend-next/src/lib/utils/thaiDateUtils.ts`, 3 report pages |
+| F3 | Curriculum form ไม่ validate startYear > endYear — เพิ่ม validation | `frontend-next/src/app/(app)/admin/settings/curriculum/page.tsx` |
+| F5 | AppShell ไม่แสดง indicator เมื่อ academic info มาจาก auto-calculation — เพิ่ม "(อัตโนมัติ)" | `frontend-next/src/components/layout/AppShell.tsx` |
+
+**Frontend Redesign — Clean & Elevated:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม 8 design tokens (shadow, surface colors, transition) | `frontend-next/src/app/globals.css` |
+| สร้าง shared settings layout พร้อม tab navigation 6 pages + RoleGuard | `frontend-next/src/app/(app)/admin/settings/layout.tsx` (NEW) |
+| Rewrite settings.module.css (~500 lines): fade-in animation, tab bar, sub-tabs, elevated sections, collapsible animation, enhanced tables, dot badges, empty states, refined inputs | `frontend-next/src/app/(app)/admin/settings/settings.module.css` |
+| Academic page: ลบ standalone header, เพิ่ม sub-tabs (schedule/deadline), collapsible form groups, section icons, empty states, sectionAccent | `frontend-next/src/app/(app)/admin/settings/academic/page.tsx` |
+| Curriculum page: ลบ standalone header, เพิ่ม section icons, sectionAccent, visual empty state | `frontend-next/src/app/(app)/admin/settings/curriculum/page.tsx` |
+| Button refinements: transition, active scale, primary focus-visible ring | `frontend-next/src/styles/shared/buttons.module.css` |
+
 ---
 
 ### ❌ งานที่ยังต้องทำต่อ
@@ -735,7 +761,11 @@ Also see `.github/copilot-instructions.md` for a concise AI assistant cheat-shee
 | `docs/claudefix/admin-ui-pattern-refactor.md` | Admin UI pattern refactor log (Session 5) |
 | `docs/claudefix/project-unified-redesign.md` | Project page unified redesign log (Session 6) |
 | `backend/config/corsOrigins.js` | CORS dynamic allowed origins — ใช้ `ALLOWED_ORIGINS` env var |
-| `src/app/globals.css` | Design tokens (CSS custom properties) — เพิ่มใน Session 14 |
+| `src/app/globals.css` | Design tokens (CSS custom properties) — เพิ่มใน Session 14, เพิ่ม elevated design tokens ใน Session 23 |
+| `src/app/(app)/admin/settings/layout.tsx` | Shared settings layout — tab navigation 6 pages, RoleGuard (NEW Session 23) |
+| `src/app/(app)/admin/settings/settings.module.css` | Shared CSS สำหรับ 6 settings pages — rewritten Session 23 |
+| `src/lib/utils/thaiDateUtils.ts` | Thai date utilities — `currentBuddhistYear()` shared function (Session 23) |
+| `backend/utils/studentUtils.js` | CONSTANTS, `reloadDynamicConstants` — critical for academic/curriculum cache refresh |
 | `src/components/common/DefenseRequestStepper.tsx` | Shared defense request stepper component |
 | `src/components/dashboard/SurveyBanner.tsx` | Survey banner component — แสดงใน admin/student/teacher dashboards |
 | `src/hooks/useInternshipReferralLetter.ts` | Hooks สำหรับ referral letter status + download |

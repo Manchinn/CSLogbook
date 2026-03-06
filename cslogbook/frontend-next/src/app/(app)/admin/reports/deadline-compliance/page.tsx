@@ -4,11 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { getDeadlineCompliance, type DeadlineComplianceReport } from "@/lib/services/reportService";
 import styles from "../internship/page.module.css";
-
-function currentBuddhistYear() {
-  const now = new Date();
-  return now.getMonth() < 5 ? now.getFullYear() + 543 - 1 : now.getFullYear() + 543;
-}
+import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
