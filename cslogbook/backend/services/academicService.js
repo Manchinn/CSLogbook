@@ -1,6 +1,7 @@
 const { Academic, Curriculum, sequelize } = require('../models');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
+const { reloadDynamicConstants } = require('../utils/studentUtils');
 
 const ACADEMIC_STATUSES = {
   DRAFT: 'draft',
@@ -393,6 +394,11 @@ class AcademicService {
       );
 
       await transaction.commit();
+
+      // รีโหลด constants ให้ตรงกับ academic schedule ที่ active ใหม่
+      await reloadDynamicConstants().catch((err) => {
+        logger.error('AcademicService: Failed to reload dynamic constants after activation', err);
+      });
 
       logger.info(`AcademicService: Schedule ID ${id} is now active`);
       return schedule;

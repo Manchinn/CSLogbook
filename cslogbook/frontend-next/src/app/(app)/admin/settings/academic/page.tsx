@@ -165,6 +165,17 @@ export default function AcademicSettingsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<"schedule" | "deadline">("schedule");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    mainInfo: true,
+    semesterRanges: true,
+    registrationWindows: false,
+    allowedSemesters: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const loadSchedules = useCallback(async () => {
     const data = await listAcademicSchedules();
@@ -607,12 +618,8 @@ export default function AcademicSettingsPage() {
   }, [currentSettings]);
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
-      <div className={styles.page}>
-        <header className={styles.header}>
-          <h1>ตั้งค่าปีการศึกษาและกำหนดการ</h1>
-          <p className={styles.subtitle}>บริหารปีการศึกษา ตารางเวลา และกำหนดการสำคัญของระบบ</p>
-        </header>
+    <div className={styles.page}>
+        <p className={styles.subtitle}>บริหารปีการศึกษา ตารางเวลา และกำหนดการสำคัญของระบบ</p>
 
         {message ? (
           <div
@@ -628,9 +635,27 @@ export default function AcademicSettingsPage() {
           </div>
         ) : null}
 
-        <section className={styles.section}>
+        <div className={styles.subTabBar}>
+          <button
+            type="button"
+            className={`${styles.subTab} ${activeSubTab === "schedule" ? styles.subTabActive : ""}`}
+            onClick={() => setActiveSubTab("schedule")}
+          >
+            ตารางปีการศึกษา
+          </button>
+          <button
+            type="button"
+            className={`${styles.subTab} ${activeSubTab === "deadline" ? styles.subTabActive : ""}`}
+            onClick={() => setActiveSubTab("deadline")}
+          >
+            กำหนดการสำคัญ
+          </button>
+        </div>
+
+        {activeSubTab === "schedule" && (<>
+        <section className={`${styles.section} ${styles.sectionAccent}`}>
           <div className={styles.sectionHeader}>
-            <strong>ปีการศึกษาปัจจุบัน</strong>
+            <strong><span className={styles.sectionIcon}>📅</span> ปีการศึกษาปัจจุบัน</strong>
             <span className={styles.badge}>{currentScheduleLabel}</span>
           </div>
 
@@ -707,7 +732,12 @@ export default function AcademicSettingsPage() {
 
           {/* ━━ กลุ่ม 2: ช่วงเวลาภาคเรียน ━━ */}
           <div className={styles.formGroup}>
-            <div className={styles.formGroupLabel}>ช่วงเวลาภาคเรียน</div>
+            <button type="button" className={styles.sectionToggle} onClick={() => toggleSection("semesterRanges")}>
+              <span className={`${styles.sectionToggleIcon} ${openSections.semesterRanges ? styles.sectionToggleIconOpen : ""}`}>▶</span>
+              <span className={styles.formGroupLabel}>ช่วงเวลาภาคเรียน</span>
+            </button>
+            <div className={`${styles.sectionBody} ${!openSections.semesterRanges ? styles.sectionBodyCollapsed : ""}`}>
+            <div className={styles.sectionBodyInner}>
             <div className={styles.fieldGrid3}>
               <div className={styles.semesterBlock}>
                 <div className={styles.semesterBlockLabel}>ภาคเรียน 1</div>
@@ -749,11 +779,18 @@ export default function AcademicSettingsPage() {
                 </div>
               </div>
             </div>
+            </div>{/* sectionBodyInner */}
+            </div>{/* sectionBody */}
           </div>
 
           {/* ━━ กลุ่ม 3: ช่วงลงทะเบียน ━━ */}
           <div className={styles.formGroup}>
-            <div className={styles.formGroupLabel}>ช่วงลงทะเบียน</div>
+            <button type="button" className={styles.sectionToggle} onClick={() => toggleSection("registrationWindows")}>
+              <span className={`${styles.sectionToggleIcon} ${openSections.registrationWindows ? styles.sectionToggleIconOpen : ""}`}>▶</span>
+              <span className={styles.formGroupLabel}>ช่วงลงทะเบียน</span>
+            </button>
+            <div className={`${styles.sectionBody} ${!openSections.registrationWindows ? styles.sectionBodyCollapsed : ""}`}>
+            <div className={styles.sectionBodyInner}>
             <div className={styles.fieldGrid2}>
               <div className={styles.semesterBlock}>
                 <div className={styles.semesterBlockLabel}>ลงทะเบียนฝึกงาน</div>
@@ -782,11 +819,18 @@ export default function AcademicSettingsPage() {
                 </div>
               </div>
             </div>
+            </div>{/* sectionBodyInner */}
+            </div>{/* sectionBody */}
           </div>
 
           {/* ━━ กลุ่ม 4: ภาคเรียนที่อนุญาต ━━ */}
           <div className={styles.formGroup}>
-            <div className={styles.formGroupLabel}>ภาคเรียนที่อนุญาต</div>
+            <button type="button" className={styles.sectionToggle} onClick={() => toggleSection("allowedSemesters")}>
+              <span className={`${styles.sectionToggleIcon} ${openSections.allowedSemesters ? styles.sectionToggleIconOpen : ""}`}>▶</span>
+              <span className={styles.formGroupLabel}>ภาคเรียนที่อนุญาต</span>
+            </button>
+            <div className={`${styles.sectionBody} ${!openSections.allowedSemesters ? styles.sectionBodyCollapsed : ""}`}>
+            <div className={styles.sectionBodyInner}>
             <div className={styles.fieldGrid2}>
               <label className={styles.field}>
                 ฝึกงาน (ระบุหมายเลข คั่นด้วยจุลภาค)
@@ -801,6 +845,8 @@ export default function AcademicSettingsPage() {
                   onChange={(event) => handleScheduleField("projectSemesters", event.target.value)} />
               </label>
             </div>
+            </div>{/* sectionBodyInner */}
+            </div>{/* sectionBody */}
           </div>
 
           <div className={styles.actionsRight}>
@@ -826,7 +872,7 @@ export default function AcademicSettingsPage() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <strong>รายการปีการศึกษา</strong>
+            <strong><span className={styles.sectionIcon}>📋</span> รายการปีการศึกษา</strong>
             <button type="button" className={btn.button} onClick={loadSchedules} disabled={loading}>
               รีเฟรช
             </button>
@@ -853,7 +899,16 @@ export default function AcademicSettingsPage() {
                         {labelStatus(schedule.status, "ร่าง")}
                       </span>
                     </td>
-                    <td>{schedule.activeCurriculumId ?? "-"}</td>
+                    <td>
+                      {schedule.activeCurriculumId
+                        ? (() => {
+                            const cur = curriculums.find(
+                              (c) => getCurriculumId(c) === schedule.activeCurriculumId
+                            );
+                            return cur ? `${cur.code} - ${cur.name}` : schedule.activeCurriculumId;
+                          })()
+                        : "-"}
+                    </td>
                     <td>
                       <div className={styles.actions}>
                         <button
@@ -897,11 +952,20 @@ export default function AcademicSettingsPage() {
               </tbody>
             </table>
           </div>
+          {schedules.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateIcon}>📋</div>
+              <div className={styles.emptyStateText}>ยังไม่มีปีการศึกษา</div>
+              <div className={styles.emptyStateHint}>สร้างปีการศึกษาใหม่โดยกรอกฟอร์มด้านบน</div>
+            </div>
+          )}
         </section>
+        </>)}
 
-        <section className={styles.section}>
+        {activeSubTab === "deadline" && (<>
+        <section className={`${styles.section} ${styles.sectionAccent}`}>
           <div className={styles.sectionHeader}>
-            <strong>กำหนดการสำคัญ</strong>
+            <strong><span className={styles.sectionIcon}>⏰</span> กำหนดการสำคัญ</strong>
             <div className={styles.actions}>
               <button
                 type="button"
@@ -1174,7 +1238,16 @@ export default function AcademicSettingsPage() {
               </div>
             </div>
           ) : null}
+
+          {deadlines.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateIcon}>⏰</div>
+              <div className={styles.emptyStateText}>ยังไม่มีกำหนดการ</div>
+              <div className={styles.emptyStateHint}>เพิ่มกำหนดการใหม่โดยกรอกฟอร์มด้านบน</div>
+            </div>
+          )}
         </section>
+        </>)}
 
         <ConfirmDialog
           open={confirmDeleteId !== null}
@@ -1186,6 +1259,5 @@ export default function AcademicSettingsPage() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       </div>
-    </RoleGuard>
   );
 }

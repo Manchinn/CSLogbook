@@ -1,9 +1,128 @@
+/* ═══════════════════════════════════════════════════════
+   Settings Module — Clean & Elevated Design
+   Shared by: academic, curriculum, workflow-steps,
+              compatibility, status, notification-settings
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── Animation ─── */
+@keyframes settingsFadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Settings Shell (from layout.tsx) ─── */
+.settingsShell {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 1200px;
+}
+
+.settingsHeader {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.settingsTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+/* ─── Tab Bar (top-level navigation) ─── */
+.settingsTabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.settingsTabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.settingsTab {
+  position: relative;
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color var(--transition-default), border-color var(--transition-default), background var(--transition-default);
+  white-space: nowrap;
+}
+
+.settingsTab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.settingsTabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ─── Sub-tab Bar (segmented control within a page) ─── */
+.subTabBar {
+  display: flex;
+  gap: var(--space-1);
+  padding: 3px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
+  width: fit-content;
+}
+
+.subTab {
+  padding: var(--space-2) var(--space-5);
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--radius-lg) - 2px);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-default);
+}
+
+.subTab:hover {
+  color: var(--color-text);
+}
+
+.subTabActive {
+  background: var(--color-surface-elevated);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+  font-weight: 600;
+}
+
+/* ─── Page Container ─── */
 .page {
   display: grid;
   gap: 1.5rem;
   max-width: 1200px;
 }
 
+.page > * {
+  animation: settingsFadeInUp 0.4s var(--transition-default) both;
+}
+
+.page > *:nth-child(1) { animation-delay: 0ms; }
+.page > *:nth-child(2) { animation-delay: 60ms; }
+.page > *:nth-child(3) { animation-delay: 120ms; }
+.page > *:nth-child(4) { animation-delay: 180ms; }
+.page > *:nth-child(5) { animation-delay: 240ms; }
+.page > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ─── Page Header (kept for backward compat) ─── */
 .header {
   display: grid;
   gap: var(--space-2);
@@ -17,49 +136,139 @@
 .subtitle {
   color: var(--color-text-muted);
   margin: 0;
+  font-size: 0.9rem;
 }
 
+/* ─── Section Cards — Elevated ─── */
 .section {
   border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  background: var(--color-bg);
-  padding: 1.25rem;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-elevated);
+  padding: var(--space-6);
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-section);
+  transition: box-shadow var(--transition-default);
+  animation: settingsFadeInUp 0.4s var(--transition-default) both;
+}
+
+.sectionAccent {
+  border-left: 3px solid var(--color-primary);
 }
 
 .sectionHeader {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   align-items: center;
   justify-content: space-between;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
+.sectionHeader strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-weak);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ─── Collapsible Sections ─── */
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.sectionToggleIcon {
+  display: inline-flex;
+  transition: transform var(--transition-default);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.sectionToggleIconOpen {
+  transform: rotate(90deg);
+}
+
+.sectionBody {
+  display: grid;
+  gap: var(--space-4);
+  overflow: hidden;
+  transition: grid-template-rows 0.3s var(--transition-default), opacity 0.25s ease;
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.sectionBodyCollapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.sectionBodyInner {
+  overflow: hidden;
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ─── Grid Layouts ─── */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
 }
 
+/* ─── Card ─── */
 .card {
   border: 1px solid var(--color-border);
-  border-radius: 0.9rem;
-  padding: 1rem;
-  background: #f8fafc;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
   display: grid;
   gap: var(--space-2);
+  transition: border-color var(--transition-default), box-shadow var(--transition-default);
+}
+
+.card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .cardTitle {
   font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .cardMeta {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
+/* ─── Actions ─── */
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -67,17 +276,37 @@
   align-items: center;
 }
 
-/* Button styles: use shared buttons.module.css */
+.actionsRight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
 
+/* ─── Form Inputs ─── */
 .input,
 .select,
 .textarea {
   width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  padding: var(--space-2) var(--space-2);
-  font-size: 0.95rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
   background: #fff;
+  transition: border-color var(--transition-default), box-shadow var(--transition-default);
+}
+
+.input:hover,
+.textarea:hover {
+  border-color: var(--color-secondary-light);
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-weak);
 }
 
 .select {
@@ -88,17 +317,16 @@
   background-position: right 0.65rem center;
   padding-right: 2rem;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .select:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-secondary-light);
 }
 
 .select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-weak);
+  box-shadow: 0 0 0 3px var(--color-primary-weak);
 }
 
 .textarea {
@@ -106,28 +334,32 @@
   resize: vertical;
 }
 
+/* ─── Field ─── */
 .field {
   display: grid;
   gap: var(--space-1);
 }
 
-/* hint text ใต้ input (เช่น "พ.ศ. เช่น 2568") */
+.field label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-secondary-light);
+}
+
 .fieldHint {
-  font-size: 0.78rem;
-  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
   margin-top: 0.1rem;
   line-height: 1.4;
 }
 
-/* คำเตือน inline ใต้ input (เช่น ปีดูเหมือน ค.ศ.) */
 .fieldWarn {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #b45309;
   margin-top: 0.1rem;
   line-height: 1.4;
 }
 
-/* wrapper สำหรับ input + ป้ายกำกับขวา (เช่น "+07:00") */
 .fieldInputGroup {
   display: flex;
   align-items: center;
@@ -139,73 +371,85 @@
   min-width: 0;
 }
 
-/* ป้าย timezone / หน่วย ติดขวา input */
 .fieldSuffix {
   flex-shrink: 0;
-  font-size: 0.78rem;
-  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
   white-space: nowrap;
-  background: #f1f5f9;
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
 }
 
-/* grid แถวพื้นฐาน — ใช้แค่กรณีที่ไม่มี col จำนวนตายตัว */
+/* ─── Field Grid Layouts ─── */
 .fieldRow {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-/* grid 2 คอลัมน์เท่ากัน */
 .fieldGrid2 {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 1fr 1fr;
 }
 
-/* grid 3 คอลัมน์เท่ากัน */
 .fieldGrid3 {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 1fr 1fr 1fr;
 }
 
-/* grid 4 คอลัมน์เท่ากัน */
 .fieldGrid4 {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
-/* grid 3 คอลัมน์ (สำหรับ info row: ปี | ภาค | หลักสูตร[กว้าง] | สถานะ) */
 .fieldGridInfo {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 140px 120px 1fr 140px;
 }
 
-/* sub-section ภายใน section — มีเส้นบางๆ และ bg จางๆ เพื่อแบ่งกลุ่ม */
+/* ─── Form Groups ─── */
 .formGroup {
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: var(--space-3) 1rem;
-  background: #f8fafc;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-subtle);
   display: grid;
   gap: var(--space-3);
+  transition: border-color var(--transition-default);
 }
 
-/* label ชื่อกลุ่ม (เช่น "ช่วงเวลาภาคเรียน") */
+.formGroup:focus-within {
+  border-color: var(--color-primary);
+}
+
 .formGroupLabel {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--color-primary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-/* ใช้สำหรับ block เดี่ยวของภาคเรียน เช่น "ภาคเรียน 1 — เริ่ม + สิ้นสุด" */
+.formGroupLabel::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* ─── Semester Blocks ─── */
 .semesterBlock {
   display: grid;
   gap: var(--space-2);
@@ -230,42 +474,130 @@
   color: var(--color-text-muted);
 }
 
-/* divider เล็กๆ ระหว่าง sub-section */
 .formDivider {
   border: none;
   border-top: 1px solid #e2e8f0;
   margin: var(--space-1) 0;
 }
 
-/* แถว actions ล่าง section (justify ขวา) */
-.actionsRight {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+/* ─── Tables — Enhanced ─── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  font-size: 0.88rem;
+}
+
+.table th {
+  background: var(--color-surface-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--color-surface-subtle);
+}
+
+.table tbody tr {
+  transition: background var(--transition-default);
+}
+
+.table tbody tr:hover {
+  background: #eef2ff;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ─── Badges with Dot Indicators ─── */
+.badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  gap: 6px;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
-@media (max-width: 768px) {
-  .fieldGridInfo {
-    grid-template-columns: 1fr 1fr;
-  }
-  .fieldGrid3 {
-    grid-template-columns: 1fr 1fr;
-  }
-  .fieldGrid4 {
-    grid-template-columns: 1fr 1fr;
-  }
-  .semesterDatePair {
-    grid-template-columns: 1fr;
-  }
+.badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
+.badgeMuted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badgeMuted::before {
+  background: #94a3b8;
+}
+
+.badgeSuccess {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badgeSuccess::before {
+  background: #22c55e;
+}
+
+.badgeWarning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badgeWarning::before {
+  background: #f59e0b;
+}
+
+.badgeDanger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badgeDanger::before {
+  background: #ef4444;
+}
+
+/* ─── Alerts ─── */
 .alert {
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  animation: settingsFadeInUp 0.3s ease both;
 }
 
 .alertInfo {
@@ -286,61 +618,31 @@
   color: #065f46;
 }
 
-.tableWrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: var(--space-3) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: top;
-}
-
-.table th {
-  background: #f8fafc;
-  font-size: 0.9rem;
+/* ─── Empty States ─── */
+.emptyState {
+  text-align: center;
+  padding: var(--space-10) var(--space-6);
   color: var(--color-text-muted);
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: #e0f2fe;
-  color: #0369a1;
+.emptyStateIcon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-3);
+  opacity: 0.4;
 }
 
-.badgeMuted {
-  background: #e2e8f0;
-  color: #475569;
+.emptyStateText {
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
-.badgeSuccess {
-  background: #dcfce7;
-  color: #166534;
+.emptyStateHint {
+  font-size: 0.82rem;
+  margin-top: var(--space-1);
+  color: var(--color-text-disabled);
 }
 
-.badgeWarning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badgeDanger {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
+/* ─── Link Cards ─── */
 .linkCard {
   text-decoration: none;
   color: inherit;
@@ -348,5 +650,64 @@
 
 .linkCard:hover {
   border-color: #93c5fd;
-  box-shadow: 0 12px 24px -18px rgba(37, 99, 235, 0.35);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .section {
+    padding: var(--space-4);
+  }
+
+  .settingsTabBar {
+    gap: 0;
+  }
+
+  .settingsTab {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.8rem;
+  }
+
+  .subTabBar {
+    width: 100%;
+  }
+
+  .subTab {
+    flex: 1;
+    text-align: center;
+    font-size: 0.8rem;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .formGroup {
+    padding: var(--space-3);
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.82rem;
+  }
+
+  .fieldGridInfo {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fieldGrid3 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fieldGrid4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .semesterDatePair {
+    grid-template-columns: 1fr;
+  }
 }

@@ -87,6 +87,15 @@
   --radius-lg: 0.75rem;   /* 12px */
   --radius-xl: 1rem;      /* 16px */
   --radius-full: 999px;
+
+  /* ─── Elevated settings design tokens ─── */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-section: 0 2px 8px rgba(0,0,0,0.04);
+  --color-surface-elevated: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-muted: #f1f5f9;
+  --transition-default: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {

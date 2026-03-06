@@ -7,48 +7,6 @@
 				"@modelcontextprotocol/server-sequential-thinking"
 			],
 			"type": "stdio"
-		},
-		"mysql": {
-			"command": "npx",
-			"args": [
-				"-y", "@fhuang/mcp-mysql-server@1.1.0"
-			],
-			"env": {
-				"MYSQL_HOST": "${input:mysql_host}",
-				"MYSQL_PORT": "${input:mysql_port}",
-				"MYSQL_USER": "${input:mysql_user}",
-				"MYSQL_PASSWORD": "${input:mysql_password}",
-				"MYSQL_DATABASE": "${input:mysql_database}"
-			},
-			"type": "stdio"
 		}
-	},
-	"inputs": [
-		{
-			"id": "mysql_host",
-			"type": "promptString",
-			"description": "MySQL Hostname"
-		},
-		{
-			"id": "mysql_port",
-			"type": "promptString",
-			"description": "MySQL Port Number",
-			"default": "3306"
-		},
-		{
-			"id": "mysql_user",
-			"type": "promptString",
-			"description": "MySQL Username"
-		},
-		{
-			"id": "mysql_password",
-			"type": "promptString",
-			"description": "MySQL Password"
-		},
-		{
-			"id": "mysql_database",
-			"type": "promptString",
-			"description": "MySQL Database Name"
-		}
-	]
+	}
 }

@@ -153,7 +153,7 @@ export function AppShell({ children }: AppShellProps) {
               {isAcademicLoading
                 ? "ภาคเรียน กำลังโหลด..."
                 : academicInfo?.displayText
-                  ? `ภาคเรียน ${academicInfo.displayText.replace("*", "")}`
+                  ? `ภาคเรียน ${academicInfo.displayText.replace("*", "")}${academicInfo.isFromDatabase === false ? " (อัตโนมัติ)" : ""}`
                   : "ภาคเรียน -"}
             </p>
             <h2 className={styles.headerTitle}>

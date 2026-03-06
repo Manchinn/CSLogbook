@@ -35,6 +35,15 @@ export function ensureBuddhistYear(year: number | string | null | undefined): nu
 }
 
 /**
+ * ปี พ.ศ. ปัจจุบัน ปรับตามปีการศึกษา (ก่อนมิ.ย. = ปีก่อน)
+ */
+export function currentBuddhistYear(): number {
+  const now = new Date();
+  const buddhistYear = now.getFullYear() + BE_OFFSET;
+  return now.getMonth() < 5 ? buddhistYear - 1 : buddhistYear;
+}
+
+/**
  * สร้าง placeholder hint สำหรับ input ปีการศึกษา
  * แสดงปีปัจจุบัน (พ.ศ.) เป็นตัวอย่าง
  */
