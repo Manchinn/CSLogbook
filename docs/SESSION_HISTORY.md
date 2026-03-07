@@ -230,3 +230,40 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | M2: แก้ buffer concat pattern ให้มีประสิทธิภาพ | `referralLetter.service.js` |
 | M3: ลบ dead code createReferralLetterPDF() + deprecated proxy | `referralLetter.service.js`, `internshipManagementService.js` |
 | M4: เพิ่ม formatThaiDate ใน dateUtils.js, ลบ duplicate ใน certificate.service | `utils/dateUtils.js`, `certificate.service.js`, `internshipManagementService.js` |
+
+## Session 25 (claude, 2026-03-07) — Admin Report Pages Improvement
+
+ปรับปรุงหน้ารายงานฝึกงานและโครงงานครบ 4 ด้าน: bug fixes, backend data, UI/UX, new features
+
+**Bug Fixes:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Fix React key warning: backend ส่ง `{ key, label, avg }` เปลี่ยนเป็น `{ criteriaName, average }` ตาม frontend type | `backend/services/reportService.js`, `internship/page.tsx` |
+| Fix project page ใช้ `styles.button` ที่ไม่มี → import shared `buttons.module.css` | `project/page.tsx` |
+| เพิ่ม CSS classes ที่ขาด: `.pagination`, `.paginationInfo`, `.tagStatus*` color variants | `page.module.css` |
+
+**Backend Data:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| Rewrite `getProjectStatusSummary` — query จริงจาก ProjectDocument + ProjectExamResult แทน placeholder | `backend/services/reportService.js` |
+| เพิ่ม semester param ใน getProjectStatusSummary | `reportController.js`, `reportService.ts` |
+
+**UI/UX:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม loading skeleton (StatSkeleton + TableSkeleton) ทั้ง 2 หน้า | `internship/page.tsx`, `project/page.tsx` |
+| สร้าง reports layout พร้อม tab navigation (ย้าย RoleGuard จาก 5 หน้ามารวมที่ layout) | `reports/layout.tsx` (NEW), 5 report pages |
+| เพิ่ม `.statItemClickable`, `.statItemActive` CSS สำหรับ KPI drill-down | `page.module.css` |
+| เพิ่ม `aria-label` ให้ select elements | `internship/page.tsx`, `project/page.tsx` |
+
+**New Features:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง CSV export utility พร้อม BOM สำหรับภาษาไทย + ปุ่มส่งออก CSV ทั้ง 2 หน้า | `csvExport.ts` (NEW), `internship/page.tsx`, `project/page.tsx` |
+| เพิ่ม semester filter ใน project report page | `project/page.tsx` |
+| เพิ่ม KPI card drill-down (คลิก KPI card เพื่อ filter ตาราง) | `internship/page.tsx`, `project/page.tsx` |
+| ปิด tabs: ภาระงานอาจารย์, ความคืบหน้า, กำหนดส่ง (ยังไม่พร้อม) | `reports/layout.tsx` |

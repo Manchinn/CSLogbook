@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getAdvisorDetail,
   getAdvisorWorkload,
@@ -86,7 +85,6 @@ export default function AdminAdvisorWorkloadPage() {
   };
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -251,6 +249,5 @@ export default function AdminAdvisorWorkloadPage() {
           </div>
         ) : null}
       </div>
-    </RoleGuard>
   );
 }

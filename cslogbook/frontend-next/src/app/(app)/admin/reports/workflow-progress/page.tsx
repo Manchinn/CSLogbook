@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import { getWorkflowProgress, type WorkflowProgressData } from "@/lib/services/reportService";
 import styles from "../internship/page.module.css";
 
@@ -47,7 +46,6 @@ export default function AdminWorkflowProgressPage() {
   const typeLabel = WORKFLOW_TYPES.find((t) => t.value === workflowType)?.label ?? workflowType;
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -176,6 +174,5 @@ export default function AdminWorkflowProgressPage() {
           </section>
         ) : null}
       </div>
-    </RoleGuard>
   );
 }

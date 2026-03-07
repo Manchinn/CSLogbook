@@ -22,7 +22,7 @@ exports.getInternshipLogbookCompliance = async (req, res, next) => {
 
 exports.getProjectStatusSummary = async (req, res, next) => {
   try {
-    const data = await reportService.getProjectStatusSummary({ year: req.query.year });
+    const data = await reportService.getProjectStatusSummary({ year: req.query.year, semester: req.query.semester });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
