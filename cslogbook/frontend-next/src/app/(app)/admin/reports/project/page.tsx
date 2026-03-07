@@ -152,7 +152,6 @@ export default function AdminProjectReportPage() {
                 downloadCSV(
                   projects,
                   [
-                    { key: "projectCode", header: "รหัสโครงงาน" },
                     { key: "projectTitle", header: "ชื่อโครงงาน" },
                     { key: "status", header: "สถานะ", format: (v) => PROJECT_STATUS_LABELS[String(v ?? "")] ?? String(v ?? "") },
                     { key: "members", header: "นักศึกษา", format: (v) => ((v as ProjectListItem["members"]) ?? []).map((m) => `${m.studentCode} ${m.name}`).join(", ") },
@@ -270,9 +269,15 @@ export default function AdminProjectReportPage() {
 
           <div className={styles.tableWrap}>
             <table className={styles.table}>
+              <colgroup>
+                <col className={styles.colTitle} />
+                <col className={styles.colStatus} />
+                <col className={styles.colMembers} />
+                <col className={styles.colAdvisor} />
+                <col className={styles.colAction} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th>รหัส</th>
                   <th>ชื่อโครงงาน</th>
                   <th>สถานะ</th>
                   <th>นักศึกษา</th>
@@ -284,7 +289,6 @@ export default function AdminProjectReportPage() {
                 {projects.length > 0 ? (
                   projects.map((p, idx) => (
                     <tr key={p.projectId ?? idx}>
-                      <td>{p.projectCode ?? "-"}</td>
                       <td>{p.projectTitle ?? "-"}</td>
                       <td>
                         <span className={styles.tag}>{PROJECT_STATUS_LABELS[p.status ?? ""] ?? p.status ?? "-"}</span>
@@ -320,9 +324,9 @@ export default function AdminProjectReportPage() {
                   ))
                 ) : (
                   projectsLoading ? (
-                    <TableSkeleton rows={5} columns={6} />
+                    <TableSkeleton rows={5} columns={5} />
                   ) : (
-                    <tr><td colSpan={6}><p className={styles.empty}>ไม่พบข้อมูล</p></td></tr>
+                    <tr><td colSpan={5}><p className={styles.empty}>ไม่พบข้อมูล</p></td></tr>
                   )
                 )}
               </tbody>

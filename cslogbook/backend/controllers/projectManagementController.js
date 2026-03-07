@@ -94,10 +94,28 @@ class ProjectManagementController {
 
       const result = await projectManagementService.getAllProjects(filters);
 
+      // Map ข้อมูลให้ตรงกับ ProjectListItem type ของ frontend
+      const mappedProjects = (result.projects || []).map(p => {
+        const plain = typeof p.toJSON === 'function' ? p.toJSON() : p;
+        return {
+          projectId: plain.projectId,
+          projectCode: plain.projectCode,
+          projectTitle: plain.projectNameTh || plain.projectNameEn || null,
+          status: plain.status,
+          members: (plain.members || []).map(m => ({
+            studentCode: m.student?.studentCode || null,
+            name: `${m.student?.user?.firstName || ''} ${m.student?.user?.lastName || ''}`.trim() || null
+          })),
+          advisorName: plain.advisor?.user
+            ? `${plain.advisor.user.firstName || ''} ${plain.advisor.user.lastName || ''}`.trim()
+            : null,
+        };
+      });
+
       res.json({
         success: true,
         message: 'ดึงรายการโครงงานสำเร็จ',
-        data: result
+        data: { projects: mappedProjects, pagination: result.pagination }
       });
 
     } catch (error) {
