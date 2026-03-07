@@ -508,17 +508,9 @@ class AuthService {
     try {
       logger.info(`AuthService: Updating user from SSO: ${user.username}`);
 
-      const names = ssoUserData.displayName.split(' ');
-      // อัปเดต email เฉพาะเมื่อ SSO ส่งค่าที่ valid มาจริง (มี @ และไม่ใช่ undefined@)
-      const ssoEmail = ssoUserData.email;
-      if (ssoEmail && ssoEmail.includes('@') && !ssoEmail.startsWith('undefined@')) {
-        user.email = ssoEmail;
-      }
-      user.firstName = names[0] || user.firstName;
-      user.lastName = names.slice(1).join(' ') || user.lastName;
-      user.role = ssoUserData.role;
+      // SSO ใช้สำหรับยืนยันตัวตนเท่านั้น — ไม่ overwrite ข้อมูลในระบบ
+      // อัปเดตเฉพาะ lastLogin
       user.lastLogin = new Date();
-      
       await user.save();
 
       logger.info(`AuthService: User updated from SSO: ${user.username}`);
