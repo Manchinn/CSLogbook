@@ -375,11 +375,12 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader, curri
       };
     }
 
+    const processedStudentIDs = new Set();
     const consumeRow = async (rawRow = {}) => {
       const normalizedRow = normalizeRowKeys(rawRow);
 
       try {
-        const validation = validateCSVRowEnhanced(normalizedRow);
+        const validation = validateCSVRowEnhanced(normalizedRow, processedStudentIDs);
 
         if (validation.isValid && validation.normalizedData) {
           const { normalizedData } = validation;
@@ -482,6 +483,28 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader, curri
       const stream = createCsvStream(filePath);
       for await (const row of stream) {
         await consumeRow(row);
+      }
+    }
+
+    // อัปเดต eligibility flags สำหรับนักศึกษาที่ upload สำเร็จ
+    const successResults = results.filter(r => r.status === 'Added' || r.status === 'Updated');
+    for (const result of successResults) {
+      try {
+        const student = await Student.findOne({
+          where: { studentCode: result.studentID },
+          transaction
+        });
+        if (student && typeof student.checkInternshipEligibility === 'function') {
+          const internshipCheck = await student.checkInternshipEligibility();
+          const projectCheck = await student.checkProjectEligibility();
+          await student.update({
+            isEligibleInternship: internshipCheck.eligible,
+            isEligibleProject: projectCheck.eligible
+          }, { transaction });
+        }
+      } catch (eligibilityError) {
+        // ไม่ให้ eligibility check error ทำให้ upload ล้ม
+        console.warn(`Eligibility check failed for ${result.studentID}:`, eligibilityError.message);
       }
     }
 

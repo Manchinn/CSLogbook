@@ -87,7 +87,6 @@ export default function NotificationSettingsPage() {
       <div className={styles.page}>
         {/* ─── Header ─── */}
         <header className={styles.header}>
-          <h1>การตั้งค่าการแจ้งเตือน</h1>
           <p className={styles.subtitle}>ควบคุมการเปิด/ปิดการแจ้งเตือนของระบบ</p>
         </header>
 

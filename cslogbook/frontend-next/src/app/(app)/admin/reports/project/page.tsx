@@ -138,7 +138,7 @@ export default function AdminProjectReportPage() {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>รายงานโครงงาน</h1>
-            <p className={styles.subtitle}>สถิติและผลการสอบโครงงานพิเศษและวิทยานิพนธ์</p>
+            <p className={styles.subtitle}>สถิติและผลการสอบโครงงานพิเศษและปริญญานิพนธ์</p>
           </div>
           <div className={btn.buttonRow}>
             <button type="button" className={btn.button} onClick={() => { loadSummary(year); loadProjects(filters); }} disabled={loading}>

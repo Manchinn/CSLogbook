@@ -23,10 +23,26 @@ const statusMeta: Record<string, { label: string; className: string }> = {
   Error: { label: "เกิดข้อผิดพลาด", className: styles.tagError },
 };
 
+type FilterKey = "all" | "Added" | "Updated" | "Invalid" | "Error";
+
+const filterOptions: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "ทั้งหมด" },
+  { key: "Added", label: "เพิ่มใหม่" },
+  { key: "Updated", label: "อัปเดต" },
+  { key: "Invalid", label: "ไม่ถูกต้อง" },
+  { key: "Error", label: "ข้อผิดพลาด" },
+];
+
 const getCurriculumId = (curriculum: CurriculumRecord) =>
   curriculum.curriculumId ?? curriculum.id ?? curriculum.curriculumID ?? null;
 
 const getBackendBaseUrl = () => env.apiUrl.replace(/\/api\/?$/, "");
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 export default function AdminUploadPage() {
   const { token } = useAuth();
@@ -34,9 +50,10 @@ export default function AdminUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<UploadStudentResult[]>([]);
   const [summary, setSummary] = useState<UploadStudentSummary | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<FilterKey>("all");
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
+  const [dragActive, setDragActive] = useState(false);
 
   const [prerequisiteStatus, setPrerequisiteStatus] = useState<PrerequisiteStatus>({
     curriculum: { ready: false, message: "" },
@@ -46,6 +63,7 @@ export default function AdminUploadPage() {
   const [activeCurriculums, setActiveCurriculums] = useState<CurriculumRecord[]>([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState<number | null>(null);
   const selectedCurriculumRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     selectedCurriculumRef.current = selectedCurriculumId;
@@ -159,8 +177,7 @@ export default function AdminUploadPage() {
 
   const isReadyToUpload = prerequisiteStatus.curriculum.ready && prerequisiteStatus.academic.ready && !!selectedCurriculum;
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextFile = event.target.files?.[0] ?? null;
+  const validateAndSetFile = (nextFile: File | null) => {
     setMessage(null);
 
     if (!nextFile) {
@@ -190,6 +207,34 @@ export default function AdminUploadPage() {
     }
 
     setFile(nextFile);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    validateAndSetFile(event.target.files?.[0] ?? null);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0] ?? null;
+    validateAndSetFile(droppedFile);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleUpload = async () => {
@@ -253,13 +298,28 @@ export default function AdminUploadPage() {
     return results.filter((item) => item.status === statusFilter);
   }, [results, statusFilter]);
 
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterKey, number> = {
+      all: results.length,
+      Added: 0,
+      Updated: 0,
+      Invalid: 0,
+      Error: 0,
+    };
+    for (const item of results) {
+      const status = item.status as FilterKey;
+      if (status in counts) counts[status]++;
+    }
+    return counts;
+  }, [results]);
+
   return (
     <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <h1>อัปโหลดรายชื่อนักศึกษา</h1>
           <p className={styles.subtitle}>
-            ตรวจสอบให้เรียบร้อยว่าหลักสูตรและปีการศึกษาปัจจุบันถูกต้องก่อนนำเข้าไฟล์ CSV เพื่อความแม่นยำของข้อมูล
+            นำเข้าข้อมูลนักศึกษาจากไฟล์ CSV หรือ Excel เข้าสู่ระบบ
           </p>
         </header>
 
@@ -277,197 +337,260 @@ export default function AdminUploadPage() {
           </div>
         ) : null}
 
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div>
-              <strong>ขั้นตอนที่ควรทำก่อนอัปโหลด</strong>
-            </div>
-            <div className={styles.badgeRow}>
-              <span className={`${styles.badge} ${!isReadyToUpload ? styles.badgeWarning : ""}`}>
-                {isReadyToUpload ? "พร้อมอัปโหลด" : "ต้องตั้งค่าก่อน"}
-              </span>
-              <button type="button" className={btn.button} onClick={loadContext}>
-                รีเฟรชสถานะ
-              </button>
-            </div>
+        {/* ─── Step 1: Prerequisites ─── */}
+        <div className={styles.stepSection}>
+          <div className={styles.stepHeader}>
+            <span className={styles.stepNumber} data-done={isReadyToUpload ? "true" : undefined}>1</span>
+            <h2 className={styles.stepTitle}>ตรวจสอบการตั้งค่าระบบ</h2>
           </div>
 
-          {contextLoading ? (
-            <p className={styles.subtitle}>กำลังตรวจสอบการตั้งค่า...</p>
-          ) : (
-            <div className={styles.cardGrid}>
-              <div className={styles.statusCard}>
-                <div className={styles.statusTitle}>ตั้งค่าหลักสูตรที่ใช้งาน</div>
-                <div className={styles.statusText}>{prerequisiteStatus.curriculum.message}</div>
-                {prerequisiteStatus.curriculum.ready ? (
-                  <select
-                    className={styles.select}
-                    value={selectedCurriculumId ?? ""}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      setSelectedCurriculumId(Number.isNaN(value) ? null : value);
-                    }}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.badgeRow}>
+                <span className={`${styles.badge} ${!isReadyToUpload ? styles.badgeWarning : ""}`}>
+                  {isReadyToUpload ? "พร้อมอัปโหลด" : "ต้องตั้งค่าก่อน"}
+                </span>
+              </div>
+              <button type="button" className={btn.button} onClick={loadContext} disabled={contextLoading}>
+                {contextLoading ? "กำลังตรวจสอบ..." : "รีเฟรชสถานะ"}
+              </button>
+            </div>
+
+            {contextLoading ? (
+              <p className={styles.subtitle}>กำลังตรวจสอบการตั้งค่า...</p>
+            ) : (
+              <div className={styles.cardGrid}>
+                <div className={styles.statusCard} data-ready={prerequisiteStatus.curriculum.ready ? "true" : "false"}>
+                  <div className={styles.statusTitle}>
+                    <span
+                      className={styles.statusIndicator}
+                      data-ready={prerequisiteStatus.curriculum.ready ? "true" : undefined}
+                    />
+                    หลักสูตรที่ใช้งาน
+                  </div>
+                  <div className={styles.statusText}>{prerequisiteStatus.curriculum.message}</div>
+                  {prerequisiteStatus.curriculum.ready ? (
+                    <select
+                      className={styles.select}
+                      title="เลือกหลักสูตร"
+                      value={selectedCurriculumId ?? ""}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setSelectedCurriculumId(Number.isNaN(value) ? null : value);
+                      }}
+                    >
+                      {activeCurriculums.map((curriculum) => {
+                        const curriculumId = getCurriculumId(curriculum);
+                        const label = `${curriculum.code || "ไม่ระบุ"} - ${curriculum.shortName || curriculum.name || "ไม่ระบุ"}`;
+                        return (
+                          <option key={curriculumId ?? label} value={curriculumId ?? ""}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <div className={styles.actionRow}>
+                      <a href="/admin/settings/curriculum" className={btn.button}>
+                        ไปยังหน้าตั้งค่าหลักสูตร
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.statusCard} data-ready={prerequisiteStatus.academic.ready ? "true" : "false"}>
+                  <div className={styles.statusTitle}>
+                    <span
+                      className={styles.statusIndicator}
+                      data-ready={prerequisiteStatus.academic.ready ? "true" : undefined}
+                    />
+                    ปีการศึกษา / ภาคการศึกษา
+                  </div>
+                  <div className={styles.statusText}>{prerequisiteStatus.academic.message}</div>
+                  {!prerequisiteStatus.academic.ready ? (
+                    <div className={styles.actionRow}>
+                      <a href="/admin/settings/academic" className={btn.button}>
+                        ไปยังหน้าตั้งค่าปีการศึกษา
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ─── Step 2: File Upload ─── */}
+        <div className={styles.stepSection}>
+          <div className={styles.stepHeader}>
+            <span className={styles.stepNumber} data-done={file ? "true" : undefined}>2</span>
+            <h2 className={styles.stepTitle}>เลือกไฟล์และอัปโหลด</h2>
+          </div>
+
+          <section className={styles.card}>
+            {!file ? (
+              <div
+                className={styles.dropZone}
+                data-active={dragActive ? "true" : undefined}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx"
+                  title="เลือกไฟล์ CSV หรือ Excel"
+                  onChange={handleFileChange}
+                  className={styles.dropZoneInput}
+                />
+                <div className={styles.dropIcon}>{dragActive ? "\u{1F4E5}" : "\u{1F4C4}"}</div>
+                <div className={styles.dropLabel}>
+                  {dragActive ? "ปล่อยไฟล์ที่นี่" : "ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์"}
+                </div>
+                <div className={styles.dropHint}>รองรับ .csv และ .xlsx ขนาดไม่เกิน 5MB</div>
+              </div>
+            ) : (
+              <div className={styles.fileInfo}>
+                <span className={styles.fileName}>{file.name}</span>
+                <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+                <button type="button" className={styles.fileRemove} onClick={handleRemoveFile}>
+                  ลบไฟล์
+                </button>
+              </div>
+            )}
+
+            <div className={styles.actionRow}>
+              <button
+                type="button"
+                className={`${btn.button} ${btn.buttonPrimary}`}
+                onClick={handleUpload}
+                disabled={uploading || !file || !isReadyToUpload}
+              >
+                {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
+              </button>
+            </div>
+
+            <div className={styles.templateRow}>
+              <span className={styles.templateLabel}>ดาวน์โหลดเทมเพลต:</span>
+              <button type="button" className={btn.button} onClick={() => window.open(csvTemplateDownloadUrl, "_blank")}>
+                CSV
+              </button>
+              <button type="button" className={btn.button} onClick={() => window.open(excelTemplateDownloadUrl, "_blank")}>
+                Excel
+              </button>
+            </div>
+          </section>
+        </div>
+
+        {/* ─── Step 3: Results ─── */}
+        {summary ? (
+          <div className={styles.stepSection}>
+            <div className={styles.stepHeader}>
+              <span className={styles.stepNumber} data-done="true">3</span>
+              <h2 className={styles.stepTitle}>ผลลัพธ์การนำเข้า</h2>
+            </div>
+
+            <section className={styles.card}>
+              {summary.fileError ? (
+                <div className={`${styles.alert} ${styles.alertWarning}`}>{summary.fileError}</div>
+              ) : null}
+
+              <div className={styles.summaryGrid}>
+                <div className={styles.summaryCard} data-type="total">
+                  <div className={styles.summaryLabel}>ทั้งหมด</div>
+                  <div className={styles.summaryValue}>{summary.total ?? 0}</div>
+                </div>
+                <div className={styles.summaryCard} data-type="added">
+                  <div className={styles.summaryLabel}>เพิ่มใหม่</div>
+                  <div className={styles.summaryValue}>{summary.added ?? 0}</div>
+                </div>
+                <div className={styles.summaryCard} data-type="updated">
+                  <div className={styles.summaryLabel}>อัปเดต</div>
+                  <div className={styles.summaryValue}>{summary.updated ?? 0}</div>
+                </div>
+                <div className={styles.summaryCard} data-type="invalid">
+                  <div className={styles.summaryLabel}>ไม่ถูกต้อง</div>
+                  <div className={styles.summaryValue}>{summary.invalid ?? 0}</div>
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.card}>
+              <div className={styles.filterTabs}>
+                {filterOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    className={styles.filterTab}
+                    data-active={statusFilter === opt.key ? "true" : undefined}
+                    onClick={() => setStatusFilter(opt.key)}
                   >
-                    {activeCurriculums.map((curriculum) => {
-                      const curriculumId = getCurriculumId(curriculum);
-                      const label = `${curriculum.code || "ไม่ระบุ"} - ${curriculum.shortName || curriculum.name || "ไม่ระบุ"}`;
-                      return (
-                        <option key={curriculumId ?? label} value={curriculumId ?? ""}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    {opt.label}
+                    {results.length > 0 ? (
+                      <span className={styles.filterCount}>{filterCounts[opt.key]}</span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.tableWrap}>
+                {filteredResults.length > 0 ? (
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>รหัสนักศึกษา</th>
+                        <th>ชื่อ</th>
+                        <th>นามสกุล</th>
+                        <th>อีเมล</th>
+                        <th>สถานะ</th>
+                        <th>หมายเหตุ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredResults.map((item, index) => {
+                        const meta = statusMeta[item.status ?? ""];
+                        return (
+                          <tr key={item.studentID ?? `${item.status}-${index}`}>
+                            <td className={styles.rowNumber}>{index + 1}</td>
+                            <td>{item.studentID || "-"}</td>
+                            <td>{item.firstName || "-"}</td>
+                            <td>{item.lastName || "-"}</td>
+                            <td>{item.email || "-"}</td>
+                            <td>
+                              <span className={`${styles.statusTag} ${meta?.className ?? ""}`}>
+                                {meta?.label ?? item.status ?? "-"}
+                              </span>
+                            </td>
+                            <td>
+                              {item.status === "Invalid" && item.errors?.length ? (
+                                <div className={styles.errorList}>
+                                  {item.errors.map((errorText, errorIndex) => (
+                                    <div key={`${item.studentID}-err-${errorIndex}`}>{errorText}</div>
+                                  ))}
+                                </div>
+                              ) : item.status === "Error" && item.error ? (
+                                <div className={styles.errorList}>{item.error}</div>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 ) : (
-                  <div className={styles.actionRow}>
-                    <a href="/admin/settings/curriculum" className={btn.button}>
-                      ไปยังหน้าตั้งค่าหลักสูตร
-                    </a>
+                  <div className={styles.emptyState}>
+                    <div className={styles.emptyIcon}>{"\u{1F50D}"}</div>
+                    <div>ไม่พบรายการที่ตรงกับตัวกรอง</div>
                   </div>
                 )}
               </div>
-
-              <div className={styles.statusCard}>
-                <div className={styles.statusTitle}>ตั้งค่าปีการศึกษา/ภาคการศึกษา</div>
-                <div className={styles.statusText}>{prerequisiteStatus.academic.message}</div>
-                {!prerequisiteStatus.academic.ready ? (
-                  <div className={styles.actionRow}>
-                    <a href="/admin/settings/academic" className={btn.button}>
-                      ไปยังหน้าตั้งค่าปีการศึกษา
-                    </a>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-
-          <div className={`${styles.alert} ${isReadyToUpload ? styles.alertSuccess : styles.alertWarning}`}>
-            {isReadyToUpload
-              ? "พร้อมสำหรับการอัปโหลดไฟล์ CSV หรือ Excel"
-              : "ยังมีการตั้งค่าที่ต้องทำให้เรียบร้อยก่อนอัปโหลด"}
+            </section>
           </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.fileInput}>
-            <div>
-              <strong>เลือกไฟล์ CSV หรือ Excel (.xlsx)</strong>
-              <p className={styles.fileMeta}>รองรับไฟล์ .csv และ .xlsx ขนาดไม่เกิน 5MB</p>
-            </div>
-            <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
-            {file ? <p className={styles.fileMeta}>ไฟล์ที่เลือก: {file.name}</p> : null}
-          </div>
-
-          <div className={styles.actionRow}>
-            <button
-              type="button"
-              className={`${btn.button} ${btn.buttonPrimary}`}
-              onClick={handleUpload}
-              disabled={uploading || !file || !isReadyToUpload}
-            >
-              {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์"}
-            </button>
-            <button type="button" className={btn.button} onClick={() => window.open(csvTemplateDownloadUrl, "_blank")}>
-              ดาวน์โหลดเทมเพลต CSV
-            </button>
-            <button type="button" className={btn.button} onClick={() => window.open(excelTemplateDownloadUrl, "_blank")}>
-              ดาวน์โหลดเทมเพลต Excel
-            </button>
-          </div>
-        </section>
-
-        {summary ? (
-          <section className={styles.card}>
-            <strong>สรุปผลการนำเข้า</strong>
-            {summary.fileError ? (
-              <div className={`${styles.alert} ${styles.alertWarning}`}>{summary.fileError}</div>
-            ) : null}
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryCard}>
-                <div>จำนวนรายการทั้งหมด</div>
-                <div className={styles.summaryValue}>{summary.total ?? 0}</div>
-              </div>
-              <div className={styles.summaryCard}>
-                <div>เพิ่มใหม่</div>
-                <div className={styles.summaryValue}>{summary.added ?? 0}</div>
-              </div>
-              <div className={styles.summaryCard}>
-                <div>อัปเดตข้อมูล</div>
-                <div className={styles.summaryValue}>{summary.updated ?? 0}</div>
-              </div>
-              <div className={styles.summaryCard}>
-                <div>ข้อมูลไม่ถูกต้อง</div>
-                <div className={styles.summaryValue}>{summary.invalid ?? 0}</div>
-              </div>
-            </div>
-          </section>
         ) : null}
-
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <strong>ผลลัพธ์การประมวลผล</strong>
-            <div className={styles.filters}>
-              <span className={styles.fileMeta}>แสดงสถานะ:</span>
-              <select
-                className={styles.select}
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                <option value="all">ทั้งหมด</option>
-                <option value="Added">เพิ่มใหม่</option>
-                <option value="Updated">อัปเดตแล้ว</option>
-                <option value="Invalid">ข้อมูลไม่ถูกต้อง</option>
-                <option value="Error">เกิดข้อผิดพลาด</option>
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.tableWrap}>
-            {filteredResults.length ? (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>รหัสนักศึกษา</th>
-                    <th>ชื่อ</th>
-                    <th>นามสกุล</th>
-                    <th>อีเมล</th>
-                    <th>สถานะ</th>
-                    <th>หมายเหตุ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResults.map((item, index) => {
-                    const meta = statusMeta[item.status ?? ""];
-                    return (
-                      <tr key={item.studentID ?? `${item.status}-${index}`}>
-                        <td>{item.studentID || "-"}</td>
-                        <td>{item.firstName || "-"}</td>
-                        <td>{item.lastName || "-"}</td>
-                        <td>{item.email || "-"}</td>
-                        <td>
-                          <span className={`${styles.statusTag} ${meta?.className ?? ""}`}>
-                            {meta?.label ?? item.status ?? "-"}
-                          </span>
-                        </td>
-                        <td>
-                          {item.status === "Invalid" && item.errors?.length
-                            ? item.errors.map((errorText, errorIndex) => (
-                                <div key={`${item.studentID}-err-${errorIndex}`}>• {errorText}</div>
-                              ))
-                            : item.status === "Error" && item.error
-                              ? item.error
-                              : "-"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p className={styles.fileMeta}>ยังไม่มีผลลัพธ์จากการอัปโหลด</p>
-            )}
-          </div>
-        </section>
       </div>
     </RoleGuard>
   );

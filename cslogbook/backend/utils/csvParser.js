@@ -9,7 +9,8 @@ const THAI_MESSAGES = {
     MISSING_NAME: 'ข้อมูลที่จำเป็น: ชื่อ',
     MISSING_SURNAME: 'ข้อมูลที่จำเป็น: นามสกุล',
     INVALID_CREDITS: 'หน่วยกิตไม่ถูกต้อง: ต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0',
-    INVALID_CLASSROOM: 'รูปแบบห้องเรียนไม่ถูกต้อง'
+    INVALID_CLASSROOM: 'รูปแบบห้องเรียนไม่ถูกต้อง',
+    MAJOR_EXCEEDS_TOTAL: 'หน่วยกิตวิชาเอกมากกว่าหน่วยกิตรวม'
   },
   WARNINGS: {
     SCIENTIFIC_NOTATION_CONVERTED: 'แปลงรหัสนักศึกษาจากรูปแบบ Scientific Notation',
@@ -162,11 +163,16 @@ const validateCSVRowEnhanced = (row, processedStudentIDs = new Set()) => {
     }
   }
 
+  // Cross-validate: majorCredits ต้องไม่เกิน totalCredits
+  if (totalCredits !== null && majorCredits !== null && majorCredits > totalCredits) {
+    errors.push(THAI_MESSAGES.ERRORS.MAJOR_EXCEEDS_TOTAL);
+  }
+
   // Create normalized data
   const normalizedData = errors.length === 0 ? {
     studentID,
-    firstName: row['Name'],
-    lastName: row['Surname'],
+    firstName: row['Name']?.trim(),
+    lastName: row['Surname']?.trim(),
     email: `s${studentID}@email.kmutnb.ac.th`,
     role: 'student',
     username: `s${studentID}`,
