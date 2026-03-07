@@ -1,6 +1,6 @@
 /**
- * Gmail OAuth2 Debug & Test Script
- * สคริปต์สำหรับ debug การส่งอีเมลผ่าน Gmail OAuth2 ใน production
+ * Gmail REST API Debug & Test Script
+ * สคริปต์สำหรับ debug การส่งอีเมลผ่าน Gmail REST API ใน production
  *
  * วิธีใช้งานใน Docker:
  *   docker exec -it cslogbook-backend node scripts/test-gmail.js
@@ -25,7 +25,6 @@ const envFile = process.env.NODE_ENV === 'production'
   : '.env.development';
 require('dotenv').config({ path: path.join(__dirname, '..', envFile) });
 
-const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
 
 // ========================================
@@ -91,15 +90,19 @@ const KNOWN_ERRORS = [
   },
   {
     pattern: /Invalid login|authentication failed|auth.*fail/i,
-    diagnosis: 'SMTP authentication failed — access token อาจผิดหรือ Gmail user ไม่ตรง',
+    diagnosis: 'Authentication failed — access token อาจผิดหรือ Gmail user ไม่ตรง',
   },
   {
-    pattern: /Gmail.*API.*not.*enabled|accessNotConfigured/i,
-    diagnosis: 'Gmail API ยังไม่ได้เปิดใช้งาน — ไปเปิดที่ Google Cloud Console > APIs & Services',
+    pattern: /Gmail.*API.*not.*enabled|accessNotConfigured|gmail.*has not been used/i,
+    diagnosis: 'Gmail API ยังไม่ได้เปิดใช้งาน — ไปเปิดที่ Google Cloud Console > APIs & Services > Enable Gmail API',
+  },
+  {
+    pattern: /insufficient.*permission|insufficientPermissions/i,
+    diagnosis: 'Scope ไม่พอ — ต้องใช้ scope https://mail.google.com/ ตอนสร้าง refresh token',
   },
   {
     pattern: /ETIMEDOUT|ECONNREFUSED|ECONNRESET/i,
-    diagnosis: 'ไม่สามารถเชื่อมต่อ SMTP server — ตรวจ network/firewall (port 465/587)',
+    diagnosis: 'ไม่สามารถเชื่อมต่อ Google API — ตรวจ network/firewall (HTTPS port 443)',
   },
   {
     pattern: /getaddrinfo|ENOTFOUND/i,
@@ -107,7 +110,11 @@ const KNOWN_ERRORS = [
   },
   {
     pattern: /token.*expired/i,
-    diagnosis: 'Access token หมดอายุ — ปกติ refresh token จะ auto-renew แต่ถ้า refresh token หมดอายุต้องสร้างใหม่',
+    diagnosis: 'Access token หมดอายุ — refresh token จะ auto-renew แต่ถ้า refresh token หมดอายุต้องสร้างใหม่',
+  },
+  {
+    pattern: /dailyLimitExceeded|rateLimitExceeded/i,
+    diagnosis: 'Gmail API quota เต็ม — รอ 24 ชม. หรือตรวจสอบ quota ที่ Google Cloud Console',
   },
 ];
 
@@ -129,7 +136,8 @@ async function main() {
   const startTime = Date.now();
 
   console.log('\n============================================================');
-  console.log('  Gmail OAuth2 Email Debug Script');
+  console.log('  Gmail REST API Email Debug Script');
+  console.log('  Transport: gmail.users.messages.send (HTTPS 443)');
   console.log('  Timestamp:', new Date().toISOString());
   console.log('  Node.js:', process.version);
   console.log('  ENV file:', envFile);
@@ -153,7 +161,6 @@ async function main() {
     }
   }
 
-  // Optional vars
   logDebug(`  EMAIL_PROVIDER: ${process.env.EMAIL_PROVIDER || '(not set, defaults to gmail)'}`);
   logDebug(`  EMAIL_SENDER: ${process.env.EMAIL_SENDER || '(not set)'}`);
 
@@ -208,14 +215,6 @@ async function main() {
     logOk('Access token received');
     logDebug(`  Token prefix: ${accessToken.substring(0, 16)}...`);
     logDebug(`  Token length: ${accessToken.length} chars`);
-
-    // ลอง introspect token info ถ้าได้
-    if (tokenResponse.res?.data) {
-      const data = tokenResponse.res.data;
-      if (data.expiry_date) {
-        logDebug(`  Token expiry: ${new Date(data.expiry_date).toISOString()}`);
-      }
-    }
   } catch (error) {
     logError('Failed to get access token', error);
     diagnoseError(error);
@@ -223,84 +222,106 @@ async function main() {
   }
 
   // --------------------------------------------------
-  // Step 4: Create Nodemailer transporter (with debug)
+  // Step 4: Create Gmail API client
   // --------------------------------------------------
-  logDebug('Step 4: Creating Nodemailer SMTP transporter...');
+  logDebug('Step 4: Creating Gmail API client...');
 
-  let transporter;
+  let gmail;
   try {
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: gmailUser,
-        clientId: clientId,
-        clientSecret: clientSecret,
-        refreshToken: refreshToken,
-        accessToken: accessToken,
-      },
-      debug: true,
-      logger: true,
-    });
-    logOk('SMTP transporter created with debug mode enabled');
+    gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    logOk('Gmail API client created (HTTPS, no SMTP)');
   } catch (error) {
-    logError('Failed to create SMTP transporter', error);
+    logError('Failed to create Gmail API client', error);
     diagnoseError(error);
     process.exit(1);
   }
 
   // --------------------------------------------------
-  // Step 5: Verify SMTP connection
+  // Step 5: Verify Gmail API connection
   // --------------------------------------------------
-  logDebug('Step 5: Verifying SMTP connection (transporter.verify)...');
+  logDebug('Step 5: Verifying Gmail API connection (getProfile)...');
 
   try {
-    await transporter.verify();
-    logOk('SMTP verification success — transporter is ready to send');
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    logOk('Gmail API verification success');
+    logDebug(`  Email: ${profile.data.emailAddress}`);
+    logDebug(`  Messages total: ${profile.data.messagesTotal}`);
+    logDebug(`  Threads total: ${profile.data.threadsTotal}`);
   } catch (error) {
-    logError('SMTP verification failed', error);
+    logError('Gmail API verification failed', error);
     diagnoseError(error);
-    // ไม่ exit — ลองส่งต่อดู บางกรณี verify ล้มเหลวแต่ส่งได้
-    console.error(`${PREFIX_ERROR} Continuing to send test despite verify failure...\n`);
+    process.exit(1);
   }
 
   // --------------------------------------------------
-  // Step 6: Send test email
+  // Step 6: Send test email via REST API
   // --------------------------------------------------
   if (skipSend) {
     logDebug('Step 6: SKIPPED (EMAIL_TEST_SKIP_SEND=true)');
   } else {
-    logDebug(`Step 6: Sending test email to ${recipient}...`);
+    logDebug(`Step 6: Sending test email to ${recipient} via Gmail REST API...`);
 
     try {
       const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-      const result = await transporter.sendMail({
-        from: process.env.EMAIL_SENDER || gmailUser,
-        to: recipient,
-        subject: `[CSLogbook] Gmail OAuth2 Test — ${now}`,
-        text: `Gmail OAuth2 email test successful.\nTimestamp: ${now}\nNode.js: ${process.version}`,
-        html: `
-          <div style="font-family: sans-serif; padding: 20px; max-width: 500px;">
-            <h2 style="color: #2d7d46;">Gmail OAuth2 Test Passed</h2>
-            <p>Email system is working correctly.</p>
-            <table style="border-collapse: collapse; margin-top: 12px;">
-              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Timestamp</td><td>${now}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #666;">From</td><td>${process.env.EMAIL_SENDER || gmailUser}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #666;">To</td><td>${recipient}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Node.js</td><td>${process.version}</td></tr>
-            </table>
-            <p style="margin-top: 16px; color: #999; font-size: 12px;">CSLogbook Email Debug Script</p>
-          </div>
-        `,
+      const from = process.env.EMAIL_SENDER || gmailUser;
+      const subject = `[CSLogbook] Gmail REST API Test — ${now}`;
+      const html = `
+        <div style="font-family: sans-serif; padding: 20px; max-width: 500px;">
+          <h2 style="color: #2d7d46;">Gmail REST API Test Passed</h2>
+          <p>Email system is working correctly via Gmail REST API (HTTPS 443).</p>
+          <table style="border-collapse: collapse; margin-top: 12px;">
+            <tr><td style="padding: 4px 12px 4px 0; color: #666;">Timestamp</td><td>${now}</td></tr>
+            <tr><td style="padding: 4px 12px 4px 0; color: #666;">From</td><td>${from}</td></tr>
+            <tr><td style="padding: 4px 12px 4px 0; color: #666;">To</td><td>${recipient}</td></tr>
+            <tr><td style="padding: 4px 12px 4px 0; color: #666;">Transport</td><td>Gmail REST API (not SMTP)</td></tr>
+            <tr><td style="padding: 4px 12px 4px 0; color: #666;">Node.js</td><td>${process.version}</td></tr>
+          </table>
+          <p style="margin-top: 16px; color: #999; font-size: 12px;">CSLogbook Email Debug Script</p>
+        </div>
+      `;
+
+      // สร้าง RFC 2822 message
+      const boundary = `boundary_${Date.now()}`;
+      const rawMessage = [
+        `From: ${from}`,
+        `To: ${recipient}`,
+        `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(`Gmail REST API test successful. Timestamp: ${now}`).toString('base64'),
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(html).toString('base64'),
+        '',
+        `--${boundary}--`,
+      ].join('\r\n');
+
+      // base64url encode
+      const encodedMessage = Buffer.from(rawMessage)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      logDebug('  Raw message built, sending via gmail.users.messages.send...');
+
+      const res = await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: { raw: encodedMessage }
       });
 
       logOk('Email sent successfully!');
-      logDebug(`  Message ID: ${result.messageId}`);
-      logDebug(`  Accepted: ${JSON.stringify(result.accepted)}`);
-      logDebug(`  Rejected: ${JSON.stringify(result.rejected)}`);
-      if (result.envelope) {
-        logDebug(`  Envelope: ${JSON.stringify(result.envelope)}`);
-      }
+      logDebug(`  Gmail Message ID: ${res.data.id}`);
+      logDebug(`  Thread ID: ${res.data.threadId}`);
+      logDebug(`  Labels: ${JSON.stringify(res.data.labelIds)}`);
     } catch (error) {
       logError('Failed to send test email', error);
       diagnoseError(error);
@@ -314,6 +335,7 @@ async function main() {
   const elapsed = Date.now() - startTime;
   console.log('\n============================================================');
   console.log(`  All steps completed in ${elapsed}ms`);
+  console.log('  Transport: Gmail REST API (HTTPS 443, no SMTP)');
   console.log('  Check inbox (and spam folder) for:', recipient);
   console.log('============================================================\n');
 

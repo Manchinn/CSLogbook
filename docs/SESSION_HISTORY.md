@@ -301,6 +301,32 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | MEETING | การนัดพบอาจารย์ | แจ้งนัดหมายพบอาจารย์โครงงาน |
 
 **Email Infrastructure:**
-- Providers: Gmail API (OAuth2), SMTP (Gmail App Password), Ethereal (testing), Console (debug)
+- Providers: Gmail API (OAuth2), Ethereal (testing), Console (debug)
 - Templates: 10 HTML files ใน `backend/templates/` — Thai localization, KMUTNB branding
 - Feature flags: ใช้ `NotificationSetting` table (database-driven) ไม่ใช้ .env
+
+## Session 27 (claude, 2026-03-07) — Gmail REST API Migration (SMTP blocked)
+
+**ปัญหา:** Email ส่งไม่ได้ใน production — VPS block outbound SMTP port 465/587
+
+**การวินิจฉัย:**
+1. สร้าง `scripts/test-gmail.js` — standalone debug script สำหรับรันใน Docker
+2. พบ `unauthorized_client` → refresh token สร้างด้วย credentials คนละชุด → สร้างใหม่
+3. พบ `.env.production` ไม่ถูก mount เข้า container → แก้ env ให้ตรง
+4. พบ `ETIMEDOUT` ที่ smtp.gmail.com:465 → VPS block SMTP port
+5. ยืนยันด้วย `nc -zv smtp.gmail.com 465` → Operation timed out
+
+**แก้ไข:** เปลี่ยนจาก nodemailer SMTP เป็น Gmail REST API (HTTPS 443)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เปลี่ยน Gmail transport จาก SMTP เป็น REST API (`gmail.users.messages.send`) | `backend/utils/gmailTransport.js` |
+| สร้าง Gmail debug/test script (non-interactive, Docker-friendly) | `backend/scripts/test-gmail.js` (NEW) |
+
+**Architecture เปลี่ยน:**
+```
+ก่อน: Node.js → nodemailer → SMTP smtp.gmail.com:465 ❌
+หลัง: Node.js → googleapis → Gmail REST API (HTTPS 443) ✅
+```
+
+**Interface ไม่เปลี่ยน:** `gmailTransport.initialize()`, `.sendMail()`, `.verify()`, `.close()` — caller ทุกตัวไม่ต้องแก้
