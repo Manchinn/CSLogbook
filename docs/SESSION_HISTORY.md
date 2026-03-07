@@ -199,3 +199,34 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | Academic page: sub-tabs, collapsible forms, section icons, empty states | `academic/page.tsx` |
 | Curriculum page: section icons, sectionAccent, empty state | `curriculum/page.tsx` |
 | Button refinements: transition, active scale, focus ring | `buttons.module.css` |
+
+## Session 24 (claude, 2026-03-07) — PDF System Audit & Fix
+
+ตรวจสอบระบบ PDF ทั้งหมด (generate, export, display) แก้ไข Critical+High+Medium issues
+
+**Critical Fixes:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| C1: แก้ชื่อมหาวิทยาลัยผิดในหนังสือส่งตัว ("ม.ธนบุรี" → มจพ.) | `referralLetter.service.js` |
+| C2: เพิ่ม Thai font (Loma) ในหนังสือส่งตัว (เดิมใช้ Helvetica → tofu) | `referralLetter.service.js` |
+| C3: เพิ่ม Thai font ใน Logbook Summary PDF | `internshipLogbookService.js` |
+
+**High — Data Correctness:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| H1: Certificate ใช้ approvedHours แทน totalHours (ป้องกันชั่วโมงเกินจริง) | `certificate.service.js` |
+| H2: Certificate evaluation query เพิ่ม internshipId filter (ป้องกันดึงผิดรอบ) | `certificate.service.js` |
+| H3: CS05 status filter ใช้ CS05_POST_APPROVAL_STATUSES ใน generatePDF (เดิม filter เฉพาะ "approved") | `referralLetter.service.js` |
+| H4: แก้ชื่อผู้อนุมัติจาก "ผศ.ดร.อภิชาต บุญมา" → "รศ.ดร.ธนภัทร์ อนุศาสน์อมรกุล" (3 จุด) | `certificate.service.js`, `referralLetter.service.js` |
+
+**Medium — Architecture:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง config/departmentInfo.js — constant กลางสำหรับชื่อผู้ลงนาม/คณะ/มหาวิทยาลัย | `config/departmentInfo.js` (NEW) |
+| M1: Logbook Summary เพิ่ม page break แทน 35-row limit | `internshipLogbookService.js` |
+| M2: แก้ buffer concat pattern ให้มีประสิทธิภาพ | `referralLetter.service.js` |
+| M3: ลบ dead code createReferralLetterPDF() + deprecated proxy | `referralLetter.service.js`, `internshipManagementService.js` |
+| M4: เพิ่ม formatThaiDate ใน dateUtils.js, ลบ duplicate ใน certificate.service | `utils/dateUtils.js`, `certificate.service.js`, `internshipManagementService.js` |

@@ -190,6 +190,7 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 21 | 03-06 | Dead routes cleanup, report RBAC (17 routes) |
 | 22 | 03-06 | Hotfix: restore getAcademicDashboard (false positive) |
 | 23 | 03-06 | Academic/curriculum bug fixes (B1-F5), settings page redesign |
+| 24 | 03-07 | PDF system audit: Thai font fix, data correctness, departmentInfo config |
 
 ### Pending
 
@@ -205,6 +206,7 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | `backend/config/scoring.js` | `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
 | `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` — critical for academic/curriculum |
 | `backend/config/corsOrigins.js` | Dynamic CORS via `ALLOWED_ORIGINS` env |
+| `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค, คณะ, มหาวิทยาลัย — ใช้ใน PDF ทุกประเภท |
 | `src/lib/utils/statusLabels.ts` | `labelStatus()` — use instead of raw enums |
 | `src/lib/utils/thaiDateUtils.ts` | `currentBuddhistYear()` shared function |
 | `src/lib/services/teacherService.ts` | Teacher API — `submitKP02AdvisorDecision` needs `defenseType` |

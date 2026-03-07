@@ -450,8 +450,6 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
                 <p>ยื่นคำขอเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.submittedAt)}</p>
                 <p>อาจารย์อนุมัติเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.advisorApprovedAt)}</p>
                 <p>เจ้าหน้าที่ตรวจเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.staffVerifiedAt)}</p>
-                <p>กำหนดสอบ: {formatDateTime(expandedDetail.defenseRequest?.defenseScheduledAt)}</p>
-                <p>สถานที่สอบ: {expandedDetail.defenseRequest?.defenseLocation || "-"}</p>
               </section>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>ผลการสอบ</h3>

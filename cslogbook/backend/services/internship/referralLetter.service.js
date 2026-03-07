@@ -1,4 +1,5 @@
 // services/internship/referralLetter.service.js
+const path = require("path");
 const {
   Document,
   InternshipDocument,
@@ -8,6 +9,11 @@ const {
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
 const { calculateStudentYear } = require("../../utils/studentUtils");
+const DEPARTMENT_INFO = require("../../config/departmentInfo");
+
+// Thai font paths
+const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
+const FONT_BOLD = path.join(__dirname, "../../fonts/Loma-Bold.otf");
 
 /**
  * Status ของ CS05 ที่ถือว่า "ได้รับการอนุมัติแล้ว" (ผ่าน approved ไปแล้ว)
@@ -171,7 +177,7 @@ class InternshipReferralLetterService {
           documentId: parseInt(documentId),
           userId: userId,
           documentName: "CS05",
-          status: "approved", // ต้องได้รับการอนุมัติแล้ว
+          status: [...CS05_POST_APPROVAL_STATUSES],
         },
         include: [
           {
@@ -263,9 +269,9 @@ class InternshipReferralLetterService {
         endDate: internshipDoc.endDate,
         internshipDuration: internshipDoc.internshipDuration,
 
-        // ข้อมูลอาจารย์ที่ปรึกษา (ค่าเริ่มต้น)
-        advisorName: "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
-        advisorTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+        // ข้อมูลหัวหน้าภาควิชา (จาก config กลาง)
+        advisorName: DEPARTMENT_INFO.departmentHead.name,
+        advisorTitle: DEPARTMENT_INFO.departmentHead.title,
       };
 
       const PDFDocument = require("pdfkit");
@@ -281,23 +287,25 @@ class InternshipReferralLetterService {
       });
 
       // สร้าง buffer สำหรับเก็บ PDF
-      let pdfBuffer = Buffer.alloc(0);
+      const buffers = [];
       pdf.on("data", (chunk) => {
-        pdfBuffer = Buffer.concat([pdfBuffer, chunk]);
+        buffers.push(chunk);
       });
 
-      // 7. เขียนเนื้อหา PDF
-      pdf.font("Helvetica");
+      // 7. ลงทะเบียน Thai font
+      pdf.registerFont("Thai", FONT_REGULAR);
+      pdf.registerFont("Thai-Bold", FONT_BOLD);
+      pdf.font("Thai");
 
       // หัวข้อเอกสาร
-      pdf.fontSize(18).text("หนังสือส่งตัวนักศึกษาเข้าฝึกงาน", {
+      pdf.font("Thai-Bold").fontSize(18).text("หนังสือส่งตัวนักศึกษาเข้าฝึกงาน", {
         align: "center",
       });
 
       pdf.moveDown();
 
       // เลขที่เอกสารและวันที่
-      pdf.fontSize(12);
+      pdf.font("Thai").fontSize(12);
       pdf.text(`เลขที่: ${pdfData.documentNumber}`, { align: "left" });
       pdf.text(`วันที่: ${pdfData.documentDate.toLocaleDateString("th-TH")}`, {
         align: "right",
@@ -313,7 +321,7 @@ class InternshipReferralLetterService {
 
       // เนื้อหา
       pdf.text(
-        "ด้วย ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยธนบุรี",
+        `ด้วย ${DEPARTMENT_INFO.departmentName} ${DEPARTMENT_INFO.facultyName} ${DEPARTMENT_INFO.universityName}`,
         {
           align: "justify",
         }
@@ -371,15 +379,15 @@ class InternshipReferralLetterService {
       // ลายเซ็น
       pdf.text("ขอแสดงความนับถือ", { align: "center" });
       pdf.moveDown(3);
-      pdf.text(pdfData.advisorName, { align: "center" });
-      pdf.text(pdfData.advisorTitle, { align: "center" });
+      pdf.font("Thai-Bold").text(pdfData.advisorName, { align: "center" });
+      pdf.font("Thai").text(pdfData.advisorTitle, { align: "center" });
 
       // ปิด PDF
       pdf.end();
 
       // 8. รอให้ PDF เสร็จสิ้น
-      await new Promise((resolve) => {
-        pdf.on("end", resolve);
+      const pdfBuffer = await new Promise((resolve) => {
+        pdf.on("end", () => resolve(Buffer.concat(buffers)));
       });
 
       const fileName = `หนังสือส่งตัว-${pdfData.studentData[0].fullName}-${documentId}.pdf`;
@@ -405,104 +413,6 @@ class InternshipReferralLetterService {
       logger.error("Generate Referral Letter PDF Service Error:", error);
       throw error;
     }
-  }
-
-  /**
-   * สร้าง PDF หนังสือส่งตัว (ฟังก์ชันช่วย)
-   * *** ต้องเพิ่ม PDF generation library ***
-   */
-  async createReferralLetterPDF(data) {
-    // ตัวอย่างการใช้ PDFKit (ต้องติดตั้ง: npm install pdfkit)
-    const PDFDocument = require("pdfkit");
-
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({
-          size: "A4",
-          margins: { top: 50, bottom: 50, left: 50, right: 50 },
-        });
-
-        const buffers = [];
-        doc.on("data", buffers.push.bind(buffers));
-        doc.on("end", () => {
-          const pdfBuffer = Buffer.concat(buffers);
-          resolve(pdfBuffer);
-        });
-
-        // เพิ่มเนื้อหาหนังสือส่งตัว
-        doc
-          .fontSize(18)
-          .text("หนังสือส่งตัวนักศึกษาเข้าฝึกงาน", { align: "center" });
-        doc.moveDown();
-
-        doc.fontSize(12);
-        doc.text(`เลขที่ ${data.documentNumber}`);
-        doc.text(
-          `วันที่ ${new Date(data.documentDate).toLocaleDateString("th-TH")}`
-        );
-        doc.moveDown();
-
-        doc.text(`เรียน ผู้จัดการ ${data.companyName}`);
-        doc.moveDown();
-
-        doc.text(`เรื่อง ส่งตัวนักศึกษาเข้าฝึกงาน`);
-        doc.moveDown();
-
-        doc.text(
-          `บัดนี้ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอส่งตัวนักศึกษา:`
-        );
-
-        if (data.studentData && data.studentData.length > 0) {
-          data.studentData.forEach((student, index) => {
-            doc.text(
-              `${index + 1}. ${student.fullName} รหัส ${student.studentId}`
-            );
-          });
-        }
-
-        doc.moveDown();
-        doc.text(
-          `เข้าฝึกงาน${
-            data.internshipPosition
-              ? ` ในตำแหน่ง ${data.internshipPosition}`
-              : ""
-          }`
-        );
-        doc.text(
-          `ตั้งแต่วันที่ ${new Date(data.startDate).toLocaleDateString(
-            "th-TH"
-          )} ถึง ${new Date(data.endDate).toLocaleDateString("th-TH")}`
-        );
-
-        if (data.supervisorName) {
-          doc.moveDown();
-          doc.text(
-            `โดยมี ${data.supervisorName}${
-              data.supervisorPosition
-                ? ` ตำแหน่ง ${data.supervisorPosition}`
-                : ""
-            } เป็นผู้ควบคุมการฝึกงาน`
-          );
-        }
-
-        doc.moveDown();
-        doc.text("จึงเรียนมาเพื่อโปรดทราบและดำเนินการต่อไป");
-
-        doc.moveDown(2);
-        doc.text("ขอแสดงความนับถือ", { align: "center" });
-        doc.moveDown(2);
-        doc.text("(รองศาสตราจารย์ ดร.ธนภัทร์ อนุศาสน์อมรกุล)", {
-          align: "center",
-        });
-        doc.text("หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", {
-          align: "center",
-        });
-
-        doc.end();
-      } catch (error) {
-        reject(error);
-      }
-    });
   }
 
   /**

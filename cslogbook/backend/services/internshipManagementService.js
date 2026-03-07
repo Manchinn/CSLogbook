@@ -623,17 +623,6 @@ class InternshipManagementService {
 
 
   /**
-   * สร้าง PDF หนังสือส่งตัว (ฟังก์ชันช่วย)
-   * *** ต้องเพิ่ม PDF generation library ***
-   * @deprecated Use internshipReferralLetterService.createReferralLetterPDF instead
-   */
-  async createReferralLetterPDF(data) {
-    const internshipReferralLetterService = require('./internship/referralLetter.service');
-    return internshipReferralLetterService.createReferralLetterPDF(data);
-  }
-
-
-  /**
    * ตรวจสอบสถานะหนังสือตอบรับการฝึกงาน (ฟังก์ชันอื่นที่ใช้งานคล้ายกัน)
    * @deprecated Use internshipAcceptanceLetterService.getAcceptanceLetterStatus instead
    */
@@ -724,14 +713,6 @@ class InternshipManagementService {
   generateCertificateNumber(studentCode) {
     const internshipCertificateService = require('./internship/certificate.service');
     return internshipCertificateService.generateCertificateNumber(studentCode);
-  }
-
-  /**
-   * @deprecated Use internshipCertificateService.formatThaiDate instead
-   */
-  formatThaiDate(date) {
-    const internshipCertificateService = require('./internship/certificate.service');
-    return internshipCertificateService.formatThaiDate(date);
   }
 
   /**
