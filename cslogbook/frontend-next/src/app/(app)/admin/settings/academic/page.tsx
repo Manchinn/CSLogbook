@@ -10,7 +10,6 @@ import {
   validateBuddhistYear,
   ensureBuddhistYear,
 } from "@/lib/utils/thaiDateUtils";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   getAcademicSettings,

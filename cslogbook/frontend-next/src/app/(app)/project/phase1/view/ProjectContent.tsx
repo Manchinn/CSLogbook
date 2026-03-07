@@ -9,7 +9,6 @@ import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
-import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
 import { acknowledgeTopicExamResult } from "@/lib/services/studentService";
 import {
   extractDeadlineKeywords,
@@ -95,11 +94,8 @@ export default function ProjectContent() {
     isLoading: projectDetailLoading,
     refetch: refetchProjectDetail,
   } = useStudentProjectDetail(token, queriesEnabled);
-  const {
-    data: timeline,
-    isLoading: timelineLoading,
-    error: timelineError,
-  } = useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
+  // timeline data — hook ยังใช้เพื่อ prefetch; ค่า destructure ยังไม่ได้ render
+  useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
   const { data: deadlines } = useStudentDeadlineCalendar(
     token,
     projectDetail?.academicYear ?? null,
