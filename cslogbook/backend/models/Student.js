@@ -47,6 +47,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'student_id',
                 as: 'workflowActivities'
             });
+            Student.hasMany(models.StudentAcademicHistory, {
+                foreignKey: 'student_id',
+                as: 'academicHistories'
+            });
         }
 
         async checkInternshipEligibility() {

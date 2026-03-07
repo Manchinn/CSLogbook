@@ -160,7 +160,7 @@ export default function AdminStudentsPage() {
   const emptyMessage = useMemo(() => {
     if (search.trim()) return `ไม่พบนักศึกษาที่ตรงกับคำค้นหา "${search.trim()}"`;
     if (status) return `ไม่พบนักศึกษาที่มีสถานะ "${status === "internship" ? "มีสิทธิ์ฝึกงาน" : "มีสิทธิ์โครงงาน"}"`;
-    if (academicYear) return `ไม่พบนักศึกษาของปีการศึกษา ${academicYear}`;
+    if (academicYear) return `ไม่พบนักศึกษาของปีเข้าศึกษา ${academicYear}`;
     if (semester) return `ไม่พบนักศึกษาของภาคเรียน ${semester}`;
     return "ไม่พบข้อมูลนักศึกษา";
   }, [academicYear, search, semester, status]);
@@ -380,7 +380,7 @@ export default function AdminStudentsPage() {
                 setPage(1);
               }}
             >
-              <option value="">ทุกปีการศึกษา</option>
+              <option value="">ทุกปีเข้าศึกษา</option>
               {academicYearOptions.map((year) => (
                 <option key={year.key} value={year.value}>
                   {year.label}
@@ -537,8 +537,7 @@ export default function AdminStudentsPage() {
                         <p className={styles.subText}>
                           หน่วยกิตสะสม: {selected.totalCredits ?? 0} | หน่วยกิตภาควิชา: {selected.majorCredits ?? 0}
                         </p>
-                        <p className={styles.subText}>ปีการศึกษา: {selected.academicYear || "-"}</p>
-                        <p className={styles.subText}>ภาคเรียน: {selected.semester || "-"}</p>
+                        <p className={styles.subText}>ปีเข้าศึกษา: {selected.academicYear || "-"}</p>
                       </div>
                       <div className={styles.detailSection}>
                         <p className={styles.detailTitle}>สถานะการมีสิทธิ์</p>
