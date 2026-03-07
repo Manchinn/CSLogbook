@@ -170,8 +170,7 @@ module.exports = (sequelize) => {
 
       if (defenseType === 'PROJECT1') {
         updates.topicDefenseRequestId = requestId;
-        updates.topicDefenseStatus = status;
-        
+
         if (status === 'submitted') {
           updates.currentPhase = 'TOPIC_EXAM_PENDING';
         } else if (status === 'scheduled') {
@@ -179,8 +178,7 @@ module.exports = (sequelize) => {
         }
       } else if (defenseType === 'THESIS') {
         updates.thesisDefenseRequestId = requestId;
-        updates.thesisDefenseStatus = status;
-        
+
         if (status === 'submitted') {
           updates.currentPhase = 'THESIS_EXAM_PENDING';
         } else if (status === 'scheduled') {
@@ -296,40 +294,20 @@ module.exports = (sequelize) => {
       allowNull: true,
       field: 'topic_defense_request_id'
     },
-    topicDefenseStatus: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      field: 'topic_defense_status'
-    },
     thesisDefenseRequestId: {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'thesis_defense_request_id'
-    },
-    thesisDefenseStatus: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      field: 'thesis_defense_status'
     },
     systemTestRequestId: {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'system_test_request_id'
     },
-    systemTestStatus: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      field: 'system_test_status'
-    },
     finalDocumentId: {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'final_document_id'
-    },
-    finalDocumentStatus: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      field: 'final_document_status'
     },
     meetingCount: {
       type: DataTypes.INTEGER,
