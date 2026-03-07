@@ -218,7 +218,7 @@ class SSOService {
 
     const mappedData = {
       username: profile.username || userInfo.username,
-      email: profile.email || `${profile.username}@kmutnb.ac.th`,
+      email: ssoData.email || profile.email || userInfo.email || ((profile.username || userInfo.username) ? `${profile.username || userInfo.username}@kmutnb.ac.th` : null),
       firstName: firstName,
       lastName: lastName,
       displayName: displayName,

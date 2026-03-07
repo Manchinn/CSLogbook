@@ -151,6 +151,9 @@ exports.callback = async (req, res) => {
     // อัปเดตเวลาเข้าสู่ระบบ
     await authService.updateLastLogin(user.userId);
 
+    // ส่งการแจ้งเตือนการเข้าสู่ระบบ (non-blocking)
+    authService.sendLoginNotification(user.email, user).catch(() => {});
+
     logger.info('SSO Controller: Login successful', {
       userId: user.userId,
       role: user.role,
