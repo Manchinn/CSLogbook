@@ -71,7 +71,6 @@ export const STATUS_LABELS: Record<string, string> = {
   thesis_exam_pending:   "รอยื่นสอบปริญญานิพนธ์",
   thesis_exam_scheduled: "นัดสอบปริญญานิพนธ์แล้ว",
   thesis_failed:         "สอบปริญญานิพนธ์ไม่ผ่าน",
-  archived:              "จัดเก็บแล้ว",
 
   // Student eligibility compound states
   in_progress_internship: "กำลังฝึกงาน",
