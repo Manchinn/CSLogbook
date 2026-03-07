@@ -660,7 +660,7 @@ class ProjectDefenseRequestService {
         lock: t.LOCK.UPDATE
       });
 
-      if (!latestSystemTest || latestSystemTest.status !== 'staff_approved') {
+      if (!latestSystemTest || !['staff_approved', 'evidence_submitted'].includes(latestSystemTest.status)) {
         throw new Error('ยังไม่ได้รับการอนุมัติคำขอทดสอบระบบครบ 30 วัน');
       }
       if (!latestSystemTest.evidenceSubmittedAt) {

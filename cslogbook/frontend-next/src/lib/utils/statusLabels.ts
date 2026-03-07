@@ -96,6 +96,7 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   passed:             "success",
   staff_verified:     "success",
   staff_approved:     "success",
+  evidence_submitted: "success",
   submitted:          "info",
   eligible:           "success",
   ready:              "success",
@@ -103,8 +104,7 @@ export const STATUS_TONES: Record<string, StatusTone> = {
 
   // Info
   advisor_in_review:  "info",
-  pending_advisor:    "info",
-  pending_staff:      "info",
+  advisor_assigned:   "info",
   scheduled:          "info",
   draft:              "info",
   in_window:          "info",
@@ -115,6 +115,8 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   pending_approval:   "warning",
   in_progress:        "warning",
   advisor_approved:   "warning",
+  pending_advisor:    "warning",
+  pending_staff:      "warning",
   overdue:            "danger",
   very_late:          "danger",
   submitted_late:     "warning",

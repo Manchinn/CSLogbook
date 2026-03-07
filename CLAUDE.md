@@ -196,6 +196,8 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 28 | 03-07 | Email improvements: retry logic, base template, fire-and-forget, tx bug fix |
 | 29 | 03-08 | Status/workflow audit (3 layers), remove 4 unused ProjectWorkflowState columns |
 | 30 | 03-08 | C3-C6 tech debt fixes: label centralization, phantom statuses, ENUM constraints |
+| 31 | 03-08 | Workflow state audit → WORKFLOW_STATES.md, evidence_submitted virtual→real fix |
+| 32 | 03-08 | Generate workflowStates.ts constants (enums, transitions, UI config) + 5-round verification |
 
 ### Pending
 
@@ -213,6 +215,7 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | `backend/config/corsOrigins.js` | Dynamic CORS via `ALLOWED_ORIGINS` env |
 | `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค, คณะ, มหาวิทยาลัย — ใช้ใน PDF ทุกประเภท |
 | `src/lib/utils/statusLabels.ts` | `labelStatus()` — use instead of raw enums |
+| `src/constants/workflowStates.ts` | Enums, transition maps, UI config, `canTransition()` — generated from WORKFLOW_STATES.md |
 | `src/lib/utils/thaiDateUtils.ts` | `currentBuddhistYear()` shared function |
 | `src/lib/services/teacherService.ts` | Teacher API — `submitKP02AdvisorDecision` needs `defenseType` |
 | `src/hooks/useTeacherModule.ts` | Teacher hooks — supports `defenseType` |

@@ -410,3 +410,72 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | `frontend-next/src/app/(app)/internship/certificate/InternshipCertificateView.tsx` | ลบ local approvalStatusLabel(), import จาก shared |
 
 **Note:** Files ที่มี context-specific labels (reports, student-profile, ProjectDraftDetailView) เก็บ local maps ไว้ — เป็น intentional ไม่ใช่ duplication
+
+## Session 31 (claude, 2026-03-08) — Workflow State Audit & evidence_submitted Fix
+
+### Part 1: Complete Workflow State Audit (Prompt 1-5)
+
+สร้าง [WORKFLOW_STATES.md](../WORKFLOW_STATES.md) — Complete State Map ของทั้งระบบ:
+
+- 12 Mermaid state diagrams ครอบคลุม Internship, Project 1, Thesis
+- Master State Tables 10 ตาราง (70+ states)
+- Inconsistency Report 5 categories
+- Unlock Conditions Matrix 30+ conditions
+- Architecture Notes (3-layer status system, convention differences)
+
+### Part 2: evidence_submitted — Virtual → Real Status
+
+**ปัญหา:** `evidence_submitted` เป็น computed/virtual status ที่ frontend สร้างจาก `staff_approved + evidenceSubmittedAt != null` — logic ซ้ำกัน 3 ที่ + backend ไม่เคย set ค่านี้จริง
+
+**แก้ไข:** ย้าย logic ไป backend ให้เป็น real DB status
+
+| ไฟล์ | Action |
+|---|---|
+| `backend/migrations/20260308120000-add-evidence-submitted-to-test-request-status.js` | **ใหม่** — เพิ่ม `evidence_submitted` เข้า ENUM |
+| `backend/models/ProjectTestRequest.js` | เพิ่ม `evidence_submitted` ใน ENUM definition |
+| `backend/services/projectSystemTestService.js` | `uploadEvidence()`: set `status: 'evidence_submitted'` + แก้ summary count + default staff queue filter |
+| `backend/services/projectDefenseRequestService.js` | แก้ guard ให้ accept `evidence_submitted` ด้วย (ไม่ใช่แค่ `staff_approved`) |
+| `frontend-next/src/lib/utils/statusLabels.ts` | เพิ่ม `evidence_submitted: "success"` ใน STATUS_TONES |
+| `frontend-next/src/app/(app)/project/phase1/view/ProjectContent.tsx` | ลบ compound check `staff_approved && evidenceSubmittedAt` → ใช้ mapping ตรง |
+| `frontend-next/src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx` | เช่นเดียวกัน + แก้ step tone ให้เช็ค `evidence_submitted` แทน compound |
+| `frontend-next/src/app/(app)/project/phase2/system-test/SystemTestRequestContent.tsx` | เพิ่ม `evidence_submitted` ใน local statusLabels map |
+| `WORKFLOW_STATES.md` | อัปเดต diagram, state table, inconsistency report |
+
+---
+
+## Session 32 (claude, 2026-03-08) — Workflow Constants TypeScript Generation
+
+สร้าง `workflowStates.ts` — TypeScript constants จาก WORKFLOW_STATES.md พร้อม 5 rounds verification
+
+### สร้างไฟล์ใหม่
+
+| ไฟล์ | เนื้อหา |
+|---|---|
+| `frontend-next/src/constants/workflowStates.ts` | **ใหม่** — 10 enums, 9 transition maps, STATUS_UI_CONFIG, ALL_TRANSITIONS, canTransition() |
+
+### Verification Rounds
+
+| Round | ตรวจอะไร | ผลลัพธ์ |
+|---|---|---|
+| V1: Enum ↔ DB Model | 10 enums เทียบ DataTypes.ENUM() | ✅ 10/10 match |
+| V2: Transition ↔ Code | 9 maps เทียบ service/controller code | ⚠️ พบ phantom transitions → เพิ่ม `@phantom` comments |
+| V3: Roles + Type | 20 rules จาก ALL_TRANSITIONS เทียบ middleware/guard | ⚠️ แก้ 3 rules (R1,R2 roles/type, R5 roles) |
+| V4: UI Config ↔ statusLabels | Labels + tones เทียบ statusLabels.ts | ⚠️ เพิ่ม `passed`/`failed` + แก้ tones |
+| V5: Re-verify Enums | ตรวจซ้ำหลังแก้ไขทั้งหมด | ✅ 10/10 match |
+
+### แก้ไขที่ workflowStates.ts
+
+| Action | รายละเอียด |
+|---|---|
+| `@phantom` comments | 12 phantom transitions ใน 5 maps (PROJECT_WORKFLOW, PROJECT_DOCUMENT, INTERNSHIP_DOCUMENT, DEFENSE_REQUEST, APPROVAL_TOKEN) |
+| R1-R2 fix | not_started → pending_approval/in_progress: roles `['system']`→`['teacher']`, type `'system'`→`'manual'` |
+| R5 fix | draft → pending: roles `['student','admin']`→`['admin']` |
+| เพิ่ม `passed`/`failed` | lowercase exam result entries ใน STATUS_UI_CONFIG |
+
+### แก้ไขที่ statusLabels.ts
+
+| Action | รายละเอียด |
+|---|---|
+| `pending_advisor` tone | `info` → `warning` (สถานะ "รอ" = warning) |
+| `pending_staff` tone | `info` → `warning` |
+| เพิ่ม `advisor_assigned` tone | `info` (ไม่มีมาก่อน) |

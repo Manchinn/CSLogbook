@@ -23,6 +23,7 @@ const statusLabels: Record<string, string> = {
   pending_staff: "รอเจ้าหน้าที่ภาควิชาตรวจสอบ",
   staff_rejected: "เจ้าหน้าที่ส่งกลับ",
   staff_approved: "เจ้าหน้าที่อนุมัติแล้ว",
+  evidence_submitted: "ส่งหลักฐานแล้ว",
 };
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
