@@ -225,15 +225,13 @@ export default function ProjectPhase2Content() {
 
   const systemTestStatusLabel = useMemo(() => {
     if (!systemTestSummary) return "ยังไม่ยื่นคำขอ";
-    if (systemTestSummary.status === "staff_approved" && systemTestSummary.evidenceSubmittedAt) {
-      return "อนุมัติครบและอัปโหลดหลักฐานครบแล้ว";
-    }
     const mapping: Record<string, string> = {
       pending_advisor: "รออาจารย์อนุมัติ",
       advisor_rejected: "อาจารย์ส่งกลับ",
       pending_staff: "รอเจ้าหน้าที่ตรวจสอบ",
       staff_rejected: "เจ้าหน้าที่ส่งกลับ",
       staff_approved: "อนุมัติครบ (รอหลักฐาน)",
+      evidence_submitted: "อนุมัติครบและอัปโหลดหลักฐานครบแล้ว",
     };
     return mapping[systemTestSummary.status ?? ""] ?? "กำลังดำเนินการ";
   }, [systemTestSummary]);
@@ -262,7 +260,7 @@ export default function ProjectPhase2Content() {
       result["system-test"] = { label: "ยังไม่ยื่นคำขอ", tone: "default" };
     } else if (["advisor_rejected", "staff_rejected"].includes(systemTestSummary.status ?? "")) {
       result["system-test"] = { label: systemTestStatusLabel, tone: "danger" };
-    } else if (systemTestSummary.status === "staff_approved" && systemTestSummary.evidenceSubmittedAt) {
+    } else if (systemTestSummary.status === "evidence_submitted") {
       result["system-test"] = { label: systemTestStatusLabel, tone: "success" };
     } else if (systemTestSummary.status === "staff_approved") {
       result["system-test"] = { label: systemTestStatusLabel, tone: "warning" };

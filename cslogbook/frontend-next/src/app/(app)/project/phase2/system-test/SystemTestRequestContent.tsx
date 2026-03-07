@@ -13,22 +13,17 @@ import {
   uploadSystemTestEvidence,
   type SystemTestRequest,
 } from "@/lib/services/projectService";
+import { statusTone as sharedStatusTone } from "@/lib/utils/statusLabels";
 import styles from "./systemTest.module.css";
 
+/** Context-specific labels สำหรับคำขอทดสอบระบบ */
 const statusLabels: Record<string, string> = {
   pending_advisor: "รออาจารย์ที่ปรึกษาอนุมัติ",
   advisor_rejected: "อาจารย์ไม่อนุมัติ",
   pending_staff: "รอเจ้าหน้าที่ภาควิชาตรวจสอบ",
   staff_rejected: "เจ้าหน้าที่ส่งกลับ",
   staff_approved: "เจ้าหน้าที่อนุมัติแล้ว",
-};
-
-const statusTones: Record<string, "default" | "info" | "warning" | "success" | "danger"> = {
-  pending_advisor: "info",
-  advisor_rejected: "danger",
-  pending_staff: "info",
-  staff_rejected: "danger",
-  staff_approved: "success",
+  evidence_submitted: "ส่งหลักฐานแล้ว",
 };
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -99,15 +94,15 @@ export default function SystemTestRequestContent() {
   }, [request]);
 
   const statusLabel = statusLabels[request?.status ?? ""] ?? "ยังไม่เคยส่งคำขอ";
-  const statusTone = statusTones[request?.status ?? ""] ?? "default";
+  const statusToneValue = sharedStatusTone(request?.status);
   const statusClass =
-    statusTone === "success"
+    statusToneValue === "success"
       ? styles.tagSuccess
-      : statusTone === "warning"
+      : statusToneValue === "warning"
         ? styles.tagWarning
-        : statusTone === "danger"
+        : statusToneValue === "danger"
           ? styles.tagDanger
-          : statusTone === "info"
+          : statusToneValue === "info"
             ? styles.tagInfo
             : styles.tagDefault;
 

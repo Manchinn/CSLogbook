@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { approvalStatusLabel } from "@/lib/utils/statusLabels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
@@ -71,25 +72,6 @@ function statusLabel(status: RowStatus) {
       return "ร่าง";
     default:
       return "ยังไม่บันทึก";
-  }
-}
-
-function approvalStatusLabel(status?: string | null) {
-  switch (status) {
-    case "approved":
-      return "อนุมัติแล้ว";
-    case "pending":
-      return "รอพิจารณา";
-    case "rejected":
-      return "ไม่อนุมัติ";
-    case "cancelled":
-      return "ยกเลิก";
-    case "uploaded":
-      return "อัปโหลดแล้ว (รออนุมัติ)";
-    case "not_uploaded":
-      return "ยังไม่อัปโหลด";
-    default:
-      return "ไม่พบข้อมูล";
   }
 }
 

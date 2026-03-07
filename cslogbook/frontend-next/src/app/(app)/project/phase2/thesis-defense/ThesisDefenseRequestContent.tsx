@@ -13,8 +13,10 @@ import {
   getThesisDefenseRequest,
   submitThesisDefenseRequest,
 } from "@/lib/services/projectService";
+import { statusTone as sharedStatusTone } from "@/lib/utils/statusLabels";
 import styles from "./thesisDefense.module.css";
 
+/** Context-specific labels สำหรับคำขอสอบปริญญานิพนธ์ */
 const statusLabels: Record<string, string> = {
   submitted: "ยื่นคำขอแล้ว",
   advisor_in_review: "รออาจารย์อนุมัติ",
@@ -23,20 +25,6 @@ const statusLabels: Record<string, string> = {
   scheduled: "นัดสอบแล้ว",
   completed: "บันทึกผลสอบเรียบร้อย",
   cancelled: "คำขอถูกยกเลิก",
-  advisor_rejected: "อาจารย์ไม่อนุมัติ",
-  staff_returned: "เจ้าหน้าที่ส่งกลับ",
-};
-
-const statusTones: Record<string, "default" | "info" | "warning" | "success" | "danger"> = {
-  submitted: "info",
-  advisor_in_review: "info",
-  advisor_approved: "warning",
-  staff_verified: "success",
-  scheduled: "info",
-  completed: "success",
-  cancelled: "danger",
-  advisor_rejected: "danger",
-  staff_returned: "danger",
 };
 
 function formatDate(value?: string | null) {
@@ -146,15 +134,15 @@ export default function ThesisDefenseRequestContent() {
 
   const status = String(request?.status || "");
   const statusLabel = statusLabels[status] || "ยังไม่พบสถานะคำขอ";
-  const statusTone = statusTones[status] ?? "default";
+  const statusToneValue = sharedStatusTone(status);
   const statusClass =
-    statusTone === "success"
+    statusToneValue === "success"
       ? styles.tagSuccess
-      : statusTone === "warning"
+      : statusToneValue === "warning"
         ? styles.tagWarning
-        : statusTone === "danger"
+        : statusToneValue === "danger"
           ? styles.tagDanger
-          : statusTone === "info"
+          : statusToneValue === "info"
             ? styles.tagInfo
             : styles.tagDefault;
   const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);

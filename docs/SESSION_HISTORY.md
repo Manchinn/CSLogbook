@@ -338,42 +338,144 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 - SSO ส่ง email ใน `ssoData.email` (OIDC standard) แต่ code เดิมดูแค่ `profile.email` ซึ่งเป็น `{}`
 - `updateUserFromSso` overwrite email ทุกครั้ง รวมถึงค่าไม่ valid → แก้ให้ validate ก่อน overwrite
 - SSO login ไม่ได้เรียก `sendLoginNotification` → เพิ่มใน ssoController callback
-## Session 28 (claude, 2026-03-07) — Email System Improvements: Retry, Base Template, Fire-and-forget
 
-**บริบท:** หลังจากแก้ปัญหา email ส่งไม่ได้ใน Session 27 (SMTP → Gmail REST API) ระบบส่งได้แล้ว แต่ยังมีจุดอ่อน 3 ด้าน: ไม่มี retry เมื่อ API fail, template 10 ไฟล์ duplicate HTML ทั้งหมด, email blocking user request
+## Session 29 (claude, 2026-03-08) — Status/Workflow Audit & Dead Column Cleanup
 
-### 1. Retry Logic (Transport Level)
+**Scope:** Full-stack audit ทุกจุดที่กำหนด status, state, workflow step ทั้ง 3 layers
 
-| งาน | ไฟล์ที่เปลี่ยน |
+### Audit Results
+
+สำรวจ 50+ DB columns, 10+ backend constants, 15+ frontend mappings — ผลอยู่ใน `plans/whimsical-exploring-dolphin.md`
+
+**6 Observations พบ:**
+
+| # | Issue | สถานะ |
+|---|---|---|
+| C1 | Case inconsistency ผลสอบ (PASS vs passed) | ✅ NOT A BUG — service layer normalize ที่ `projectExamResultService.js:464` |
+| C2 | STRING(50) columns ไม่มี constraint ใน ProjectWorkflowState | ✅ **แก้แล้ว** — ลบ 4 columns |
+| C3 | Frontend label duplication (11 files สร้าง local statusLabel() ซ้ำ) | ✅ **แก้แล้ว** (Session 30) |
+| C4 | `documentService.js` STATUS_LABELS มีค่าไม่ตรง Document ENUM | ✅ **แก้แล้ว** (Session 30) |
+| C5 | DefenseRequestStepper handle `staff_returned`, `advisor_rejected` ไม่มีใน DB ENUM | ✅ **แก้แล้ว** (Session 30) |
+| C6 | `InternshipEvaluation.status` เป็น STRING ไม่มี constraint | ✅ **แก้แล้ว** (Session 30) |
+
+### C2 Fix: ลบ 4 unused columns จาก project_workflow_states
+
+| ไฟล์ | Action |
 |---|---|
-| สร้าง retry utility — `withRetry()` exponential backoff 3 attempts (2s→4s→8s) | `backend/utils/retryUtil.js` (NEW) |
-| ครอบ `transport.sendMail()` ด้วย retry + `isRetryableError()` (429/500/503/network) | `backend/utils/emailTransport.js` |
+| `backend/migrations/20260308100000-remove-unused-workflow-state-columns.js` | **สร้างใหม่** — migration ลบ 4 columns |
+| `backend/models/ProjectWorkflowState.js` | ลบ 4 field definitions + ลบ write code ใน `updateFromDefenseRequest()` |
+| `backend/scripts/backfillProjectWorkflowStates.js` | ลบ 2 lines ที่ populate topic/thesis defense status |
 
-### 2. Base Email Template System
+**Columns ที่ลบ:**
+- `topic_defense_status` — snapshot only, ไม่มีใครอ่าน
+- `thesis_defense_status` — snapshot only, ไม่มีใครอ่าน
+- `system_test_status` — NULL ทั้งหมด, ไม่เคยถูกเขียน
+- `final_document_status` — NULL ทั้งหมด, ไม่เคยถูกเขียน
 
-| งาน | ไฟล์ที่เปลี่ยน |
+**Note:** `permissions.js` มี `finalDocumentStatus` เป็น RBAC permission name — ไม่เกี่ยวกับ DB column, ไม่ต้องแก้
+
+## Session 30 (claude, 2026-03-08) — C3-C6 Tech Debt Fixes
+
+**Scope:** แก้ 4 tech debt items ที่พบจาก Session 29 audit
+
+### C5: DefenseRequestStepper phantom statuses
+
+| ไฟล์ | Action |
 |---|---|
-| สร้าง unified base template (KMUTNB red gradient, logo, footer) | `backend/templates/base.html` (NEW) |
-| เพิ่ม `wrapWithBase()` + export `loadTemplate` | `backend/utils/mailer.js` |
-| แก้ทุก send function (9 ฟังก์ชัน) ให้ใช้ `wrapWithBase()` | `backend/utils/mailer.js` |
-| Refactor 10 templates เป็น content-only (ลบ DOCTYPE/head/header/footer) | `backend/templates/*.html` (10 ไฟล์) |
-| สร้าง template files สำหรับ password emails | `backend/templates/passwordResetOtp.html`, `passwordChanged.html` (NEW) |
-| ย้าย inline HTML เป็น template + wrapWithBase | `backend/utils/passwordMailer.js` |
+| `frontend-next/src/components/common/DefenseRequestStepper.tsx` | ลบ 2 phantom cases: `advisor_rejected`, `staff_returned` |
 
-### 3. Fire-and-forget Email Sending
+### C4: documentService STATUS_LABELS mismatch
 
-| งาน | ไฟล์ที่เปลี่ยน |
+| ไฟล์ | Action |
 |---|---|
-| ลบ `await` จาก login notification (มี try-catch ภายในอยู่แล้ว) | `backend/services/authService.js` |
-| ลบ `await` จาก meeting notification, ใช้ `.catch()` | `backend/services/meetingService.js` |
-| **Bug fix:** ย้าย email ไปหลัง `transaction.commit()` (2 จุด: approve+reject) — ก่อนหน้านี้ email fail จะ rollback transaction ทั้งหมด | `backend/services/emailApprovalService.js` |
-| ลบ `await` จาก evaluation notification | `backend/services/internship/evaluation.service.js` |
+| `backend/services/documentService.js` | ลบ dead labels 5 ตัว, เพิ่ม labels ที่ขาด 4 ตัวให้ตรงกับ Document ENUM |
 
-**Architecture เปลี่ยน:**
-```
-ก่อน: Controller → await sendEmail() → Gmail API → response (ช้า, blocking)
-หลัง: Controller → sendEmail() (fire-and-forget) → response (เร็ว)
-       └→ Background: retry 3x → Gmail API
-```
+### C6: InternshipEvaluation.status ENUM constraint
 
-**Bug fix สำคัญ:** `emailApprovalService.js` — email อยู่ก่อน `transaction.commit()` ถ้า Gmail API fail จะ rollback DB ทั้ง approve/reject transaction → ย้ายไปหลัง commit + fire-and-forget
+| ไฟล์ | Action |
+|---|---|
+| `backend/models/InternshipEvaluation.js` | เปลี่ยน STRING(50) → ENUM('submitted_by_supervisor', 'completed') |
+| `backend/migrations/20260308110000-change-internship-evaluation-status-to-enum.js` | **สร้างใหม่** — migration พร้อม safety check |
+
+### C3: Frontend status label/tone centralization
+
+| ไฟล์ | Action |
+|---|---|
+| `frontend-next/src/lib/utils/statusLabels.ts` | เพิ่ม `StatusTone` type, `STATUS_TONES` map, `statusTone()`, `labelStatusWithTone()`, `approvalStatusLabel()` + labels ที่ขาด 7 ตัว |
+| `frontend-next/src/app/(app)/project-pairs/page.tsx` | ลบ local statusLabels, ใช้ `labelStatus()` |
+| `frontend-next/src/app/(app)/student-deadlines/calendar/view/StudentDeadlineCalendar.tsx` | ลบ local statusLabel(), ใช้ `labelStatus()` with fallback |
+| `frontend-next/src/app/(app)/project/phase2/thesis-defense/ThesisDefenseRequestContent.tsx` | ลบ phantom labels + local statusTones, ใช้ shared `statusTone()` |
+| `frontend-next/src/app/(app)/project/phase2/system-test/SystemTestRequestContent.tsx` | ลบ local statusTones, ใช้ shared `statusTone()` |
+| `frontend-next/src/app/(app)/internship/logbook/InternshipLogbookView.tsx` | ลบ local approvalStatusLabel(), import จาก shared |
+| `frontend-next/src/app/(app)/internship/certificate/InternshipCertificateView.tsx` | ลบ local approvalStatusLabel(), import จาก shared |
+
+**Note:** Files ที่มี context-specific labels (reports, student-profile, ProjectDraftDetailView) เก็บ local maps ไว้ — เป็น intentional ไม่ใช่ duplication
+
+## Session 31 (claude, 2026-03-08) — Workflow State Audit & evidence_submitted Fix
+
+### Part 1: Complete Workflow State Audit (Prompt 1-5)
+
+สร้าง [WORKFLOW_STATES.md](../WORKFLOW_STATES.md) — Complete State Map ของทั้งระบบ:
+
+- 12 Mermaid state diagrams ครอบคลุม Internship, Project 1, Thesis
+- Master State Tables 10 ตาราง (70+ states)
+- Inconsistency Report 5 categories
+- Unlock Conditions Matrix 30+ conditions
+- Architecture Notes (3-layer status system, convention differences)
+
+### Part 2: evidence_submitted — Virtual → Real Status
+
+**ปัญหา:** `evidence_submitted` เป็น computed/virtual status ที่ frontend สร้างจาก `staff_approved + evidenceSubmittedAt != null` — logic ซ้ำกัน 3 ที่ + backend ไม่เคย set ค่านี้จริง
+
+**แก้ไข:** ย้าย logic ไป backend ให้เป็น real DB status
+
+| ไฟล์ | Action |
+|---|---|
+| `backend/migrations/20260308120000-add-evidence-submitted-to-test-request-status.js` | **ใหม่** — เพิ่ม `evidence_submitted` เข้า ENUM |
+| `backend/models/ProjectTestRequest.js` | เพิ่ม `evidence_submitted` ใน ENUM definition |
+| `backend/services/projectSystemTestService.js` | `uploadEvidence()`: set `status: 'evidence_submitted'` + แก้ summary count + default staff queue filter |
+| `backend/services/projectDefenseRequestService.js` | แก้ guard ให้ accept `evidence_submitted` ด้วย (ไม่ใช่แค่ `staff_approved`) |
+| `frontend-next/src/lib/utils/statusLabels.ts` | เพิ่ม `evidence_submitted: "success"` ใน STATUS_TONES |
+| `frontend-next/src/app/(app)/project/phase1/view/ProjectContent.tsx` | ลบ compound check `staff_approved && evidenceSubmittedAt` → ใช้ mapping ตรง |
+| `frontend-next/src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx` | เช่นเดียวกัน + แก้ step tone ให้เช็ค `evidence_submitted` แทน compound |
+| `frontend-next/src/app/(app)/project/phase2/system-test/SystemTestRequestContent.tsx` | เพิ่ม `evidence_submitted` ใน local statusLabels map |
+| `WORKFLOW_STATES.md` | อัปเดต diagram, state table, inconsistency report |
+
+---
+
+## Session 32 (claude, 2026-03-08) — Workflow Constants TypeScript Generation
+
+สร้าง `workflowStates.ts` — TypeScript constants จาก WORKFLOW_STATES.md พร้อม 5 rounds verification
+
+### สร้างไฟล์ใหม่
+
+| ไฟล์ | เนื้อหา |
+|---|---|
+| `frontend-next/src/constants/workflowStates.ts` | **ใหม่** — 10 enums, 9 transition maps, STATUS_UI_CONFIG, ALL_TRANSITIONS, canTransition() |
+
+### Verification Rounds
+
+| Round | ตรวจอะไร | ผลลัพธ์ |
+|---|---|---|
+| V1: Enum ↔ DB Model | 10 enums เทียบ DataTypes.ENUM() | ✅ 10/10 match |
+| V2: Transition ↔ Code | 9 maps เทียบ service/controller code | ⚠️ พบ phantom transitions → เพิ่ม `@phantom` comments |
+| V3: Roles + Type | 20 rules จาก ALL_TRANSITIONS เทียบ middleware/guard | ⚠️ แก้ 3 rules (R1,R2 roles/type, R5 roles) |
+| V4: UI Config ↔ statusLabels | Labels + tones เทียบ statusLabels.ts | ⚠️ เพิ่ม `passed`/`failed` + แก้ tones |
+| V5: Re-verify Enums | ตรวจซ้ำหลังแก้ไขทั้งหมด | ✅ 10/10 match |
+
+### แก้ไขที่ workflowStates.ts
+
+| Action | รายละเอียด |
+|---|---|
+| `@phantom` comments | 12 phantom transitions ใน 5 maps (PROJECT_WORKFLOW, PROJECT_DOCUMENT, INTERNSHIP_DOCUMENT, DEFENSE_REQUEST, APPROVAL_TOKEN) |
+| R1-R2 fix | not_started → pending_approval/in_progress: roles `['system']`→`['teacher']`, type `'system'`→`'manual'` |
+| R5 fix | draft → pending: roles `['student','admin']`→`['admin']` |
+| เพิ่ม `passed`/`failed` | lowercase exam result entries ใน STATUS_UI_CONFIG |
+
+### แก้ไขที่ statusLabels.ts
+
+| Action | รายละเอียด |
+|---|---|
+| `pending_advisor` tone | `info` → `warning` (สถานะ "รอ" = warning) |
+| `pending_staff` tone | `info` → `warning` |
+| เพิ่ม `advisor_assigned` tone | `info` (ไม่มีมาก่อน) |

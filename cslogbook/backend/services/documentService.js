@@ -499,17 +499,16 @@ class DocumentService {
         const certificateService = require('./internship/certificate.service');
 
         const STATUS_LABELS = {
+            draft: 'ร่าง',
             pending: 'รอดำเนินการ',
-            pending_approval: 'รออนุมัติ',
             approved: 'อนุมัติแล้ว',
             rejected: 'ไม่อนุมัติ',
-            acceptance_pending: 'รอตอบรับจากสถานประกอบการ',
-            acceptance_uploaded: 'อัปโหลดหนังสือตอบรับแล้ว',
-            acceptance_approved: 'สถานประกอบการตอบรับแล้ว',
-            active: 'กำลังฝึกงาน',
-            completed: 'เสร็จสิ้น',
-            supervisor_approved: 'ผู้ควบคุมงานอนุมัติแล้ว',
             supervisor_evaluated: 'ประเมินผลแล้ว',
+            acceptance_approved: 'สถานประกอบการตอบรับแล้ว',
+            referral_ready: 'หนังสือส่งตัวพร้อม',
+            referral_downloaded: 'ดาวน์โหลดหนังสือส่งตัวแล้ว',
+            completed: 'เสร็จสิ้น',
+            cancelled: 'ยกเลิก',
         };
         const labelOf = (s) => STATUS_LABELS[s] || s || 'ไม่ระบุ';
 

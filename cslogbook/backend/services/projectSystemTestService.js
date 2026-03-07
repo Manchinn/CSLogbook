@@ -449,6 +449,7 @@ class ProjectSystemTestService {
 
       const relativePath = buildRelativePath(fileMeta.path);
       await record.update({
+        status: 'evidence_submitted',
         evidenceFilePath: relativePath,
         evidenceFileName: fileMeta.originalname || null,
         evidenceSubmittedAt: new Date()
@@ -529,7 +530,7 @@ class ProjectSystemTestService {
       const s = row.status;
       const count = Number(row.count || 0);
       if (s === 'pending_advisor') summary.pending += count;
-      else if (s === 'pending_staff' || s === 'staff_approved') summary.approved += count;
+      else if (s === 'pending_staff' || s === 'staff_approved' || s === 'evidence_submitted') summary.approved += count;
       else if (s === 'advisor_rejected') summary.rejected += count;
     }
     summary.total = summary.pending + summary.approved + summary.rejected;
@@ -543,7 +544,7 @@ class ProjectSystemTestService {
       const statuses = Array.isArray(options.status) ? options.status : String(options.status).split(',');
       where.status = { [Op.in]: statuses };
     } else {
-      where.status = { [Op.in]: ['pending_staff', 'staff_approved'] };
+      where.status = { [Op.in]: ['pending_staff', 'staff_approved', 'evidence_submitted'] };
     }
 
     const projectWhere = {};

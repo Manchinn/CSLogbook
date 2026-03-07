@@ -45,23 +45,8 @@ function buildLocalDate(deadline: StudentDeadlineDetail): Date | null {
   return null;
 }
 
-function statusLabel(status?: string | null) {
-  switch (status) {
-    case "in_window":
-      return "กำลังเปิดรับ";
-    case "overdue":
-      return "เกินกำหนด";
-    case "locked":
-      return "ปิดรับ";
-    case "submitted":
-      return "ส่งแล้ว";
-    case "submitted_late":
-      return "ส่งแล้ว (ช้า)";
-    case "announcement":
-      return "ประกาศ";
-    default:
-      return "กำลังจะถึง";
-  }
+function deadlineStatusLabel(status?: string | null) {
+  return labelStatus(status, "กำลังจะถึง");
 }
 
 function statusTone(status?: string | null) {
@@ -176,7 +161,7 @@ export default function StudentDeadlineCalendar({}: StudentDeadlineCalendarProps
   }, [calendarData]);
 
   const renderDeadlineCard = (item: CalendarItem) => {
-    const status = statusLabel(item.status);
+    const status = deadlineStatusLabel(item.status);
     const range = formatRange(item);
     const countdown = item.daysLeft !== undefined && item.daysLeft !== null ? `${item.daysLeft} วัน` : "-";
 

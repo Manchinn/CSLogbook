@@ -25,12 +25,8 @@ function computeStepStates(status: string): StepState[] {
       return ["done", "active", "pending", "pending"];
     case "advisor_approved":
       return ["done", "done", "active", "pending"];
-    case "advisor_rejected":
-      return ["done", "error", "pending", "pending"];
     case "staff_verified":
       return ["done", "done", "done", "active"];
-    case "staff_returned":
-      return ["done", "done", "error", "pending"];
     case "scheduled":
       return ["done", "done", "done", "active"];
     case "completed":

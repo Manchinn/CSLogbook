@@ -49,7 +49,7 @@ module.exports = (sequelize) => {
       field: 'submitted_by_student_id'
     },
     status: {
-      type: DataTypes.ENUM('pending_advisor', 'advisor_rejected', 'pending_staff', 'staff_rejected', 'staff_approved'),
+      type: DataTypes.ENUM('pending_advisor', 'advisor_rejected', 'pending_staff', 'staff_rejected', 'staff_approved', 'evidence_submitted'),
       allowNull: false,
       defaultValue: 'pending_advisor'
     },
