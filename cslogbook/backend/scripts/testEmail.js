@@ -27,15 +27,15 @@ async function testEmail() {
   console.log('  🧪 ทดสอบการส่งอีเมล CSLogbook');
   console.log('========================================\n');
 
-  console.log('📋 Email Configuration:');
+  console.log('Email Configuration:');
   console.log(`   Provider: ${process.env.EMAIL_PROVIDER || 'gmail'}`);
-  console.log(`   Sender: ${process.env.EMAIL_SENDER || 'ไม่ได้ตั้งค่า'}`);
-  
-  if (process.env.EMAIL_PROVIDER === 'smtp') {
-    console.log(`   SMTP Host: ${process.env.SMTP_HOST || 'ไม่ได้ตั้งค่า'}`);
-    console.log(`   SMTP Port: ${process.env.SMTP_PORT || 'ไม่ได้ตั้งค่า'}`);
-    console.log(`   SMTP User: ${process.env.SMTP_USER || 'ไม่ได้ตั้งค่า'}`);
-    console.log(`   SMTP Pass: ${process.env.SMTP_PASS ? '***ตั้งค่าแล้ว***' : 'ไม่ได้ตั้งค่า'}`);
+  console.log(`   Sender: ${process.env.EMAIL_SENDER || 'not set'}`);
+
+  if ((process.env.EMAIL_PROVIDER || 'gmail') === 'gmail') {
+    console.log(`   Gmail User: ${process.env.GMAIL_USER_EMAIL || 'not set'}`);
+    console.log(`   Client ID: ${process.env.GMAIL_CLIENT_ID ? '***set***' : 'not set'}`);
+    console.log(`   Client Secret: ${process.env.GMAIL_CLIENT_SECRET ? '***set***' : 'not set'}`);
+    console.log(`   Refresh Token: ${process.env.GMAIL_REFRESH_TOKEN ? '***set***' : 'not set'}`);
   }
   
   console.log('\n');
@@ -135,14 +135,12 @@ async function testEmail() {
     console.error(`   ${error.message}`);
     console.error('\n🔍 วิธีแก้ไข:');
     
-    if (error.message.includes('Invalid login')) {
-      console.error('   - ตรวจสอบว่าใช้ App Password (16 หลัก) ไม่ใช่รหัส Gmail ปกติ');
-      console.error('   - ตรวจสอบว่า 2FA เปิดอยู่');
-      console.error('   - ลองสร้าง App Password ใหม่');
+    if (error.message.includes('Missing required environment variable')) {
+      console.error('   - ตรวจสอบว่าตั้งค่า GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_USER_EMAIL แล้ว');
+    } else if (error.message.includes('invalid_grant') || error.message.includes('Token')) {
+      console.error('   - Refresh token อาจหมดอายุ — ลองสร้างใหม่ที่ OAuth Playground');
     } else if (error.message.includes('ETIMEDOUT') || error.message.includes('ECONNREFUSED')) {
       console.error('   - ตรวจสอบ Internet connection');
-      console.error('   - ตรวจสอบ Firewall (ต้องเปิด port 587)');
-      console.error('   - ลองใช้ SMTP_PORT=465 และ SMTP_SECURE=true');
     } else {
       console.error('   - ตรวจสอบการตั้งค่าใน .env file');
       console.error('   - ตรวจสอบ logs ใน console');

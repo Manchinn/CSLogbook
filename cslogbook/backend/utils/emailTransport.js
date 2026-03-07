@@ -1,11 +1,10 @@
 /**
  * Email Transport Factory
- * สนับสนุนผู้ให้บริการ: gmail, smtp, ethereal, console
- * 
+ * สนับสนุนผู้ให้บริการ: gmail, ethereal, console
+ *
  * Environment Variables:
- * - EMAIL_PROVIDER: gmail|smtp|ethereal|console (default: gmail)
+ * - EMAIL_PROVIDER: gmail|ethereal|console (default: gmail)
  * - GMAIL_*: สำหรับ Gmail API (ดูที่ gmailTransport.js)
- * - SMTP_*: สำหรับ Gmail SMTP หรือ Generic SMTP
  * 
  * ใช้ในโหมด development: ตั้ง EMAIL_PROVIDER=ethereal จะได้ preview URL ไม่ส่งออกจริง
  */
@@ -38,24 +37,6 @@ async function init() {
           }
         };
         logger.info('Initialized Gmail API transport');
-        break;
-      }
-      case 'smtp': {
-        // Gmail SMTP หรือ Generic SMTP
-        transport = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT || 587),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-        logger.info('Initialized SMTP transport', { 
-          host: process.env.SMTP_HOST, 
-          port: process.env.SMTP_PORT,
-          user: process.env.SMTP_USER 
-        });
         break;
       }
       case 'ethereal': {
@@ -95,8 +76,8 @@ async function init() {
       }
     }
 
-    // verify สำหรับ smtp และ ethereal (ไม่ใช้กับ console)
-    if (provider === 'smtp' || provider === 'ethereal') {
+    // verify สำหรับ ethereal (gmail verify อยู่ใน gmailTransport.js แล้ว)
+    if (provider === 'ethereal') {
       try {
         await transport.verify();
         logger.info(`ตรวจสอบ ${provider} transport สำเร็จ`);
