@@ -68,6 +68,39 @@ class StudentService {
         studentWhereCondition.isEligibleProject = true;
       }
 
+      // กรองปีเข้าศึกษาจาก prefix ของรหัสนักศึกษา (เช่น 2565 → prefix "65%")
+      if (academicYear) {
+        const yearNum = parseInt(academicYear, 10);
+        if (!Number.isNaN(yearNum) && yearNum >= 2500) {
+          const prefix = String(yearNum - 2500).padStart(2, "0");
+          studentWhereCondition.studentCode = {
+            ...(studentWhereCondition.studentCode || {}),
+            [Op.like]: `${prefix}%`,
+          };
+        }
+      }
+
+      // เตรียม include สำหรับ StudentAcademicHistory (กรองภาคเรียน)
+      const semesterNum = semester ? parseInt(semester, 10) : null;
+      const academicHistoryInclude = [];
+      if (semesterNum && !Number.isNaN(semesterNum)) {
+        const historyWhere = { semester: semesterNum };
+        // ถ้าเลือกปีการศึกษาด้วย ให้กรอง history ตามปีด้วย
+        if (academicYear) {
+          const yearNum = parseInt(academicYear, 10);
+          if (!Number.isNaN(yearNum)) {
+            historyWhere.academicYear = yearNum;
+          }
+        }
+        academicHistoryInclude.push({
+          model: StudentAcademicHistory,
+          as: "academicHistories",
+          required: true,
+          where: historyWhere,
+          attributes: ["academicYear", "semester", "status"],
+        });
+      }
+
       const students = await User.findAll({
         where: whereCondition,
         attributes: ["userId", "firstName", "lastName", "email"],
@@ -87,6 +120,7 @@ class StudentService {
               "classroom",
               "phoneNumber",
             ],
+            include: academicHistoryInclude,
           },
         ],
         order: [
@@ -95,67 +129,49 @@ class StudentService {
         ],
       });
 
-      const academicYearFilter = academicYear
-        ? parseInt(academicYear, 10)
-        : null;
+      const mappedStudents = students.map((user) => {
+        let eligibilityStatus = null;
 
-      const mappedStudents = students
-        .map((user) => {
-          let eligibilityStatus = null;
+        if (user.student?.isEligibleProject) {
+          eligibilityStatus = "eligible_project";
+        } else if (user.student?.isEligibleInternship) {
+          eligibilityStatus = "eligible_internship";
+        }
 
-          if (user.student?.isEligibleProject) {
-            eligibilityStatus = "eligible_project";
-          } else if (user.student?.isEligibleInternship) {
-            eligibilityStatus = "eligible_internship";
-          }
-
-          const studentYearInfo = calculateStudentYear(
-            user.student?.studentCode
-          );
-
-          const admissionAcademicYear = deriveAcademicYearFromStudentCode(
-            user.student?.studentCode
-          );
-
-          return {
-            userId: user.userId,
-            studentId: user.student?.studentId,
-            studentCode: user.student?.studentCode,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            totalCredits: user.student?.totalCredits || 0,
-            majorCredits: user.student?.majorCredits || 0,
-            isEligibleForInternship: Boolean(
-              user.student?.isEligibleInternship
-            ),
-            isEligibleForProject: Boolean(user.student?.isEligibleProject),
-            status: eligibilityStatus,
-            classroom: user.student?.classroom,
-            phoneNumber: user.student?.phoneNumber,
-            academicYear: admissionAcademicYear,
-            studentYear: studentYearInfo?.error ? null : studentYearInfo.year,
-            studentYearStatus: studentYearInfo?.error
-              ? null
-              : studentYearInfo.status,
-            studentYearLabel: studentYearInfo?.error
-              ? null
-              : studentYearInfo.statusLabel,
-          };
-        })
-        .filter((student) => {
-          if (academicYearFilter) {
-            return student.academicYear === academicYearFilter;
-          }
-          return true;
-        });
-
-      if (semester) {
-        logger.info(
-          "ได้รับคำขอฟิลเตอร์ภาคเรียน แต่ยังไม่มีข้อมูลเพียงพอในการกรอง",
-          { semester }
+        const studentYearInfo = calculateStudentYear(
+          user.student?.studentCode
         );
-      }
+
+        const admissionAcademicYear = deriveAcademicYearFromStudentCode(
+          user.student?.studentCode
+        );
+
+        return {
+          userId: user.userId,
+          studentId: user.student?.studentId,
+          studentCode: user.student?.studentCode,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          totalCredits: user.student?.totalCredits || 0,
+          majorCredits: user.student?.majorCredits || 0,
+          isEligibleForInternship: Boolean(
+            user.student?.isEligibleInternship
+          ),
+          isEligibleForProject: Boolean(user.student?.isEligibleProject),
+          status: eligibilityStatus,
+          classroom: user.student?.classroom,
+          phoneNumber: user.student?.phoneNumber,
+          academicYear: admissionAcademicYear,
+          studentYear: studentYearInfo?.error ? null : studentYearInfo.year,
+          studentYearStatus: studentYearInfo?.error
+            ? null
+            : studentYearInfo.status,
+          studentYearLabel: studentYearInfo?.error
+            ? null
+            : studentYearInfo.statusLabel,
+        };
+      });
 
       return mappedStudents;
     } catch (error) {
@@ -516,20 +532,60 @@ class StudentService {
    */
   async getFilterOptions() {
     try {
-      // ดึงปีการศึกษาที่มีในระบบ
-      const academicYears = await Academic.findAll({
+      // ดึงปีเข้าศึกษาจาก prefix ของรหัสนักศึกษาจริงในระบบ
+      const [admissionYearRows] = await sequelize.query(
+        `SELECT DISTINCT CAST(SUBSTRING(student_code, 1, 2) AS UNSIGNED) + 2500 AS year
+         FROM students
+         WHERE student_code IS NOT NULL AND LENGTH(student_code) >= 2
+         ORDER BY year DESC`
+      );
+
+      // คำนวณชั้นปีปัจจุบันจากปีเข้าศึกษา
+      const now = new Date();
+      const currentBuddhistYear =
+        now.getFullYear() + 543;
+      const currentMonth = now.getMonth() + 1;
+
+      const academicYears = admissionYearRows
+        .filter((r) => r.year && r.year >= 2500)
+        .map((r) => {
+          let classYear = currentBuddhistYear - r.year;
+          if (currentMonth > 4) classYear += 1; // ปีการศึกษาใหม่เริ่ม พ.ค.
+          const yearLabel =
+            classYear >= 1 && classYear <= 8
+              ? ` — ชั้นปี ${classYear}`
+              : classYear > 8
+                ? " — พ้นสภาพ"
+                : "";
+          return {
+            value: r.year,
+            label: `${r.year} (รหัส ${String(r.year - 2500).padStart(2, "0")}xx${yearLabel})`,
+          };
+        });
+
+      // ดึงภาคเรียนที่มีข้อมูลใน StudentAcademicHistory
+      const semesters = await StudentAcademicHistory.findAll({
         attributes: [
-          [sequelize.fn('DISTINCT', sequelize.col('academic_year')), 'academicYear']
+          [sequelize.fn("DISTINCT", sequelize.col("semester")), "semester"],
         ],
-        order: [['academic_year', 'DESC']]
+        order: [["semester", "ASC"]],
+        raw: true,
       });
-      
+
+      const semesterOptions = semesters
+        .filter((s) => s.semester)
+        .map((s) => ({
+          value: s.semester,
+          label: `ภาคเรียนที่ ${s.semester}`,
+        }));
+
       return {
-        academicYears: academicYears.map(a => a.getDataValue('academicYear')),
+        academicYears,
+        semesters: semesterOptions,
         statuses: [
-          { value: 'internship', label: 'มีสิทธิ์ฝึกงาน' },
-          { value: 'project', label: 'มีสิทธิ์ทำโครงงาน' }
-        ]
+          { value: "internship", label: "มีสิทธิ์ฝึกงาน" },
+          { value: "project", label: "มีสิทธิ์ทำโครงงาน" },
+        ],
       };
     } catch (error) {
       logger.error("Error in getFilterOptions service:", error);
