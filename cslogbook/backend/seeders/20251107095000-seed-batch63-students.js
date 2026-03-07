@@ -29,7 +29,7 @@ module.exports = {
           index,
           studentCode,
           username: studentCode,
-          email: `${studentCode}@kmutnb.ac.th`,
+          email: `${studentCode}@email.kmutnb.ac.th`,
           firstName: 'นักศึกษา',
           lastName: `รุ่น63-${String(index + 1).padStart(3, '0')}`,
           classroom: `CS63-${classroomGroup}`
