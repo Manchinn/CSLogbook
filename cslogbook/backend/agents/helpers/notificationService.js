@@ -5,7 +5,7 @@
 
 const { Notification } = require('../../models');
 const logger = require('../../utils/logger');
-//const emailService = require('../../utils/emailService');
+const emailTransport = require('../../utils/emailTransport');
 const agentConfig = require('../config');
 
 /**
@@ -110,7 +110,8 @@ class NotificationService {
       `;
 
       // ส่งอีเมล
-      await emailService.sendMail({
+      await emailTransport.send({
+        from: process.env.EMAIL_SENDER,
         to: recipient,
         subject: emailSubject,
         html: emailBody

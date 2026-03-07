@@ -455,9 +455,10 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
 
 // สำหรับการแจ้งเตือนเมื่อหัวหน้างานดำเนินการอนุมัติหรือปฏิเสธบันทึกการฝึกงาน
 async function sendTimeSheetApprovalResultNotification(email, studentName, status, comment, entryData) {
-  if (!isNotificationEnabled('APPROVAL')) {
+  const isEnabled = await isNotificationEnabled('APPROVAL');
+  if (!isEnabled) {
     logger.info('Timesheet approval result email notification is currently disabled');
-    return Promise.resolve();
+    return;
   }
 
   try {

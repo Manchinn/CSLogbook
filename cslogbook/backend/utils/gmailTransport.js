@@ -48,7 +48,7 @@ class GmailTransport {
       });
 
       // สร้าง transporter
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           type: 'OAuth2',

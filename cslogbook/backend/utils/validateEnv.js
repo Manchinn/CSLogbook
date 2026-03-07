@@ -2,8 +2,7 @@ const requiredEnvVars = {
   database: ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'],
   server: ['PORT', 'BASE_URL', 'API_PREFIX'],
   jwt: ['JWT_SECRET', 'JWT_EXPIRES_IN'],
-  email: ['SENDGRID_API_KEY', 'EMAIL_SENDER'],
-  features: ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED', 'EMAIL_MEETING_ENABLED']
+  email: ['EMAIL_PROVIDER', 'EMAIL_SENDER']
 };
 
 function validateEnv(category = 'all', isOptional = false) {
@@ -40,12 +39,15 @@ function validateEnv(category = 'all', isOptional = false) {
     }
   }
 
-  if (category === 'all' || category === 'features') {
-  ['EMAIL_LOGIN_ENABLED', 'EMAIL_DOCUMENT_ENABLED', 'EMAIL_LOGBOOK_ENABLED', 'EMAIL_MEETING_ENABLED'].forEach(flag => {
-      if (process.env[flag] && !['true', 'false'].includes(process.env[flag].toLowerCase())) {
-        throw new Error(`${flag} must be 'true' or 'false'`);
+  if (category === 'all' || category === 'email') {
+    const provider = (process.env.EMAIL_PROVIDER || '').toLowerCase();
+    if (provider === 'gmail') {
+      const gmailVars = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_USER_EMAIL'];
+      const missingGmail = gmailVars.filter(v => !process.env[v]);
+      if (missingGmail.length > 0 && !isOptional) {
+        throw new Error(`Gmail provider requires: ${missingGmail.join(', ')}`);
       }
-    });
+    }
   }
   
   return missingVars.length === 0;
