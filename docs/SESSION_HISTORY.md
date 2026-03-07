@@ -267,3 +267,40 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | เพิ่ม semester filter ใน project report page | `project/page.tsx` |
 | เพิ่ม KPI card drill-down (คลิก KPI card เพื่อ filter ตาราง) | `internship/page.tsx`, `project/page.tsx` |
 | ปิด tabs: ภาระงานอาจารย์, ความคืบหน้า, กำหนดส่ง (ยังไม่พร้อม) | `reports/layout.tsx` |
+
+## Session 26 (claude, 2026-03-07) — Notification Settings UI & Audit
+
+**สำรวจ & ตรวจสอบ:**
+- ตรวจสอบระบบ notification ทั้ง backend + frontend อย่างละเอียด
+- จำแนกการทำงานจริงของแต่ละ notification type (LOGIN, DOCUMENT, LOGBOOK, EVALUATION, APPROVAL, MEETING)
+- ตรวจสอบ email infrastructure: providers (Gmail API, SMTP, Ethereal, Console), templates (10 ไฟล์), env vars
+
+**UI ปรับปรุง:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| เพิ่ม `NOTIFICATION_META` mapping — ชื่อไทย + description + bullet details ของแต่ละ type | `notification-settings/page.tsx` |
+| ปรับ render จาก key ภาษาอังกฤษ (LOGIN) → ชื่อไทย (เข้าสู่ระบบ) + badge + bullet list | `notification-settings/page.tsx` |
+| เพิ่ม CSS: `.notifHeader`, `.notifLabel`, `.notifBadge`, `.notifDetails`, `.notifDetailItem` | `notification-settings/notification.module.css` |
+
+**Backend:**
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง migration อัปเดต description ทุก notification type ให้ตรงกับการใช้งานจริง | `migrations/20260307120000-update-notification-settings-descriptions.js` (NEW) |
+
+**สรุป Email Notification System:**
+
+| Type | ชื่อไทย | ครอบคลุม |
+|------|---------|---------|
+| LOGIN | เข้าสู่ระบบ | ส่ง email เมื่อเข้าสู่ระบบสำเร็จ |
+| DOCUMENT | เอกสาร | ผลอนุมัติ/ปฏิเสธเอกสาร, ผล Timesheet, เตือน deadline, เอกสารค้างตรวจ |
+| LOGBOOK | บันทึกประจำวัน | แจ้งส่ง logbook, คำแนะนำคุณภาพ (auto) |
+| EVALUATION | การประเมินฝึกงาน | ส่งแบบประเมินให้ supervisor, แจ้งผลประเมินให้นักศึกษา/อาจารย์ |
+| APPROVAL | การขออนุมัติ | คำขออนุมัติ Timesheet ไปยัง supervisor, แจ้งคุณสมบัติครบ |
+| MEETING | การนัดพบอาจารย์ | แจ้งนัดหมายพบอาจารย์โครงงาน |
+
+**Email Infrastructure:**
+- Providers: Gmail API (OAuth2), SMTP (Gmail App Password), Ethereal (testing), Console (debug)
+- Templates: 10 HTML files ใน `backend/templates/` — Thai localization, KMUTNB branding
+- Feature flags: ใช้ `NotificationSetting` table (database-driven) ไม่ใช้ .env

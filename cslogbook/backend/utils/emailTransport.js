@@ -64,7 +64,8 @@ async function init() {
           host: testAccount.smtp.host,
           port: testAccount.smtp.port,
           secure: testAccount.smtp.secure,
-          auth: { user: testAccount.user, pass: testAccount.pass }
+          auth: { user: testAccount.user, pass: testAccount.pass },
+          tls: { rejectUnauthorized: false }
         });
         logger.info('สร้าง Ethereal test account สำเร็จ (อีเมลจะไม่ถูกส่งจริง)', { user: testAccount.user });
         break;

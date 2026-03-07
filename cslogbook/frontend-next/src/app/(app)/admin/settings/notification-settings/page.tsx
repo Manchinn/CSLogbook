@@ -13,6 +13,55 @@ import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 import ns from "./notification.module.css";
 
+/* ─── Mapping ชื่อไทย + รายละเอียดย่อยของแต่ละ notification type ─── */
+const NOTIFICATION_META: Record<string, { label: string; description: string; details: string[] }> = {
+  LOGIN: {
+    label: "เข้าสู่ระบบ",
+    description: "แจ้งเตือนทางอีเมลเมื่อมีการเข้าสู่ระบบ",
+    details: ["ส่งอีเมลแจ้งผู้ใช้เมื่อเข้าสู่ระบบสำเร็จ"],
+  },
+  DOCUMENT: {
+    label: "เอกสาร",
+    description: "แจ้งเตือนเกี่ยวกับเอกสารและกำหนดส่ง",
+    details: [
+      "แจ้งผลอนุมัติ/ปฏิเสธเอกสาร เช่น คพ.05, หนังสือตอบรับ",
+      "แจ้งผลการอนุมัติ/ปฏิเสธบันทึกการฝึกงาน (Timesheet)",
+      "เตือนกำหนดส่งเอกสารที่ใกล้ถึง",
+      "แจ้งอาจารย์เมื่อมีเอกสารค้างรอตรวจสอบ",
+    ],
+  },
+  LOGBOOK: {
+    label: "บันทึกประจำวัน",
+    description: "แจ้งเตือนเกี่ยวกับบันทึกการฝึกงานประจำวัน",
+    details: [
+      "แจ้งผู้ควบคุมงานเมื่อนักศึกษาส่งบันทึกประจำวัน",
+      "คำแนะนำปรับปรุงคุณภาพบันทึก (ระบบตรวจอัตโนมัติ)",
+    ],
+  },
+  EVALUATION: {
+    label: "การประเมินฝึกงาน",
+    description: "แจ้งเตือนเกี่ยวกับการประเมินผลการฝึกงาน",
+    details: [
+      "ส่งลิงก์แบบประเมินไปยังผู้ควบคุมงาน (Supervisor)",
+      "แจ้งนักศึกษาเมื่อได้รับการประเมินแล้ว",
+      "แจ้งอาจารย์ที่ปรึกษาเมื่อมีผลประเมิน",
+    ],
+  },
+  APPROVAL: {
+    label: "การขออนุมัติ",
+    description: "แจ้งเตือนเกี่ยวกับคำขออนุมัติบันทึกการฝึกงาน",
+    details: [
+      "ส่งคำขออนุมัติบันทึกการฝึกงานไปยังผู้ควบคุมงาน",
+      "แจ้งนักศึกษาเมื่อมีคุณสมบัติครบสำหรับลงทะเบียน",
+    ],
+  },
+  MEETING: {
+    label: "การนัดพบอาจารย์",
+    description: "แจ้งเตือนเกี่ยวกับการนัดหมายพบอาจารย์โครงงาน",
+    details: ["ส่งอีเมลแจ้งผู้เข้าร่วมเมื่อสร้างนัดหมายการพบ"],
+  },
+};
+
 export default function NotificationSettingsPage() {
   const [settings, setSettings] = useState<Record<string, NotificationSetting>>({});
   const [loading, setLoading] = useState(false);
@@ -139,29 +188,42 @@ export default function NotificationSettingsPage() {
             </div>
           ) : (
             <div className={ns.notifList}>
-              {items.map(([key, item]) => (
-                <div key={key} className={ns.notifRow}>
-                  <div className={ns.notifInfo}>
-                    <div className={ns.notifType}>{key}</div>
-                    {item.description ? (
-                      <div className={ns.notifDesc}>{item.description}</div>
-                    ) : null}
+              {items.map(([key, item]) => {
+                const meta = NOTIFICATION_META[key];
+                return (
+                  <div key={key} className={ns.notifRow}>
+                    <div className={ns.notifInfo}>
+                      <div className={ns.notifHeader}>
+                        <span className={ns.notifLabel}>{meta?.label ?? key}</span>
+                        <span className={ns.notifBadge}>{key}</span>
+                      </div>
+                      <div className={ns.notifDesc}>
+                        {meta?.description ?? item.description}
+                      </div>
+                      {meta?.details.length ? (
+                        <ul className={ns.notifDetails}>
+                          {meta.details.map((d) => (
+                            <li key={d} className={ns.notifDetailItem}>{d}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                    <div className={ns.notifControls}>
+                      <span className={ns.notifMeta}>{formatDateTime(item.lastUpdated)}</span>
+                      <label className={ns.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={item.enabled}
+                          disabled={togglingKey === key || loading}
+                          onChange={() => handleToggle(key, !item.enabled)}
+                          aria-label={`สลับการแจ้งเตือน ${meta?.label ?? key}`}
+                        />
+                        <span className={ns.toggleTrack} />
+                      </label>
+                    </div>
                   </div>
-                  <div className={ns.notifControls}>
-                    <span className={ns.notifMeta}>{formatDateTime(item.lastUpdated)}</span>
-                    <label className={ns.toggle}>
-                      <input
-                        type="checkbox"
-                        checked={item.enabled}
-                        disabled={togglingKey === key || loading}
-                        onChange={() => handleToggle(key, !item.enabled)}
-                        aria-label={`สลับการแจ้งเตือน ${key}`}
-                      />
-                      <span className={ns.toggleTrack} />
-                    </label>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

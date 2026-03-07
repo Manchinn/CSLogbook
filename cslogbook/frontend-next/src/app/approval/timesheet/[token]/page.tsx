@@ -11,7 +11,7 @@ import {
   type TimesheetApprovalEntry,
 } from "@/lib/services/timesheetApprovalService";
 
-type Tone = "positive" | "warning" | "danger" | "info" | "muted";
+/* ─── formatters ─── */
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 const dateTimeFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short" });
@@ -35,40 +35,46 @@ function formatHours(value?: number | null) {
   return value.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 }
 
-function statusMeta(status?: string | null): { label: string; tone: Tone } {
+/* ─── status helpers ─── */
+
+type OverallStatus = "approved" | "rejected" | "pending" | string;
+
+function statusLabel(status?: string | null): string {
   switch (status) {
-    case "approved":
-      return { label: "อนุมัติแล้ว", tone: "positive" };
-    case "rejected":
-      return { label: "ปฏิเสธแล้ว", tone: "danger" };
-    case "pending":
-      return { label: "รอการพิจารณา", tone: "warning" };
-    default:
-      return { label: status || "ไม่ทราบสถานะ", tone: "muted" };
+    case "approved": return "อนุมัติแล้ว";
+    case "rejected": return "ปฏิเสธแล้ว";
+    case "pending": return "รอการพิจารณา";
+    default: return status || "ไม่ทราบสถานะ";
   }
 }
 
-function toneClass(tone: Tone) {
-  switch (tone) {
-    case "positive":
-      return styles.badgePositive;
-    case "warning":
-      return styles.badgeWarning;
-    case "danger":
-      return styles.badgeDanger;
-    case "info":
-      return styles.badgeInfo;
-    default:
-      return styles.badgeMuted;
+function stampClass(status?: string | null) {
+  switch (status) {
+    case "approved": return styles.stampApproved;
+    case "rejected": return styles.stampRejected;
+    default: return styles.stampPending;
   }
 }
 
-function entryStatus(entry: TimesheetApprovalEntry) {
-  if (entry.supervisorApproved === 1 || entry.supervisorApproved === true) return "อนุมัติแล้ว";
-  if (entry.supervisorApproved === -1) return "ถูกปฏิเสธ";
-  if (entry.advisorApproved) return "อนุมัติแล้ว";
-  return "รอการอนุมัติ";
+function stampIcon(status?: string | null) {
+  switch (status) {
+    case "approved": return "✓";
+    case "rejected": return "✕";
+    default: return "⏳";
+  }
 }
+
+function entryStatusInfo(entry: TimesheetApprovalEntry): { label: string; cls: string } {
+  if (entry.supervisorApproved === 1 || entry.supervisorApproved === true)
+    return { label: "อนุมัติแล้ว", cls: styles.entryApproved };
+  if (entry.supervisorApproved === -1)
+    return { label: "ถูกปฏิเสธ", cls: styles.entryRejected };
+  if (entry.advisorApproved)
+    return { label: "อนุมัติแล้ว", cls: styles.entryApproved };
+  return { label: "รอการอนุมัติ", cls: styles.entryPending };
+}
+
+/* ─── component ─── */
 
 export default function TimesheetApprovalPage() {
   const params = useParams<{ token: string }>();
@@ -95,8 +101,7 @@ export default function TimesheetApprovalPage() {
       setOverrideStatus("approved");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "ไม่สามารถอนุมัติได้";
-      setActionError(message);
+      setActionError(error instanceof Error ? error.message : "ไม่สามารถอนุมัติได้");
     },
   });
 
@@ -108,174 +113,265 @@ export default function TimesheetApprovalPage() {
       setOverrideStatus("rejected");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "ไม่สามารถปฏิเสธได้";
-      setActionError(message);
+      setActionError(error instanceof Error ? error.message : "ไม่สามารถปฏิเสธได้");
     },
   });
 
   const details = detailsQuery.data ?? null;
-  const effectiveStatus = overrideStatus ?? details?.status ?? null;
-  const statusInfo = statusMeta(effectiveStatus);
+  const effectiveStatus: OverallStatus = overrideStatus ?? details?.status ?? "pending";
   const actionDisabled = effectiveStatus !== "pending" || approveMutation.isPending || rejectMutation.isPending;
+  const entries = useMemo(() => details?.timesheetEntries ?? [], [details?.timesheetEntries]);
+  const totalHours = useMemo(
+    () => entries.reduce((sum, e) => sum + (e.workHours ?? 0), 0),
+    [entries],
+  );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setActionMessage(null);
     setActionError(null);
 
-    if (!token) {
-      setActionError("ไม่พบลิงก์การอนุมัติ");
-      return;
-    }
-    if (!decision) {
-      setActionError("กรุณาเลือกการดำเนินการ");
-      return;
-    }
-    if (decision === "reject" && !comment.trim()) {
-      setActionError("กรุณาระบุเหตุผลในการปฏิเสธ");
-      return;
-    }
+    if (!token) { setActionError("ไม่พบลิงก์การอนุมัติ"); return; }
+    if (!decision) { setActionError("กรุณาเลือกการดำเนินการ"); return; }
+    if (decision === "reject" && !comment.trim()) { setActionError("กรุณาระบุเหตุผลในการปฏิเสธ"); return; }
 
-    if (decision === "approve") {
-      approveMutation.mutate();
-    } else {
-      rejectMutation.mutate();
-    }
+    if (decision === "approve") approveMutation.mutate();
+    else rejectMutation.mutate();
   };
 
-  const entries = useMemo(() => details?.timesheetEntries ?? [], [details?.timesheetEntries]);
-
+  /* ─── no token ─── */
   if (!token) {
     return (
-      <div className={styles.page}>
-        <div className={styles.card}>ไม่พบลิงก์การอนุมัติ กรุณาตรวจสอบ URL อีกครั้ง</div>
+      <div className={styles.errorPage}>
+        <div className={styles.errorCard}>
+          <div className={styles.errorIcon}>🔗</div>
+          <h2 className={styles.errorTitle}>ไม่พบลิงก์การอนุมัติ</h2>
+          <p className={styles.errorMessage}>กรุณาตรวจสอบ URL อีกครั้ง หรือใช้ลิงก์จากอีเมลที่ได้รับ</p>
+        </div>
       </div>
     );
   }
 
+  /* ─── loading ─── */
   if (detailsQuery.isLoading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.card}>กำลังโหลดข้อมูลการอนุมัติ...</div>
+      <div className={styles.loadingPage}>
+        <div className={styles.loadingCard}>
+          <div className={styles.loadingSpinner} />
+          <p className={styles.loadingText}>กำลังโหลดข้อมูลการอนุมัติ...</p>
+        </div>
       </div>
     );
   }
 
+  /* ─── error ─── */
   if (detailsQuery.isError || !details) {
-    const message = detailsQuery.error instanceof Error ? detailsQuery.error.message : "ไม่พบข้อมูลการอนุมัติ";
+    const message = detailsQuery.error instanceof Error ? detailsQuery.error.message : "ไม่พบข้อมูลการอนุมัติ หรือลิงก์หมดอายุแล้ว";
     return (
-      <div className={styles.page}>
-        <div className={`${styles.card} ${styles.calloutDanger}`}>{message}</div>
+      <div className={styles.errorPage}>
+        <div className={styles.errorCard}>
+          <div className={styles.errorIcon}>⚠️</div>
+          <h2 className={styles.errorTitle}>ไม่สามารถโหลดข้อมูลได้</h2>
+          <p className={styles.errorMessage}>{message}</p>
+        </div>
       </div>
     );
   }
 
+  /* ─── main render ─── */
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Timesheet Approval</p>
-          <h1 className={styles.title}>อนุมัติบันทึกการฝึกงาน</h1>
-          <p className={styles.lead}>ตรวจสอบรายการบันทึกและยืนยันผลการอนุมัติสำหรับนักศึกษา</p>
-        </div>
-        <div className={styles.heroMeta}>
-          <span className={`${styles.badge} ${toneClass(statusInfo.tone)}`}>สถานะ: {statusInfo.label}</span>
-          <span className={styles.badge}>นักศึกษา: {details.studentName ?? "-"}</span>
-          <span className={styles.badge}>รหัส: {details.studentCode ?? "-"}</span>
-          <span className={styles.badge}>สถานประกอบการ: {details.companyName ?? "-"}</span>
-        </div>
-        <div className={styles.heroMetaSecondary}>
-          <span>ส่งคำขอเมื่อ {formatDateTime(details.createdAt)}</span>
-          <span>หมดอายุ {formatDateTime(details.expiresAt)}</span>
-        </div>
-      </header>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>รายการบันทึกที่รออนุมัติ ({entries.length})</h2>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>เวลาเข้า-ออก</th>
-                <th>ชั่วโมง</th>
-                <th>หัวข้องาน</th>
-                <th>รายละเอียด</th>
-                <th>สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className={styles.emptyCell}>ไม่พบรายการบันทึก</td>
-                </tr>
-              ) : (
-                entries.map((entry) => (
-                  <tr key={String(entry.logId)}>
-                    <td>{formatDate(entry.workDate)}</td>
-                    <td>{entry.timeIn || "-"} - {entry.timeOut || "-"}</td>
-                    <td>{formatHours(entry.workHours)}</td>
-                    <td>{entry.logTitle || "-"}</td>
-                    <td>{entry.workDescription || "-"}</td>
-                    <td>{entryStatus(entry)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>ยืนยันผลการอนุมัติ</h2>
-        {effectiveStatus !== "pending" ? (
-          <div className={`${styles.card} ${styles.calloutInfo}`}>
-            คำขอนี้ถูกดำเนินการแล้ว สถานะปัจจุบันคือ {statusInfo.label}
+      {/* ── banner ── */}
+      <div className={styles.topBanner}>
+        <div className={styles.bannerInner}>
+          <div className={styles.brandRow}>
+            <div className={styles.brandLogo}>CS</div>
+            <span className={styles.brandText}>CS Logbook · ระบบอนุมัติบันทึกการฝึกงาน</span>
           </div>
-        ) : (
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.radioGroup}>
-              <label className={`${styles.radioCard} ${decision === "approve" ? styles.radioSelected : ""}`}>
-                <input
-                  type="radio"
-                  name="decision"
-                  value="approve"
-                  checked={decision === "approve"}
-                  onChange={() => setDecision("approve")}
-                />
-                <span>อนุมัติบันทึกการฝึกงาน</span>
-              </label>
-              <label className={`${styles.radioCard} ${decision === "reject" ? styles.radioSelected : ""}`}>
-                <input
-                  type="radio"
-                  name="decision"
-                  value="reject"
-                  checked={decision === "reject"}
-                  onChange={() => setDecision("reject")}
-                />
-                <span>ปฏิเสธบันทึกการฝึกงาน</span>
-              </label>
+          <h1 className={styles.bannerTitle}>อนุมัติบันทึกการฝึกงาน</h1>
+          <p className={styles.bannerSub}>ตรวจสอบรายการบันทึกและยืนยันผลการอนุมัติสำหรับนักศึกษาฝึกงาน</p>
+        </div>
+      </div>
+
+      {/* ── main content ── */}
+      <div className={styles.main}>
+        {/* ── summary card ── */}
+        <div className={styles.summaryCard}>
+          <div className={styles.summaryInfo}>
+            <div className={styles.summaryGrid}>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryLabel}>นักศึกษา</span>
+                <span className={styles.summaryValue}>{details.studentName ?? "-"}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryLabel}>รหัสนักศึกษา</span>
+                <span className={styles.summaryValue}>{details.studentCode ?? "-"}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryLabel}>สถานประกอบการ</span>
+                <span className={styles.summaryValue}>{details.companyName ?? "ไม่ระบุ"}</span>
+              </div>
             </div>
+            <div className={styles.summaryDates}>
+              <span>ส่งคำขอเมื่อ {formatDateTime(details.createdAt)}</span>
+              <span>หมดอายุ {formatDateTime(details.expiresAt)}</span>
+            </div>
+          </div>
 
-            <label className={styles.fieldLabel} htmlFor="comment">เหตุผล / หมายเหตุ</label>
-            <textarea
-              id="comment"
-              className={styles.textarea}
-              placeholder="ระบุหมายเหตุหรือเหตุผล (จำเป็นเมื่อปฏิเสธ)"
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={4}
-            />
+          <div className={`${styles.statusStamp} ${stampClass(effectiveStatus)}`}>
+            <span className={styles.stampIcon}>{stampIcon(effectiveStatus)}</span>
+            <span className={styles.stampLabel}>{statusLabel(effectiveStatus)}</span>
+          </div>
+        </div>
 
-            {actionError ? <div className={styles.error}>{actionError}</div> : null}
-            {actionMessage ? <div className={styles.success}>{actionMessage}</div> : null}
+        {/* ── entries table ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>📋</div>
+            <h2 className={styles.sectionTitle}>
+              รายการบันทึกที่รออนุมัติ
+              <span className={styles.sectionCount}>({entries.length} รายการ)</span>
+            </h2>
+          </div>
 
-            <button className={styles.primaryButton} type="submit" disabled={actionDisabled}>
-              {approveMutation.isPending || rejectMutation.isPending ? "กำลังบันทึก..." : "ยืนยันการดำเนินการ"}
-            </button>
-          </form>
-        )}
-      </section>
+          <div className={styles.tableWrap}>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>วันที่</th>
+                    <th>เวลา</th>
+                    <th>ชั่วโมง</th>
+                    <th>หัวข้องาน</th>
+                    <th>รายละเอียด</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className={styles.emptyCell}>ไม่พบรายการบันทึก</td>
+                    </tr>
+                  ) : (
+                    entries.map((entry) => {
+                      const es = entryStatusInfo(entry);
+                      return (
+                        <tr key={String(entry.logId)}>
+                          <td className={styles.cellDate}>{formatDate(entry.workDate)}</td>
+                          <td className={styles.cellTime}>{entry.timeIn || "-"} – {entry.timeOut || "-"}</td>
+                          <td className={styles.cellHours}>{formatHours(entry.workHours)}</td>
+                          <td className={styles.cellTitle}>{entry.logTitle || "-"}</td>
+                          <td className={styles.cellDesc}>{entry.workDescription || "-"}</td>
+                          <td className={styles.cellStatus}>
+                            <span className={`${styles.entryBadge} ${es.cls}`}>
+                              <span className={styles.entryDot} />
+                              {es.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {entries.length > 0 && (
+              <div className={styles.tableSummary}>
+                <span>ทั้งหมด <strong>{entries.length}</strong> รายการ</span>
+                <span>รวม <strong>{formatHours(totalHours)}</strong> ชั่วโมง</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── decision section ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>✍️</div>
+            <h2 className={styles.sectionTitle}>ยืนยันผลการอนุมัติ</h2>
+          </div>
+
+          <div className={styles.decisionCard}>
+            {effectiveStatus !== "pending" ? (
+              <div className={effectiveStatus === "approved" ? styles.calloutSuccess : effectiveStatus === "rejected" ? styles.calloutDanger : styles.calloutInfo}>
+                <span className={styles.calloutInfoIcon}>
+                  {effectiveStatus === "approved" ? "✅" : effectiveStatus === "rejected" ? "❌" : "ℹ️"}
+                </span>
+                <span>
+                  {actionMessage
+                    ? actionMessage
+                    : `คำขอนี้ถูกดำเนินการแล้ว สถานะปัจจุบันคือ ${statusLabel(effectiveStatus)}`}
+                </span>
+              </div>
+            ) : (
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.radioGroup}>
+                  <label className={`${styles.radioCard} ${styles.radioApprove} ${decision === "approve" ? styles.radioSelected : ""}`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="approve"
+                      checked={decision === "approve"}
+                      onChange={() => setDecision("approve")}
+                    />
+                    <div className={styles.radioCardContent}>
+                      <span className={styles.radioCardTitle}>✓ อนุมัติ</span>
+                      <span className={styles.radioCardHint}>ยืนยันว่าบันทึกถูกต้อง</span>
+                    </div>
+                  </label>
+                  <label className={`${styles.radioCard} ${styles.radioReject} ${decision === "reject" ? styles.radioSelected : ""}`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="reject"
+                      checked={decision === "reject"}
+                      onChange={() => setDecision("reject")}
+                    />
+                    <div className={styles.radioCardContent}>
+                      <span className={styles.radioCardTitle}>✕ ปฏิเสธ</span>
+                      <span className={styles.radioCardHint}>ต้องระบุเหตุผล</span>
+                    </div>
+                  </label>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel} htmlFor="comment">
+                    เหตุผล / หมายเหตุ
+                  </label>
+                  <span className={styles.fieldHint}>
+                    {decision === "reject" ? "จำเป็นต้องระบุเหตุผลเมื่อปฏิเสธ" : "ไม่บังคับ — ระบุหมายเหตุเพิ่มเติมหากต้องการ"}
+                  </span>
+                  <textarea
+                    id="comment"
+                    className={styles.textarea}
+                    placeholder="ระบุหมายเหตุหรือเหตุผล..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                {actionError && <div className={styles.error}>{actionError}</div>}
+                {actionMessage && <div className={styles.success}>{actionMessage}</div>}
+
+                <div className={styles.actions}>
+                  <button className={styles.primaryButton} type="submit" disabled={actionDisabled}>
+                    {approveMutation.isPending || rejectMutation.isPending
+                      ? "กำลังบันทึก..."
+                      : "ยืนยันการดำเนินการ"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* ── footer ── */}
+      <footer className={styles.footer}>
+        <div className={styles.footerDivider} />
+        <p>CS Logbook System · คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
+      </footer>
     </div>
   );
 }
