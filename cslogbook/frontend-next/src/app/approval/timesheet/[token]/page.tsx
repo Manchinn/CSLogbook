@@ -122,7 +122,7 @@ export default function TimesheetApprovalPage() {
   const actionDisabled = effectiveStatus !== "pending" || approveMutation.isPending || rejectMutation.isPending;
   const entries = useMemo(() => details?.timesheetEntries ?? [], [details?.timesheetEntries]);
   const totalHours = useMemo(
-    () => entries.reduce((sum, e) => sum + (e.workHours ?? 0), 0),
+    () => entries.reduce((sum, e) => sum + (Number(e.workHours) || 0), 0),
     [entries],
   );
 
@@ -197,30 +197,47 @@ export default function TimesheetApprovalPage() {
       <div className={styles.main}>
         {/* ── summary card ── */}
         <div className={styles.summaryCard}>
-          <div className={styles.summaryInfo}>
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>นักศึกษา</span>
-                <span className={styles.summaryValue}>{details.studentName ?? "-"}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>รหัสนักศึกษา</span>
-                <span className={styles.summaryValue}>{details.studentCode ?? "-"}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>สถานประกอบการ</span>
-                <span className={styles.summaryValue}>{details.companyName ?? "ไม่ระบุ"}</span>
-              </div>
+          <div className={styles.summaryTop}>
+            <div className={styles.summaryAvatar}>
+              {(details.studentName ?? "?").charAt(0)}
             </div>
-            <div className={styles.summaryDates}>
-              <span>ส่งคำขอเมื่อ {formatDateTime(details.createdAt)}</span>
-              <span>หมดอายุ {formatDateTime(details.expiresAt)}</span>
+            <div className={styles.summaryIdentity}>
+              <span className={styles.summaryName}>{details.studentName ?? "-"}</span>
+              <span className={styles.summaryCode}>{details.studentCode ?? "-"}</span>
+            </div>
+            <div className={`${styles.statusStamp} ${stampClass(effectiveStatus)}`}>
+              <span className={styles.stampIcon}>{stampIcon(effectiveStatus)}</span>
+              <span className={styles.stampLabel}>{statusLabel(effectiveStatus)}</span>
             </div>
           </div>
 
-          <div className={`${styles.statusStamp} ${stampClass(effectiveStatus)}`}>
-            <span className={styles.stampIcon}>{stampIcon(effectiveStatus)}</span>
-            <span className={styles.stampLabel}>{statusLabel(effectiveStatus)}</span>
+          <div className={styles.summaryStats}>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>🏢</span>
+              <div className={styles.statContent}>
+                <span className={styles.statLabel}>สถานประกอบการ</span>
+                <span className={styles.statValue}>{details.companyName ?? "ไม่ระบุ"}</span>
+              </div>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>📄</span>
+              <div className={styles.statContent}>
+                <span className={styles.statLabel}>จำนวนรายการ</span>
+                <span className={styles.statValue}>{entries.length} รายการ</span>
+              </div>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>⏱️</span>
+              <div className={styles.statContent}>
+                <span className={styles.statLabel}>รวมชั่วโมง</span>
+                <span className={styles.statValue}>{formatHours(totalHours)} ชม.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.summaryDates}>
+            <span>ส่งคำขอเมื่อ {formatDateTime(details.createdAt)}</span>
+            <span>หมดอายุ {formatDateTime(details.expiresAt)}</span>
           </div>
         </div>
 
@@ -234,54 +251,43 @@ export default function TimesheetApprovalPage() {
             </h2>
           </div>
 
-          <div className={styles.tableWrap}>
-            <div className={styles.tableScroll}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>วันที่</th>
-                    <th>เวลา</th>
-                    <th>ชั่วโมง</th>
-                    <th>หัวข้องาน</th>
-                    <th>รายละเอียด</th>
-                    <th>สถานะ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className={styles.emptyCell}>ไม่พบรายการบันทึก</td>
-                    </tr>
-                  ) : (
-                    entries.map((entry) => {
-                      const es = entryStatusInfo(entry);
-                      return (
-                        <tr key={String(entry.logId)}>
-                          <td className={styles.cellDate}>{formatDate(entry.workDate)}</td>
-                          <td className={styles.cellTime}>{entry.timeIn || "-"} – {entry.timeOut || "-"}</td>
-                          <td className={styles.cellHours}>{formatHours(entry.workHours)}</td>
-                          <td className={styles.cellTitle}>{entry.logTitle || "-"}</td>
-                          <td className={styles.cellDesc}>{entry.workDescription || "-"}</td>
-                          <td className={styles.cellStatus}>
-                            <span className={`${styles.entryBadge} ${es.cls}`}>
-                              <span className={styles.entryDot} />
-                              {es.label}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {entries.length > 0 && (
+          {entries.length === 0 ? (
+            <div className={styles.emptyState}>ไม่พบรายการบันทึก</div>
+          ) : (
+            <>
+              <div className={styles.entryList}>
+                {entries.map((entry, index) => {
+                  const es = entryStatusInfo(entry);
+                  return (
+                    <div key={String(entry.logId)} className={styles.entryCard}>
+                      <div className={styles.entryCardHeader}>
+                        <span className={styles.entryIndex}>{index + 1}</span>
+                        <div className={styles.entryDateGroup}>
+                          <span className={styles.entryDate}>{formatDate(entry.workDate)}</span>
+                          <span className={styles.entryTime}>{entry.timeIn || "-"} – {entry.timeOut || "-"}</span>
+                        </div>
+                        <span className={styles.entryHoursBadge}>{formatHours(entry.workHours)} ชม.</span>
+                        <span className={`${styles.entryBadge} ${es.cls}`}>
+                          <span className={styles.entryDot} />
+                          {es.label}
+                        </span>
+                      </div>
+                      <div className={styles.entryCardBody}>
+                        <div className={styles.entryTitle}>{entry.logTitle || "-"}</div>
+                        {entry.workDescription && (
+                          <div className={styles.entryDesc}>{entry.workDescription}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               <div className={styles.tableSummary}>
                 <span>ทั้งหมด <strong>{entries.length}</strong> รายการ</span>
                 <span>รวม <strong>{formatHours(totalHours)}</strong> ชั่วโมง</span>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </section>
 
         {/* ── decision section ── */}
@@ -370,7 +376,7 @@ export default function TimesheetApprovalPage() {
       {/* ── footer ── */}
       <footer className={styles.footer}>
         <div className={styles.footerDivider} />
-        <p>CS Logbook System · คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
+        <p>CS Logbook · ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
       </footer>
     </div>
   );

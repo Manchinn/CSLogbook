@@ -44,21 +44,20 @@
   width: min(960px, 100%);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-areas:
+    "brand login"
+    "highlights login";
   gap: 1.5rem;
   padding: 2rem;
   border-radius: 1.75rem;
   background: rgba(255, 255, 255, 0.75);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
   -webkit-backdrop-filter: blur(16px);
-}
-
-.brandPanel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  backdrop-filter: blur(16px);
 }
 
 .brandHeader {
+  grid-area: brand;
   display: grid;
   gap: 0.55rem;
 }
@@ -82,6 +81,7 @@
 }
 
 .highlightList {
+  grid-area: highlights;
   display: grid;
   gap: 0.75rem;
 }
@@ -129,6 +129,7 @@
 }
 
 .card {
+  grid-area: login;
   background: #ffffff;
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 1.25rem;
@@ -270,14 +271,15 @@
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "login"
+      "highlights";
     padding: 2rem;
   }
 
-  .brandPanel {
-    text-align: center;
-  }
-
   .brandHeader {
+    text-align: center;
     align-items: center;
   }
 
