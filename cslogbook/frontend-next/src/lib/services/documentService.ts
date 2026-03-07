@@ -39,10 +39,37 @@ async function fetchBlob(path: string, token: string) {
   });
 
   if (!res.ok) {
-    throw new Error("ไม่สามารถดาวน์โหลดไฟล์ได้");
+    let message = "ไม่สามารถดาวน์โหลดไฟล์ได้";
+    try {
+      const body = await res.json();
+      if (body?.message) message = body.message;
+    } catch {
+      // response ไม่ใช่ JSON — ใช้ message default
+    }
+    throw new Error(message);
   }
 
   return res.blob();
+}
+
+export type StudentDocumentOverviewItem = {
+  type: string;
+  name: string;
+  status: string;
+  statusLabel: string;
+  documentId: number | string | null;
+  canView: boolean;
+  canDownload: boolean;
+  downloadType: "document" | "referral" | "certificate";
+};
+
+type StudentDocumentOverviewResponse = {
+  success: boolean;
+  documents: StudentDocumentOverviewItem[];
+};
+
+export async function getStudentDocumentsOverview(token: string) {
+  return apiFetch<StudentDocumentOverviewResponse>("/documents/student-overview", { method: "GET", token });
 }
 
 export async function viewDocument(documentId: string | number, token: string) {
@@ -51,4 +78,16 @@ export async function viewDocument(documentId: string | number, token: string) {
 
 export async function downloadDocument(documentId: string | number, token: string) {
   return fetchBlob(`/documents/${documentId}/download`, token);
+}
+
+export async function downloadReferralLetter(documentId: string | number, token: string) {
+  return fetchBlob(`/internship/download-referral-letter/${documentId}`, token);
+}
+
+export async function downloadCertificate(token: string) {
+  return fetchBlob("/internship/certificate/download", token);
+}
+
+export async function previewCertificate(token: string) {
+  return fetchBlob("/internship/certificate/preview", token);
 }

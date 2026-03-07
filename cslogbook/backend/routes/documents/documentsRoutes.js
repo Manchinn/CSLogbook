@@ -29,6 +29,8 @@ const upload = multer({
 router.get('/', authenticateToken, documentController.getDocuments);
 // รายการเอกสารของผู้ใช้เอง (student)
 router.get('/my', authenticateToken, documentController.getMyDocuments);
+// รวมเอกสารฝึกงานทั้งหมดของนักศึกษา (CS05, ตอบรับ, ส่งตัว, รับรอง)
+router.get('/student-overview', authenticateToken, documentController.getStudentDocumentsOverview);
 // แสดงไฟล์ PDF inline
 router.get('/:id/view', authenticateToken, documentController.viewDocument);
 // ดาวน์โหลดไฟล์ PDF
