@@ -554,38 +554,67 @@ module.exports = {
    * @returns {Promise<Array>} Array of enrolled internship students
    */
   async getEnrolledInternshipStudents(filters = {}) {
-    const { Student, User } = db;
-    
+    const { Student, User, Document, InternshipDocument } = db;
+
     // ฟังก์ชันคำนวณชั้นปีแบบ dynamic จากรหัสนักศึกษา (สองหลักแรกเป็นปี พ.ศ. - 2500)
     const buddhistYear = () => new Date().getFullYear() + 543;
     const selectedYear = parseInt(filters.year, 10) || buddhistYear();
-    
+
     const calcStudentYear = (studentCode) => {
       if (!studentCode || studentCode.length < 2) return null;
-      const yy = parseInt(studentCode.substring(0, 2), 10); // สมมติ 64 หมายถึง 2564
+      const yy = parseInt(studentCode.substring(0, 2), 10);
       if (isNaN(yy)) return null;
-      const admissionYear = 2500 + yy; // แปลงเป็นปี พ.ศ.
-      const year = selectedYear - admissionYear + 1; // ชั้นปี = ปีปัจจุบัน - ปีที่เข้า + 1
-      return year < 1 ? 1 : (year > 8 ? 8 : year); // clamp 1..8
+      const admissionYear = 2500 + yy;
+      const year = selectedYear - admissionYear + 1;
+      return year < 1 ? 1 : (year > 8 ? 8 : year);
     };
-    
-    const rows = await Student.findAll({
-      where: { is_enrolled_internship: true },
-      attributes: ['studentId', 'studentCode', 'internshipStatus', 'advisor_id', 'is_enrolled_internship'],
-      include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName'] }],
-      order: [['studentCode', 'ASC']]
+
+    const rows = await User.findAll({
+      where: { role: 'student' },
+      attributes: ['firstName', 'lastName'],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          required: true,
+          where: { is_enrolled_internship: true },
+          attributes: ['studentId', 'studentCode', 'internshipStatus', 'advisor_id', 'is_enrolled_internship']
+        },
+        {
+          model: Document,
+          as: 'documents',
+          required: false,
+          where: { documentName: 'CS05' },
+          attributes: ['documentId'],
+          include: [{
+            model: InternshipDocument,
+            as: 'internshipDocument',
+            required: true,
+            attributes: ['internshipId', 'companyName', 'internshipPosition', 'supervisorName', 'startDate', 'endDate']
+          }]
+        }
+      ],
+      order: [[{ model: Student, as: 'student' }, 'studentCode', 'ASC']]
     });
-    
-    // map รวมชื่อให้ frontend ใช้ง่าย
-    return rows.map(r => ({
-      studentId: r.studentId,
-      studentCode: r.studentCode,
-      internshipStatus: r.internshipStatus,
-      advisorId: r.advisor_id,
-      isEnrolledInternship: r.is_enrolled_internship,
-      studentYear: calcStudentYear(r.studentCode), // คำนวณสด
-      firstName: r.user?.firstName || '',
-      lastName: r.user?.lastName || ''
-    }));
+
+    return rows.map(r => {
+      const student = r.student;
+      const cs05Docs = (r.documents || []).filter(d => d.documentName === 'CS05');
+      const internshipDoc = cs05Docs.length > 0 ? cs05Docs[0]?.internshipDocument : null;
+
+      return {
+        studentId: student.studentId,
+        studentCode: student.studentCode,
+        fullName: `${r.firstName || ''} ${r.lastName || ''}`.trim(),
+        internshipStatus: student.internshipStatus,
+        studentYear: calcStudentYear(student.studentCode),
+        internshipId: internshipDoc?.internshipId || null,
+        companyName: internshipDoc?.companyName || null,
+        internshipPosition: internshipDoc?.internshipPosition || null,
+        supervisorName: internshipDoc?.supervisorName || null,
+        startDate: internshipDoc?.startDate || null,
+        endDate: internshipDoc?.endDate || null,
+      };
+    });
   }
 };
