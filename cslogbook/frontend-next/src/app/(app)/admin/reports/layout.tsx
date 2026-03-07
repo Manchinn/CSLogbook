@@ -8,9 +8,10 @@ import styles from "../settings/settings.module.css";
 const REPORT_TABS = [
   { href: "/admin/reports/internship", label: "ฝึกงาน" },
   { href: "/admin/reports/project", label: "โครงงาน" },
-  { href: "/admin/reports/advisor-workload", label: "ภาระงานอาจารย์" },
-  { href: "/admin/reports/workflow-progress", label: "ความคืบหน้า" },
-  { href: "/admin/reports/deadline-compliance", label: "กำหนดส่ง" },
+  // TODO: เปิดใช้งานเมื่อ feature พร้อม
+  // { href: "/admin/reports/advisor-workload", label: "ภาระงานอาจารย์" },
+  // { href: "/admin/reports/workflow-progress", label: "ความคืบหน้า" },
+  // { href: "/admin/reports/deadline-compliance", label: "กำหนดส่ง" },
 ] as const;
 
 export default function ReportsLayout({ children }: { children: React.ReactNode }) {
