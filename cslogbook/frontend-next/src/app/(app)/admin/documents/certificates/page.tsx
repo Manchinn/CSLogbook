@@ -13,7 +13,7 @@ import type { AdminCertificateRequest } from "@/lib/services/adminInternshipCert
 import { labelStatus } from "@/lib/utils/statusLabels";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
-import styles from "./page.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -561,9 +561,14 @@ export default function AdminInternshipCertificatesPage() {
         {logbookModalOpen ? (
           <div className={styles.modalOverlay}>
             <div className={styles.modal}>
-              <h3 className={styles.modalTitle}>สรุปบันทึกการฝึกงาน</h3>
-              {logbookSummaryQuery.isLoading ? <p className={styles.empty}>กำลังโหลดข้อมูล logbook...</p> : null}
-              {logbookSummaryQuery.isError ? <p className={styles.empty}>ไม่สามารถโหลดข้อมูล logbook summary</p> : null}
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>สรุปบันทึกการฝึกงาน</h3>
+                <button type="button" className={styles.modalCloseBtn} onClick={() => setLogbookModalOpen(false)} aria-label="ปิด">
+                  &times;
+                </button>
+              </div>
+              {logbookSummaryQuery.isLoading ? <p className={styles.empty}>กำลังโหลดข้อมูล...</p> : null}
+              {logbookSummaryQuery.isError ? <p className={styles.empty}>ไม่สามารถโหลดข้อมูลสรุปบันทึกได้</p> : null}
               {logbookSummaryQuery.data ? (
                 <>
                   <section className={styles.detailSection}>
@@ -572,9 +577,21 @@ export default function AdminInternshipCertificatesPage() {
                     <p>รหัสนักศึกษา: {logbookSummaryQuery.data.student?.studentCode || "-"}</p>
                     <p>บริษัท: {logbookSummaryQuery.data.internship?.companyName || "-"}</p>
                     <p>ช่วงฝึกงาน: {formatDateTime(logbookSummaryQuery.data.internship?.startDate)} - {formatDateTime(logbookSummaryQuery.data.internship?.endDate)}</p>
-                    <p>จำนวนบันทึก: {logbookSummaryQuery.data.statistics?.totalEntries ?? "-"}</p>
-                    <p>ชั่วโมงรวม: {logbookSummaryQuery.data.statistics?.totalHours ?? "-"}</p>
-                    <p>ชั่วโมงอนุมัติ: {logbookSummaryQuery.data.statistics?.approvedHours ?? "-"}</p>
+                    <p>จำนวนบันทึก: {logbookSummaryQuery.data.statistics?.totalEntries ?? "-"} วัน</p>
+                    <p>
+                      ชั่วโมงรวม:{" "}
+                      {typeof logbookSummaryQuery.data.statistics?.totalHours === "number"
+                        ? logbookSummaryQuery.data.statistics.totalHours.toLocaleString("th-TH", { maximumFractionDigits: 1 })
+                        : "-"}{" "}
+                      ชม.
+                    </p>
+                    <p>
+                      ชั่วโมงอนุมัติ:{" "}
+                      {typeof logbookSummaryQuery.data.statistics?.approvedHours === "number"
+                        ? logbookSummaryQuery.data.statistics.approvedHours.toLocaleString("th-TH", { maximumFractionDigits: 1 })
+                        : "-"}{" "}
+                      ชม.
+                    </p>
                   </section>
                   <section className={styles.detailSection}>
                     <h3 className={styles.detailTitle}>บทสะท้อนการเรียนรู้</h3>

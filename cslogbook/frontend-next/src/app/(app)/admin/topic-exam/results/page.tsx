@@ -11,7 +11,8 @@ import {
 } from "@/hooks/useAdminTopicExam";
 import type { AdminTopicExamRecord } from "@/lib/services/adminTopicExamService";
 import responsive from "@/styles/shared/responsive.module.css";
-import styles from "./page.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
+import local from "./page.local.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -386,7 +387,7 @@ export default function AdminTopicExamResultsPage() {
                         {row.titleEn && row.titleEn !== row.titleTh ? <p className={styles.subText}>{row.titleEn}</p> : null}
                       </td>
                       <td className={responsive.hideOnMobile}>
-                        <div className={styles.memberList}>
+                        <div className={local.memberList}>
                           {row.members.length ? (
                             row.members.map((member) => (
                               <p key={`${row.projectId}-${member.studentId ?? member.studentCode}`} className={styles.subText}>
@@ -416,7 +417,7 @@ export default function AdminTopicExamResultsPage() {
                         </span>
                         <p className={styles.subText}>บันทึกเมื่อ: {formatDateTime(row.examResultAt)}</p>
                         {row.examResult === "failed" && row.examFailReason ? (
-                          <p className={styles.failReason}>เหตุผล: {row.examFailReason}</p>
+                          <p className={local.failReason}>เหตุผล: {row.examFailReason}</p>
                         ) : null}
                       </td>
                       <td>
@@ -426,7 +427,7 @@ export default function AdminTopicExamResultsPage() {
                           </button>
                           {row.examResult ? (
                             <>
-                              <span className={styles.recordedText}>บันทึกแล้ว</span>
+                              <span className={local.recordedText}>บันทึกแล้ว</span>
                               <button type="button" className={styles.button} onClick={() => openEditModal(row)}>
                                 แก้ไขผล
                               </button>
@@ -586,7 +587,7 @@ export default function AdminTopicExamResultsPage() {
                 <section className={styles.detailSection}>
                   <h3 className={styles.detailTitle}>สมาชิกโครงงาน</h3>
                   {selected.members.length ? (
-                    <ul className={styles.memberDetailList}>
+                    <ul className={local.memberDetailList}>
                       {selected.members.map((member) => (
                         <li key={`${selected.projectId}-member-${member.studentId ?? member.studentCode}`}>
                           {member.studentCode || "-"} {member.name || "-"} ({member.classroom || "-"})

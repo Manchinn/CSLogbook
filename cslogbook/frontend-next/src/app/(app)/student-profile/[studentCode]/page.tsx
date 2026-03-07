@@ -7,11 +7,18 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
-import { useStudentDocuments } from "@/hooks/useStudentDocuments";
+import { useStudentDocumentsOverview } from "@/hooks/useStudentDocuments";
 import type { StudentProfile } from "@/lib/services/studentService";
 import { updateStudentContactInfo, updateStudentCredits } from "@/lib/services/studentService";
 import { changePasswordInit, confirmPasswordChange } from "@/lib/api/authService";
-import { downloadDocument, viewDocument, type DocumentItem } from "@/lib/services/documentService";
+import {
+  viewDocument,
+  downloadDocument,
+  downloadReferralLetter,
+  downloadCertificate,
+  previewCertificate,
+  type StudentDocumentOverviewItem,
+} from "@/lib/services/documentService";
 import styles from "./page.module.css";
 
 type Tone = "positive" | "danger" | "muted";
@@ -77,16 +84,23 @@ function formatStatusThai(status?: string | null) {
   return status.replace(/_/g, " ");
 }
 
-function DocumentList({
+function statusToneClass(status: string) {
+  if (["approved", "ready", "downloaded", "completed"].includes(status)) return styles.badgePositive;
+  if (["pending", "pending_approval", "not_requested"].includes(status)) return styles.badgeWarning;
+  if (["rejected", "not_ready"].includes(status)) return styles.badgeMuted;
+  return styles.badgeNeutral;
+}
+
+function DocumentOverviewList({
   documents,
   onView,
   onDownload,
   loading,
   error,
 }: {
-  documents: DocumentItem[];
-  onView: (doc: DocumentItem) => void;
-  onDownload: (doc: DocumentItem) => void;
+  documents: StudentDocumentOverviewItem[];
+  onView: (doc: StudentDocumentOverviewItem) => void;
+  onDownload: (doc: StudentDocumentOverviewItem) => void;
   loading: boolean;
   error: string | null;
 }) {
@@ -96,26 +110,28 @@ function DocumentList({
 
   return (
     <ul className={styles.docList}>
-      {documents.map((doc) => {
-        const id = doc.documentId ?? doc.id ?? "";
-        const name = doc.name || doc.documentName || "ไม่ระบุ";
-        return (
-          <li key={`${name}-${id}`} className={styles.docItem}>
-            <div>
-              <p className={styles.docName}>{name}</p>
-              <p className={styles.docMeta}>{doc.status || "ไม่ระบุสถานะ"}</p>
-            </div>
-            <div className={styles.docActions}>
-              <button type="button" className={styles.secondaryButton} onClick={() => onView(doc)} disabled={!id}>
+      {documents.map((doc) => (
+        <li key={doc.type} className={styles.docItem}>
+          <div>
+            <p className={styles.docName}>{doc.name}</p>
+            <span className={`${styles.badge} ${styles.badgeSmall} ${statusToneClass(doc.status)}`}>
+              {doc.statusLabel}
+            </span>
+          </div>
+          <div className={styles.docActions}>
+            {doc.canView ? (
+              <button type="button" className={styles.secondaryButton} onClick={() => onView(doc)}>
                 ดูตัวอย่าง
               </button>
-              <button type="button" className={styles.primaryButton} onClick={() => onDownload(doc)} disabled={!id}>
+            ) : null}
+            {doc.canDownload ? (
+              <button type="button" className={styles.primaryButton} onClick={() => onDownload(doc)}>
                 ดาวน์โหลด
               </button>
-            </div>
-          </li>
-        );
-      })}
+            ) : null}
+          </div>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -166,7 +182,7 @@ export default function StudentProfilePage() {
   const profileQuery = useStudentProfile(resolvedStudentCode || null, token, hydrated);
   const internshipQuery = useStudentInternshipStatus(token, hydrated && canUseStudentEndpoints);
   const projectQuery = useStudentProjectStatus(token, hydrated && canUseStudentEndpoints);
-  const documentsQuery = useStudentDocuments(token, hydrated && canUseStudentEndpoints, { type: "internship", lettersOnly: 1 });
+  const documentsQuery = useStudentDocumentsOverview(token, hydrated && canUseStudentEndpoints);
 
   const handleOpenEdit = () => {
     if (!profileQuery.data) return;
@@ -316,12 +332,17 @@ export default function StudentProfilePage() {
 
   const documents = documentsQuery.data?.documents ?? [];
 
-  const handleViewDoc = async (doc: DocumentItem) => {
+  const handleViewDoc = async (doc: StudentDocumentOverviewItem) => {
     if (!token) return;
-    const id = doc.documentId ?? doc.id;
-    if (!id) return;
     try {
-      const blob = await viewDocument(id, token);
+      let blob: Blob;
+      if (doc.downloadType === "certificate") {
+        blob = await previewCertificate(token);
+      } else if (doc.documentId) {
+        blob = await viewDocument(doc.documentId, token);
+      } else {
+        return;
+      }
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (error) {
@@ -330,16 +351,23 @@ export default function StudentProfilePage() {
     }
   };
 
-  const handleDownloadDoc = async (doc: DocumentItem) => {
+  const handleDownloadDoc = async (doc: StudentDocumentOverviewItem) => {
     if (!token) return;
-    const id = doc.documentId ?? doc.id;
-    if (!id) return;
     try {
-      const blob = await downloadDocument(id, token);
+      let blob: Blob;
+      if (doc.downloadType === "referral" && doc.documentId) {
+        blob = await downloadReferralLetter(doc.documentId, token);
+      } else if (doc.downloadType === "certificate") {
+        blob = await downloadCertificate(token);
+      } else if (doc.documentId) {
+        blob = await downloadDocument(doc.documentId, token);
+      } else {
+        return;
+      }
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = window.document.createElement("a");
       a.href = url;
-      a.download = `${doc.name || doc.documentName || "document"}.pdf`;
+      a.download = `${doc.name || "document"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -569,7 +597,7 @@ export default function StudentProfilePage() {
                   <h3 className={styles.cardTitle}>เอกสารฝึกงาน</h3>
                 </div>
               </header>
-              <DocumentList
+              <DocumentOverviewList
                 documents={documents}
                 onView={handleViewDoc}
                 onDownload={handleDownloadDoc}

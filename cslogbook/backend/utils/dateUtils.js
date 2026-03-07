@@ -38,6 +38,24 @@ exports.calculateWorkdays = async (startDate, endDate) => {
  * @param {string} timeOut - เวลาออกงาน (HH:mm)
  * @returns {number} จำนวนชั่วโมงทำงาน
  */
+/**
+ * จัดรูปแบบวันที่เป็นภาษาไทย เช่น "1 มกราคม พ.ศ. 2568"
+ * @param {Date|string} date - วันที่
+ * @returns {string}
+ */
+exports.formatThaiDate = (date) => {
+  const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  ];
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = thaiMonths[d.getMonth()];
+  const year = d.getFullYear() + 543;
+  return `${day} ${month} พ.ศ. ${year}`;
+};
+
 exports.calculateWorkHours = (timeIn, timeOut) => {
   if (!timeIn || !timeOut) return 0;
   

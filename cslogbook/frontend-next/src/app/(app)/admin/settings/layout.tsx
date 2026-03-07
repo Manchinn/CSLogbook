@@ -6,8 +6,8 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import styles from "./settings.module.css";
 
 const SETTINGS_TABS = [
-  { href: "/admin/settings/academic", label: "ปีการศึกษา" },
   { href: "/admin/settings/curriculum", label: "หลักสูตร" },
+  { href: "/admin/settings/academic", label: "ปีการศึกษา" },
   { href: "/admin/settings/notification-settings", label: "การแจ้งเตือน" },
 ] as const;
 

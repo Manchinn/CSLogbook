@@ -12,6 +12,8 @@ const {
 } = require("../../models");
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
+const DEPARTMENT_INFO = require("../../config/departmentInfo");
+const { formatThaiDate } = require("../../utils/dateUtils");
 
 // Thai font paths — bundled in repo → ใช้งานได้ทั้ง dev และ Docker
 const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
@@ -246,7 +248,7 @@ class InternshipCertificateService {
       const internshipManagementService = require('../internshipManagementService');
       const summaryData = await internshipManagementService.getInternshipSummary(userId);
 
-      // ดึงข้อมูลการประเมินจากผู้ควบคุมงาน
+      // ดึงข้อมูลนักศึกษา
       const student = await Student.findOne({
         where: { userId },
         include: [
@@ -256,13 +258,6 @@ class InternshipCertificateService {
             attributes: ["firstName", "lastName", "email"],
           },
         ],
-      });
-
-      const evaluation = await InternshipEvaluation.findOne({
-        where: {
-          studentId: student.studentId,
-        },
-        order: [["created_at", "DESC"]],
       });
 
       // ดึงข้อมูลคำขอหนังสือรับรอง
@@ -277,6 +272,15 @@ class InternshipCertificateService {
       if (!certificateRequest) {
         throw new Error("ไม่พบคำขอหนังสือรับรองที่ได้รับการอนุมัติ");
       }
+
+      // ดึงข้อมูลการประเมินจากผู้ควบคุมงาน (filter ด้วย internshipId เพื่อป้องกันดึงผิดรอบ)
+      const evaluation = await InternshipEvaluation.findOne({
+        where: {
+          studentId: student.studentId,
+          internshipId: certificateRequest.internshipId,
+        },
+        order: [["created_at", "DESC"]],
+      });
 
       // รวมข้อมูลสำหรับหนังสือรับรอง
       const certificateData = {
@@ -341,10 +345,10 @@ class InternshipCertificateService {
             }
           : null,
 
-        // ข้อมูลผู้อนุมัติ
+        // ข้อมูลผู้อนุมัติ (จาก config กลาง)
         approvalInfo: {
-          approvedBy: "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
-          approverTitle: "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          approvedBy: DEPARTMENT_INFO.departmentHead.name,
+          approverTitle: DEPARTMENT_INFO.departmentHead.title,
           approvedDate: certificateRequest.processedAt,
           departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
           facultyName: "คณะวิทยาศาสตร์ประยุกต์",
@@ -419,7 +423,7 @@ class InternshipCertificateService {
           { align: "left" }
         );
         doc.text(
-          `วันที่: ${this.formatThaiDate(
+          `วันที่: ${formatThaiDate(
             certificateData.documentInfo?.issueDate || new Date()
           )}`,
           { align: "right" }
@@ -462,19 +466,19 @@ class InternshipCertificateService {
         doc.moveDown(0.5);
 
         doc.font("Thai").text(
-          `ตั้งแต่วันที่ ${this.formatThaiDate(
+          `ตั้งแต่วันที่ ${formatThaiDate(
             certificateData.internshipInfo.startDate
           )} ` +
-            `ถึงวันที่ ${this.formatThaiDate(
+            `ถึงวันที่ ${formatThaiDate(
               certificateData.internshipInfo.endDate
             )}`,
           { align: "left" }
         );
 
         doc.text(
-          `รวม ${certificateData.internshipInfo.totalDays || 0} วัน ` +
+          `รวม ${certificateData.internshipInfo.approvedDays || certificateData.internshipInfo.totalDays || 0} วัน ` +
             `เป็นเวลา ${
-              certificateData.internshipInfo.totalHours || 0
+              certificateData.internshipInfo.approvedHours || certificateData.internshipInfo.totalHours || 0
             } ชั่วโมง`,
           { align: "left" }
         );
@@ -492,7 +496,7 @@ class InternshipCertificateService {
         // ลายเซ็นและตรายาง
         doc.text(
           "ออกให้ ณ วันที่ " +
-            this.formatThaiDate(
+            formatThaiDate(
               certificateData.documentInfo?.issueDate ||
               certificateData.approvalInfo?.approvedDate ||
               new Date()
@@ -504,13 +508,13 @@ class InternshipCertificateService {
 
         doc.font("Thai-Bold").text(
           certificateData.approvalInfo?.approvedBy ||
-            "ผู้ช่วยศาสตราจารย์ ดร.อภิชาต บุญมา",
+            DEPARTMENT_INFO.departmentHead.name,
           { align: "center" }
         );
 
         doc.font("Thai").text(
           certificateData.approvalInfo?.approverTitle ||
-            "หัวหน้าภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+            DEPARTMENT_INFO.departmentHead.title,
           { align: "center" }
         );
 
@@ -772,32 +776,6 @@ class InternshipCertificateService {
     return `อว 7105(16)/${studentYear}${month}${year.toString().slice(-2)}`;
   }
 
-  /**
-   * จัดรูปแบบวันที่ไทย
-   */
-  formatThaiDate(date) {
-    const thaiMonths = [
-      "มกราคม",
-      "กุมภาพันธ์",
-      "มีนาคม",
-      "เมษายน",
-      "พฤษภาคม",
-      "มิถุนายน",
-      "กรกฎาคม",
-      "สิงหาคม",
-      "กันยายน",
-      "ตุลาคม",
-      "พฤศจิกายน",
-      "ธันวาคม",
-    ];
-
-    const d = new Date(date);
-    const day = d.getDate();
-    const month = thaiMonths[d.getMonth()];
-    const year = d.getFullYear() + 543;
-
-    return `${day} ${month} พ.ศ. ${year}`;
-  }
 }
 
 module.exports = new InternshipCertificateService();

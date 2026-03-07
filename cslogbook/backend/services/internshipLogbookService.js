@@ -1,3 +1,4 @@
+const path = require("path");
 const {
   InternshipLogbook,
   InternshipDocument,
@@ -12,6 +13,10 @@ const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 const { calculateWorkdays } = require("../utils/dateUtils");
 const logger = require("../utils/logger");
+
+// Thai font paths สำหรับ PDF generation
+const FONT_REGULAR = path.join(__dirname, "../fonts/Loma.otf");
+const FONT_BOLD = path.join(__dirname, "../fonts/Loma-Bold.otf");
 
 // สถานะของเอกสาร CS05 ที่ถือว่า “มีผล” สำหรับการเข้าถึงข้อมูลฝึกงาน
 // ครอบคลุมทั้งกรณีรออนุมัติ, อนุมัติแล้ว และผ่านการตรวจของอาจารย์นิเทศ
@@ -1207,7 +1212,7 @@ class InternshipLogbookService {
         where: { internship_id: internshipId, student_id: student.studentId }
       });
 
-      const totalHours = logEntries.reduce((sum,e)=> sum + (e.workHours || 0), 0);
+      const totalHours = logEntries.reduce((sum,e)=> sum + (parseFloat(e.workHours) || 0), 0);
       const totalDays = logEntries.length;
       const averageHours = totalDays ? (totalHours/totalDays).toFixed(1) : 0;
 
@@ -1276,13 +1281,18 @@ class InternshipLogbookService {
 
       const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const chunks = [];
+
+      // ลงทะเบียน Thai font
+      doc.registerFont('Thai', FONT_REGULAR);
+      doc.registerFont('Thai-Bold', FONT_BOLD);
+
       return await new Promise((resolve, reject) => {
         doc.on('data', (c)=> chunks.push(c));
         doc.on('error', (err)=> { logger.error('PDF generation error', err); reject(err); });
         doc.on('end', ()=> resolve(Buffer.concat(chunks)));
 
         // Header
-        doc.fontSize(18).text('สรุปบันทึกการฝึกงาน (Internship Logbook Summary)', { align: 'center' });
+        doc.font('Thai-Bold').fontSize(18).text('สรุปบันทึกการฝึกงาน (Internship Logbook Summary)', { align: 'center' });
         doc.moveDown(0.5);
 
         const s = summaryData.studentInfo || {};
@@ -1290,7 +1300,7 @@ class InternshipLogbookService {
         const p = summaryData.internshipPeriod || {};
         const stats = summaryData.statistics || {};
 
-        doc.fontSize(12).text(`รหัสนักศึกษา: ${s.studentId || '-'}`);
+        doc.font('Thai').fontSize(12).text(`รหัสนักศึกษา: ${s.studentId || '-'}`);
         doc.text(`ชื่อ: ${[s.firstName, s.lastName].filter(Boolean).join(' ') || '-'}`);
         doc.text(`ชั้นปี: ${s.yearLevel || '-'}   ห้อง: ${s.classroom || '-'}`);
         doc.text(`อีเมล: ${s.email || '-'}`);
@@ -1303,27 +1313,29 @@ class InternshipLogbookService {
         doc.text(`จำนวนวัน: ${stats.totalDays || 0}  ชั่วโมงรวม: ${stats.totalHours || 0}  เฉลี่ยต่อวัน: ${stats.averageHours || 0}`);
         doc.moveDown();
 
-        // ตารางบันทึกรายวัน (อย่างย่อ เฉพาะวันที่ ชั่วโมง และกิจกรรม)
-        doc.fontSize(14).text('บันทึกรายวัน', { underline: true });
+        // ตารางบันทึกรายวัน
+        doc.font('Thai-Bold').fontSize(14).text('บันทึกรายวัน', { underline: true });
         doc.moveDown(0.5);
-        const maxRows = 35; // จำกัดเพื่อไม่ให้เกินหน้าเดียว (ง่าย ๆ)
-        summaryData.logEntries.slice(0, maxRows).forEach(entry => {
-          doc.fontSize(10).text(`• ${entry.workDate}: ${entry.workHours || 0} ชม. - ${(entry.workDescription || '').substring(0,80)}`);
+        doc.font('Thai');
+        summaryData.logEntries.forEach(entry => {
+          // เพิ่มหน้าใหม่เมื่อใกล้ขอบล่าง
+          if (doc.y > 720) {
+            doc.addPage();
+          }
+          doc.fontSize(10).text(`• ${entry.workDate}: ${entry.workHours || 0} ชม. - ${entry.workDescription || ''}`);
         });
-        if (summaryData.logEntries.length > maxRows) {
-          doc.fontSize(10).fillColor('gray').text(`...มีอีก ${summaryData.logEntries.length - maxRows} รายการ`);
-          doc.fillColor('black');
-        }
 
         // Reflection
         if (summaryData.reflection) {
+          if (doc.y > 650) doc.addPage();
           doc.moveDown();
-          doc.fontSize(14).text('บทสรุปการฝึกงาน', { underline: true });
+          doc.font('Thai-Bold').fontSize(14).text('บทสรุปการฝึกงาน', { underline: true });
           const r = summaryData.reflection;
-            doc.fontSize(10).text(`สิ่งที่ได้เรียนรู้: ${r.learningOutcome || '-'}`);
-            doc.fontSize(10).text(`ทักษะสำคัญ: ${r.keyLearnings || '-'}`);
-            doc.fontSize(10).text(`การประยุกต์ใช้ในอนาคต: ${r.futureApplication || '-'}`);
-            doc.fontSize(10).text(`ข้อเสนอแนะ/ปรับปรุง: ${r.improvements || '-'}`);
+          doc.font('Thai').fontSize(10);
+          doc.text(`สิ่งที่ได้เรียนรู้: ${r.learningOutcome || '-'}`);
+          doc.text(`ทักษะสำคัญ: ${r.keyLearnings || '-'}`);
+          doc.text(`การประยุกต์ใช้ในอนาคต: ${r.futureApplication || '-'}`);
+          doc.text(`ข้อเสนอแนะ/ปรับปรุง: ${r.improvements || '-'}`);
         }
 
         doc.end();

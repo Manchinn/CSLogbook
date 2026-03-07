@@ -13,7 +13,8 @@ import {
   useAdminProjectExamPendingResults,
   useAdminProjectExamResultDetail,
 } from "@/hooks/useAdminProjectExamResults";
-import styles from "./AdminProjectExamResultsPage.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
+import local from "./AdminProjectExamResultsPage.local.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const FINAL_DOCUMENT_STATUS_OPTIONS = [
@@ -441,16 +442,14 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
         </div>
 
         {expandedDetail ? (
-          <div className={styles.expandPanel}>
-            <div className={styles.expandGrid}>
+          <div className={local.expandPanel}>
+            <div className={local.expandGrid}>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>รายละเอียดการสอบ</h3>
                 <p>สถานะคำขอสอบ: {DEFENSE_STATUS_LABEL[expandedDetail.defenseRequest?.status ?? ""] || expandedDetail.defenseRequest?.status || "-"}</p>
                 <p>ยื่นคำขอเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.submittedAt)}</p>
                 <p>อาจารย์อนุมัติเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.advisorApprovedAt)}</p>
                 <p>เจ้าหน้าที่ตรวจเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.staffVerifiedAt)}</p>
-                <p>กำหนดสอบ: {formatDateTime(expandedDetail.defenseRequest?.defenseScheduledAt)}</p>
-                <p>สถานที่สอบ: {expandedDetail.defenseRequest?.defenseLocation || "-"}</p>
               </section>
               <section className={styles.detailSection}>
                 <h3 className={styles.detailTitle}>ผลการสอบ</h3>
@@ -536,7 +535,7 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
               </select>
             </label>
             {examType === ADMIN_EXAM_TYPE_PROJECT1 && recordResult === "PASS" ? (
-              <label className={styles.checkboxField}>
+              <label className={local.checkboxField}>
                 <input
                   type="checkbox"
                   checked={requireScopeRevision}
@@ -590,7 +589,7 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
             <h3 className={styles.modalTitle}>อัปเดตสถานะเล่มปริญญานิพนธ์</h3>
             <p className={styles.subText}>{documentTarget.projectNameTh || documentTarget.projectNameEn || "-"}</p>
             {!documentTarget.finalDocument?.documentId ? (
-              <div className={styles.infoBox}>ยังไม่มีรายการเล่มในระบบ ระบบจะสร้างรายการเล่มแบบออฟไลน์เมื่อบันทึกสถานะ</div>
+              <div className={local.infoBox}>ยังไม่มีรายการเล่มในระบบ ระบบจะสร้างรายการเล่มแบบออฟไลน์เมื่อบันทึกสถานะ</div>
             ) : null}
             <label className={styles.field}>
               <span>สถานะเล่ม</span>

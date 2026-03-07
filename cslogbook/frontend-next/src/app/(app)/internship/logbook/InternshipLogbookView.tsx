@@ -597,117 +597,125 @@ export default function InternshipLogbookView() {
                 aria-labelledby="logbook-modal-title"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className={styles.formHeader}>
+                <div className={styles.modalHeader}>
                   <div>
                     <p className={styles.panelKicker}>บันทึก {formatDate(editingDate)}</p>
                     <h3 className={styles.formTitle} id="logbook-modal-title">กรอกข้อมูลการฝึกงาน</h3>
-                    <p className={styles.formHint}>ระบบจะคำนวณชั่วโมงจากเวลาเข้า-ออกงานอัตโนมัติ</p>
                   </div>
+                  <button className={styles.modalCloseBtn} type="button" onClick={handleCloseModal} aria-label="ปิด">
+                    &times;
+                  </button>
                 </div>
 
-                <form className={styles.form} onSubmit={handleSubmit}>
-                  <div className={styles.gridTwo}>
-                    <div className={styles.field}>
-                      <label className={styles.label} htmlFor="logbook-time-in">เวลาเข้างาน *</label>
-                      <input
-                        className={styles.input}
-                        id="logbook-time-in"
-                        type="time"
-                        ref={timeInRef}
-                        value={formState.timeIn}
-                        onChange={(e) => handleTimeChange("timeIn", e.target.value)}
-                        required
-                      />
+                <form onSubmit={handleSubmit}>
+                  <div className={styles.modalBody}>
+                    {/* กลุ่ม: เวลาทำงาน */}
+                    <div className={styles.fieldGroup}>
+                      <p className={styles.fieldGroupLabel}>เวลาทำงาน</p>
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor="logbook-time-in">เวลาเข้างาน *</label>
+                          <input
+                            className={styles.input}
+                            id="logbook-time-in"
+                            type="time"
+                            ref={timeInRef}
+                            value={formState.timeIn}
+                            onChange={(e) => handleTimeChange("timeIn", e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor="logbook-time-out">เวลาออกงาน *</label>
+                          <input
+                            className={styles.input}
+                            id="logbook-time-out"
+                            type="time"
+                            value={formState.timeOut}
+                            onChange={(e) => handleTimeChange("timeOut", e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      {(formState.timeIn && formState.timeOut) ? (
+                        <div className={styles.hoursBadge}>
+                          ชั่วโมงที่คำนวณ: <span className={styles.hoursBadgeValue}>{formatHours(formState.workHours)}</span> ชม.
+                        </div>
+                      ) : null}
                     </div>
-                    <div className={styles.field}>
-                      <label className={styles.label} htmlFor="logbook-time-out">เวลาออกงาน *</label>
-                      <input
-                        className={styles.input}
-                        id="logbook-time-out"
-                        type="time"
-                        value={formState.timeOut}
-                        onChange={(e) => handleTimeChange("timeOut", e.target.value)}
-                        required
-                      />
+
+                    {/* กลุ่ม: รายละเอียดงาน */}
+                    <div className={styles.fieldGroup}>
+                      <p className={styles.fieldGroupLabel}>รายละเอียดงาน</p>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="logbook-title">หัวข้อ / งานที่รับผิดชอบ *</label>
+                        <input
+                          className={styles.input}
+                          id="logbook-title"
+                          type="text"
+                          value={formState.logTitle}
+                          onChange={(e) => setFormState((prev) => ({ ...prev, logTitle: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="logbook-description">รายละเอียดงาน *</label>
+                        <textarea
+                          className={styles.textarea}
+                          id="logbook-description"
+                          value={formState.workDescription}
+                          onChange={(e) => setFormState((prev) => ({ ...prev, workDescription: e.target.value }))}
+                          rows={3}
+                          required
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="logbook-learning">สิ่งที่ได้เรียนรู้ *</label>
+                        <textarea
+                          className={styles.textarea}
+                          id="logbook-learning"
+                          value={formState.learningOutcome}
+                          onChange={(e) => setFormState((prev) => ({ ...prev, learningOutcome: e.target.value }))}
+                          rows={2}
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-title">หัวข้อ / งานที่รับผิดชอบ *</label>
-                    <input
-                      className={styles.input}
-                      id="logbook-title"
-                      type="text"
-                      value={formState.logTitle}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, logTitle: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-description">รายละเอียดงาน *</label>
-                    <textarea
-                      className={styles.textarea}
-                      id="logbook-description"
-                      value={formState.workDescription}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, workDescription: e.target.value }))}
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-learning">สิ่งที่ได้เรียนรู้ *</label>
-                    <textarea
-                      className={styles.textarea}
-                      id="logbook-learning"
-                      value={formState.learningOutcome}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, learningOutcome: e.target.value }))}
-                      rows={2}
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.gridTwo}>
-                    <div className={styles.field}>
-                      <label className={styles.label} htmlFor="logbook-problems">ปัญหา/อุปสรรค</label>
-                      <textarea
-                        className={styles.textarea}
-                        id="logbook-problems"
-                        value={formState.problems}
-                        onChange={(e) => setFormState((prev) => ({ ...prev, problems: e.target.value }))}
-                        rows={2}
-                      />
+                    {/* กลุ่ม: ปัญหาและแนวทางแก้ไข */}
+                    <div className={styles.fieldGroup}>
+                      <p className={styles.fieldGroupLabel}>ปัญหาและแนวทางแก้ไข (ถ้ามี)</p>
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor="logbook-problems">ปัญหา/อุปสรรค</label>
+                          <textarea
+                            className={styles.textarea}
+                            id="logbook-problems"
+                            value={formState.problems}
+                            onChange={(e) => setFormState((prev) => ({ ...prev, problems: e.target.value }))}
+                            rows={2}
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor="logbook-solutions">แนวทางแก้ไข</label>
+                          <textarea
+                            className={styles.textarea}
+                            id="logbook-solutions"
+                            value={formState.solutions}
+                            onChange={(e) => setFormState((prev) => ({ ...prev, solutions: e.target.value }))}
+                            rows={2}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className={styles.field}>
-                      <label className={styles.label} htmlFor="logbook-solutions">แนวทางแก้ไข</label>
-                      <textarea
-                        className={styles.textarea}
-                        id="logbook-solutions"
-                        value={formState.solutions}
-                        onChange={(e) => setFormState((prev) => ({ ...prev, solutions: e.target.value }))}
-                        rows={2}
-                      />
-                    </div>
+
+                    {formError ? <p className={styles.error}>{formError}</p> : null}
+                    {formSuccess ? <p className={styles.success}>{formSuccess}</p> : null}
                   </div>
 
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="logbook-hours">ชั่วโมงที่ระบบคำนวณ</label>
-                    <input
-                      className={styles.input}
-                      id="logbook-hours"
-                      type="text"
-                      value={`${formatHours(formState.workHours)} ชม.`}
-                      readOnly
-                    />
-                  </div>
-
-                  {formError ? <p className={styles.error}>{formError}</p> : null}
-                  {formSuccess ? <p className={styles.success}>{formSuccess}</p> : null}
-
-                  <div className={styles.actions}>
+                  <div className={styles.modalFooter}>
                     <button className={styles.secondaryButton} type="button" onClick={handleCloseModal}>
-                      ปิดแบบฟอร์ม
+                      ยกเลิก
                     </button>
                     <button className={styles.primaryButton} type="submit" disabled={saveMutation.isPending || updateMutation.isPending}>
                       {saveMutation.isPending || updateMutation.isPending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
@@ -727,15 +735,18 @@ export default function InternshipLogbookView() {
                 aria-labelledby="approval-modal-title"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className={styles.formHeader}>
+                <div className={styles.modalHeader}>
                   <div>
                     <p className={styles.panelKicker}>คำขออนุมัติ</p>
                     <h3 className={styles.formTitle} id="approval-modal-title">ส่งคำขออนุมัติบันทึกการฝึกงาน</h3>
                     <p className={styles.formHint}>ระบบจะส่งอีเมลไปยังผู้ควบคุมงานเพื่อตรวจสอบและอนุมัติ</p>
                   </div>
+                  <button className={styles.modalCloseBtn} type="button" onClick={handleCloseApproval} aria-label="ปิด">
+                    &times;
+                  </button>
                 </div>
 
-                <div className={styles.form}>
+                <div className={styles.modalBody}>
                   <fieldset className={styles.radioGroup}>
                     <legend className={styles.label}>ประเภทการส่ง</legend>
                     <label className={styles.radioLabel}>
@@ -789,20 +800,20 @@ export default function InternshipLogbookView() {
 
                   {approvalError ? <p className={styles.error}>{approvalError}</p> : null}
                   {approvalSuccess ? <p className={styles.success}>{approvalSuccess}</p> : null}
+                </div>
 
-                  <div className={styles.actions}>
-                    <button className={styles.secondaryButton} type="button" onClick={handleCloseApproval}>
-                      ยกเลิก
-                    </button>
-                    <button
-                      className={styles.approvalButton}
-                      type="button"
-                      disabled={approvalMutation.isPending || Boolean(approvalSuccess)}
-                      onClick={handleSubmitApproval}
-                    >
-                      {approvalMutation.isPending ? "กำลังส่ง..." : "ยืนยันส่งคำขออนุมัติ"}
-                    </button>
-                  </div>
+                <div className={styles.modalFooter}>
+                  <button className={styles.secondaryButton} type="button" onClick={handleCloseApproval}>
+                    ยกเลิก
+                  </button>
+                  <button
+                    className={styles.approvalButton}
+                    type="button"
+                    disabled={approvalMutation.isPending || Boolean(approvalSuccess)}
+                    onClick={handleSubmitApproval}
+                  >
+                    {approvalMutation.isPending ? "กำลังส่ง..." : "ยืนยันส่งคำขออนุมัติ"}
+                  </button>
                 </div>
               </div>
             </div>

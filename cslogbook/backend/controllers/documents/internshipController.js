@@ -976,6 +976,8 @@ exports.downloadReferralLetter = async (req, res) => {
       ? 404
       : error.message.includes("ไม่ได้รับการอนุมัติ")
       ? 403
+      : error.message.includes("ไม่ครบถ้วน")
+      ? 400
       : 500;
 
     return res.status(statusCode).json({

@@ -1,0 +1,31 @@
+/* ─── Defense/SystemTest Queue — Page-specific classes ─── */
+
+.list {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--color-text-muted);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.timeline {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.timeline li {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-elevated);
+}
+
+.timelineTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.88rem;
+}

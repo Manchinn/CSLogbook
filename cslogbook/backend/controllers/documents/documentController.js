@@ -132,6 +132,17 @@ const getDocuments = async (req, res) => {
     }
 };
 
+// รวมเอกสารฝึกงานทั้งหมดของนักศึกษา (CS05, ตอบรับ, ส่งตัว, รับรอง)
+const getStudentDocumentsOverview = async (req, res) => {
+    try {
+        const documents = await documentService.getStudentDocumentsOverview(req.user.userId);
+        res.json({ success: true, documents });
+    } catch (error) {
+        logger.error('Error fetching student documents overview:', error);
+        res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลเอกสารได้' });
+    }
+};
+
 // ดึงเอกสารของผู้ใช้ที่ล็อกอิน (นักศึกษา)
 const getMyDocuments = async (req, res) => {
     try {
@@ -572,4 +583,5 @@ module.exports = {
     previewInternshipLogbookSummaryPDF,
     downloadInternshipLogbookSummaryPDF,
     getMyDocuments,
+    getStudentDocumentsOverview,
 };

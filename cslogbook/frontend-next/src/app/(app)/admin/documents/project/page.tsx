@@ -13,7 +13,7 @@ import {
 } from "@/lib/services/adminProjectDocumentsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { labelStatus } from "@/lib/utils/statusLabels";
-import styles from "../internship/page.module.css";
+import styles from "@/styles/shared/admin-queue.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
