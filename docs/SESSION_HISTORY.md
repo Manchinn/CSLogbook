@@ -305,7 +305,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 - Templates: 10 HTML files ใน `backend/templates/` — Thai localization, KMUTNB branding
 - Feature flags: ใช้ `NotificationSetting` table (database-driven) ไม่ใช้ .env
 
-## Session 27 (claude, 2026-03-07) — Gmail REST API Migration (SMTP blocked)
+## Session 27 (claude, 2026-03-07) — Gmail REST API Migration + SSO Email Fix
 
 **ปัญหา:** Email ส่งไม่ได้ใน production — VPS block outbound SMTP port 465/587
 
@@ -322,6 +322,9 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 |---|---|
 | เปลี่ยน Gmail transport จาก SMTP เป็น REST API (`gmail.users.messages.send`) | `backend/utils/gmailTransport.js` |
 | สร้าง Gmail debug/test script (non-interactive, Docker-friendly) | `backend/scripts/test-gmail.js` (NEW) |
+| เพิ่ม sendLoginNotification ใน SSO login flow | `backend/controllers/ssoController.js` |
+| แก้ SSO email mapping — อ่าน `ssoData.email` (OIDC field) + fallback chain | `backend/services/ssoService.js` |
+| ป้องกัน email overwrite ด้วยค่าไม่ valid จาก SSO | `backend/services/authService.js` |
 
 **Architecture เปลี่ยน:**
 ```
@@ -330,3 +333,9 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 ```
 
 **Interface ไม่เปลี่ยน:** `gmailTransport.initialize()`, `.sendMail()`, `.verify()`, `.close()` — caller ทุกตัวไม่ต้องแก้
+
+**SSO Email Bug:**
+- SSO ส่ง email ใน `ssoData.email` (OIDC standard) แต่ code เดิมดูแค่ `profile.email` ซึ่งเป็น `{}`
+- `updateUserFromSso` overwrite email ทุกครั้ง รวมถึงค่าไม่ valid → แก้ให้ validate ก่อน overwrite
+- SSO login ไม่ได้เรียก `sendLoginNotification` → เพิ่มใน ssoController callback
+>>>>>>> claude/claude-md-mm56ik11ksjo6flh-JgWXL
