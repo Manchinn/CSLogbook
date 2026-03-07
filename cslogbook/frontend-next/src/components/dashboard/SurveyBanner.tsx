@@ -65,7 +65,7 @@ export function SurveyBanner() {
           <p className={styles.modalDesc}>
             ขอเชิญร่วมประเมินการใช้งานระบบ CSLogbook เพื่อนำข้อมูลไปปรับปรุงระบบให้ดียิ่งขึ้น
             <br />
-            ใช้เวลาเพียง <strong>1–2 นาที</strong>
+            ใช้เวลาเพียง <strong>3–5 นาที</strong>
           </p>
           <div className={styles.modalActions}>
             <button type="button" className={styles.btnPrimary} onClick={handlePopupOpen}>
