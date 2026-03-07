@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   cancelInternship,
   getEnrolledInternshipStudents,
@@ -11,9 +10,11 @@ import {
   updateInternship,
   type EnrolledInternshipStudent,
 } from "@/lib/services/reportService";
+import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
+import { downloadCSV } from "@/lib/utils/csvExport";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "ยังไม่เริ่ม",
@@ -98,10 +99,10 @@ export default function AdminInternshipReportPage() {
     const inProgressVal = summary?.inProgress ?? students.filter((s) => ["in_progress", "pending_approval"].includes(s.internshipStatus ?? "")).length;
     const notStartedVal = summary?.notStarted ?? 0;
     return [
-      { label: "ลงทะเบียนฝึกงาน", value: enrolledCount },
-      { label: "ฝึกงานเสร็จแล้ว", value: completedVal },
-      { label: "อยู่ระหว่างฝึกงาน", value: inProgressVal },
-      { label: "ยังไม่เริ่ม", value: notStartedVal },
+      { label: "ลงทะเบียนฝึกงาน", value: enrolledCount, filterValue: "" },
+      { label: "ฝึกงานเสร็จแล้ว", value: completedVal, filterValue: "completed" },
+      { label: "อยู่ระหว่างฝึกงาน", value: inProgressVal, filterValue: "in_progress" },
+      { label: "ยังไม่เริ่ม", value: notStartedVal, filterValue: "not_started" },
     ];
   }, [summary, students]);
 
@@ -172,7 +173,6 @@ export default function AdminInternshipReportPage() {
   const displayYears = yearOptions.length > 0 ? yearOptions : [anchorYear.current, anchorYear.current - 1, anchorYear.current - 2];
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -182,6 +182,30 @@ export default function AdminInternshipReportPage() {
           <div className={btn.buttonRow}>
             <button type="button" className={btn.button} onClick={() => loadData(year, semester)} disabled={loading}>
               {loading ? "กำลังโหลด..." : "รีเฟรช"}
+            </button>
+            <button
+              type="button"
+              className={btn.button}
+              disabled={filteredStudents.length === 0}
+              onClick={() =>
+                downloadCSV(
+                  filteredStudents,
+                  [
+                    { key: "studentCode", header: "รหัสนักศึกษา" },
+                    { key: "fullName", header: "ชื่อ-นามสกุล" },
+                    { key: "studentYear", header: "ชั้นปี" },
+                    { key: "internshipStatus", header: "สถานะ", format: (v) => STATUS_LABELS[String(v ?? "")] ?? String(v ?? "") },
+                    { key: "companyName", header: "บริษัท" },
+                    { key: "internshipPosition", header: "ตำแหน่ง" },
+                    { key: "supervisorName", header: "พี่เลี้ยง" },
+                    { key: "startDate", header: "วันเริ่ม", format: (v) => formatDate(v as string) },
+                    { key: "endDate", header: "วันสิ้นสุด", format: (v) => formatDate(v as string) },
+                  ],
+                  `internship-report-${year}`
+                )
+              }
+            >
+              ส่งออก CSV
             </button>
           </div>
         </header>
@@ -196,6 +220,7 @@ export default function AdminInternshipReportPage() {
         <section className={styles.card}>
           <div className={styles.filters}>
             <select
+              aria-label="ปีการศึกษา"
               className={styles.select}
               value={String(year)}
               onChange={(e) => setYear(Number(e.target.value))}
@@ -207,6 +232,7 @@ export default function AdminInternshipReportPage() {
               ))}
             </select>
             <select
+              aria-label="ภาคเรียน"
               className={styles.select}
               value={semester !== undefined ? String(semester) : ""}
               onChange={(e) => setSemester(e.target.value ? Number(e.target.value) : undefined)}
@@ -221,14 +247,25 @@ export default function AdminInternshipReportPage() {
 
         {/* KPI Cards */}
         <section className={styles.card}>
-          <div className={styles.stats}>
-            {kpis.map((kpi) => (
-              <div key={kpi.label} className={styles.statItem}>
-                <p className={styles.statLabel}>{kpi.label}</p>
-                <p className={styles.statValue}>{kpi.value ?? "-"}</p>
-              </div>
-            ))}
-          </div>
+          {loading && !summary ? (
+            <StatSkeleton count={4} />
+          ) : (
+            <div className={styles.stats}>
+              {kpis.map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className={`${styles.statItem} ${styles.statItemClickable} ${statusFilter === kpi.filterValue ? styles.statItemActive : ""}`}
+                  onClick={() => setStatusFilter(statusFilter === kpi.filterValue ? "" : kpi.filterValue)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") setStatusFilter(statusFilter === kpi.filterValue ? "" : kpi.filterValue); }}
+                >
+                  <p className={styles.statLabel}>{kpi.label}</p>
+                  <p className={styles.statValue}>{kpi.value ?? "-"}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Evaluation Summary */}
@@ -236,8 +273,8 @@ export default function AdminInternshipReportPage() {
           <section className={styles.card}>
             <h3 className={styles.sectionTitle}>ค่าเฉลี่ยการประเมิน (รายหัวข้อ)</h3>
             <div className={styles.evalGrid}>
-              {evaluation.criteriaAverages.map((c) => (
-                <div key={c.criteriaName} className={styles.evalItem}>
+              {evaluation.criteriaAverages.map((c, i) => (
+                <div key={c.criteriaName ?? `criteria-${i}`} className={styles.evalItem}>
                   <p className={styles.statLabel}>{c.criteriaName}</p>
                   <p className={styles.statValue}>{c.average?.toFixed(2) ?? "-"}</p>
                 </div>
@@ -255,7 +292,7 @@ export default function AdminInternshipReportPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <select className={styles.select} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select aria-label="สถานะฝึกงาน" className={styles.select} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="">ทุกสถานะ</option>
               {Object.entries(STATUS_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -282,7 +319,9 @@ export default function AdminInternshipReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.length > 0 ? (
+                {loading && filteredStudents.length === 0 ? (
+                  <TableSkeleton rows={5} columns={10} />
+                ) : filteredStudents.length > 0 ? (
                   filteredStudents.map((s, idx) => (
                     <tr key={s.internshipId ?? idx}>
                       <td>{s.studentCode ?? "-"}</td>
@@ -398,6 +437,5 @@ export default function AdminInternshipReportPage() {
           </div>
         ) : null}
       </div>
-    </RoleGuard>
   );
 }

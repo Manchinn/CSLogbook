@@ -147,13 +147,64 @@ module.exports = {
    * ปัจจุบัน ProjectDocument ไม่มี field สถานะ proposal/draft/approved -> ใช้ placeholder
    * workflowAging ยังไม่มีตารางเชื่อมครบ (ต้อง workflow instance + timestamps ต่อ step)
    */
-  async getProjectStatusSummary({ year }) {
+  async getProjectStatusSummary({ year, semester }) {
     const academicYear = resolveYear(year);
-    const totalProjects = await db.ProjectDocument.count();
+    const { ProjectDocument, ProjectExamResult } = db;
+
+    // Base where clause — filter ตาม academic_year (และ semester ถ้าระบุ)
+    const yearWhere = { academic_year: academicYear };
+    if (semester) yearWhere.semester = semester;
+
+    // นับจำนวนตาม status
+    const statusCounts = await ProjectDocument.findAll({
+      attributes: ['status', [fn('COUNT', col('project_id')), 'count']],
+      where: yearWhere,
+      group: ['status'],
+      raw: true
+    });
+
+    const statusMap = {};
+    let totalProjects = 0;
+    statusCounts.forEach(r => {
+      const c = parseInt(r.count, 10);
+      statusMap[r.status] = c;
+      totalProjects += c;
+    });
+
+    const activeStatuses = ['draft', 'advisor_assigned', 'in_progress'];
+    const activeProjects = activeStatuses.reduce((sum, s) => sum + (statusMap[s] || 0), 0);
+
+    // ผลสอบ — join ProjectExamResult กับ ProjectDocument เพื่อ filter ตาม academic_year
+    const examResults = await ProjectExamResult.findAll({
+      attributes: ['exam_type', 'result', [fn('COUNT', col('exam_result_id')), 'count']],
+      include: [{ model: ProjectDocument, as: 'project', attributes: [], where: yearWhere }],
+      group: ['exam_type', 'result'],
+      raw: true
+    });
+
+    const examMap = {
+      PROJECT1: { total: 0, passed: 0, failed: 0 },
+      THESIS: { total: 0, passed: 0, failed: 0 }
+    };
+    examResults.forEach(r => {
+      const type = r.exam_type;
+      const count = parseInt(r.count, 10);
+      if (examMap[type]) {
+        examMap[type].total += count;
+        if (r.result === 'PASS') examMap[type].passed = count;
+        if (r.result === 'FAIL') examMap[type].failed = count;
+      }
+    });
+
     return {
       academicYear,
-      proposal: { draft: 0, submitted: totalProjects, approved: 0, rejected: 0 },
-      workflowAging: []
+      totalProjects,
+      activeProjects,
+      completedProjects: statusMap['completed'] || 0,
+      criticalIssues: statusMap['cancelled'] || 0,
+      project1: examMap.PROJECT1,
+      project2: examMap.THESIS,
+      byStatus: statusCounts.map(r => ({ status: r.status, count: parseInt(r.count, 10) }))
     };
   },
 
@@ -335,11 +386,11 @@ module.exports = {
     // คะแนนหมวดเก็บแบบ 0-20; แปลง scale เป็น 0-5 เพื่อ UI
     const scaleToFive = v => (v == null ? null : +parseFloat((v / 20 * 5)).toFixed(2));
     const criteriaAverages = [
-      { key: 'discipline', label: 'ระเบียบวินัย', avgRaw: toNum(a.avgDiscipline), avg: scaleToFive(a.avgDiscipline) },
-      { key: 'behavior', label: 'พฤติกรรม', avgRaw: toNum(a.avgBehavior), avg: scaleToFive(a.avgBehavior) },
-      { key: 'performance', label: 'ผลงาน', avgRaw: toNum(a.avgPerformance), avg: scaleToFive(a.avgPerformance) },
-      { key: 'method', label: 'วิธีการทำงาน', avgRaw: toNum(a.avgMethod), avg: scaleToFive(a.avgMethod) },
-      { key: 'relation', label: 'มนุษยสัมพันธ์', avgRaw: toNum(a.avgRelation), avg: scaleToFive(a.avgRelation) }
+      { key: 'discipline', criteriaName: 'ระเบียบวินัย', avgRaw: toNum(a.avgDiscipline), average: scaleToFive(a.avgDiscipline) },
+      { key: 'behavior', criteriaName: 'พฤติกรรม', avgRaw: toNum(a.avgBehavior), average: scaleToFive(a.avgBehavior) },
+      { key: 'performance', criteriaName: 'ผลงาน', avgRaw: toNum(a.avgPerformance), average: scaleToFive(a.avgPerformance) },
+      { key: 'method', criteriaName: 'วิธีการทำงาน', avgRaw: toNum(a.avgMethod), average: scaleToFive(a.avgMethod) },
+      { key: 'relation', criteriaName: 'มนุษยสัมพันธ์', avgRaw: toNum(a.avgRelation), average: scaleToFive(a.avgRelation) }
     ];
     const overallAverage = toNum(a.avgOverall);
 

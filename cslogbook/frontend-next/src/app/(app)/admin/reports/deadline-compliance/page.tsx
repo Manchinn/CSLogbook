@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import { getDeadlineCompliance, type DeadlineComplianceReport } from "@/lib/services/reportService";
 import styles from "../internship/page.module.css";
 import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
@@ -51,7 +50,6 @@ export default function AdminDeadlineCompliancePage() {
   const displayYears = [anchorYear.current, anchorYear.current - 1, anchorYear.current - 2];
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
@@ -195,6 +193,5 @@ export default function AdminDeadlineCompliancePage() {
           </section>
         ) : null}
       </div>
-    </RoleGuard>
   );
 }

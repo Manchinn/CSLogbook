@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   cancelProject,
   getProjectAcademicYears,
@@ -10,8 +9,11 @@ import {
   type ProjectStatusSummary,
 } from "@/lib/services/reportService";
 import { apiFetch } from "@/lib/api/client";
+import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import styles from "../internship/page.module.css";
+import btn from "@/styles/shared/buttons.module.css";
 import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
+import { downloadCSV } from "@/lib/utils/csvExport";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   draft: "แบบร่าง",
@@ -50,6 +52,7 @@ async function fetchProjectList(filters: ProjectFilters): Promise<ProjectsResult
 export default function AdminProjectReportPage() {
   const anchorYear = useRef(currentBuddhistYear());
   const [year, setYear] = useState(anchorYear.current);
+  const [semester, setSemester] = useState<number | undefined>(undefined);
   const [yearOptions, setYearOptions] = useState<number[]>([]);
   const [summary, setSummary] = useState<ProjectStatusSummary | null>(null);
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
@@ -64,10 +67,10 @@ export default function AdminProjectReportPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
 
-  const loadSummary = useCallback(async (targetYear: number) => {
+  const loadSummary = useCallback(async (targetYear: number, targetSemester?: number) => {
     setLoading(true);
     try {
-      const [sum, years] = await Promise.all([getProjectStatusSummary({ year: targetYear }), getProjectAcademicYears()]);
+      const [sum, years] = await Promise.all([getProjectStatusSummary({ year: targetYear, semester: targetSemester }), getProjectAcademicYears()]);
       setSummary(sum);
       if (years.length > 0) setYearOptions(years);
     } catch (error) {
@@ -91,8 +94,8 @@ export default function AdminProjectReportPage() {
   }, []);
 
   useEffect(() => {
-    loadSummary(year);
-  }, [year, loadSummary]);
+    loadSummary(year, semester);
+  }, [year, semester, loadSummary]);
 
   useEffect(() => {
     setFilters((prev) => ({ ...prev, academicYear: year, page: 1 }));
@@ -105,10 +108,10 @@ export default function AdminProjectReportPage() {
   const kpis = useMemo(() => {
     if (!summary) return [];
     return [
-      { label: "โครงงานทั้งหมด", value: summary.totalProjects },
-      { label: "กำลังดำเนินการ", value: summary.activeProjects },
-      { label: "เสร็จสิ้น", value: summary.completedProjects },
-      { label: "ปัญหาวิกฤต", value: summary.criticalIssues },
+      { label: "โครงงานทั้งหมด", value: summary.totalProjects, filterValue: "" },
+      { label: "กำลังดำเนินการ", value: summary.activeProjects, filterValue: "in_progress" },
+      { label: "เสร็จสิ้น", value: summary.completedProjects, filterValue: "completed" },
+      { label: "ยกเลิก", value: summary.criticalIssues, filterValue: "cancelled" },
     ];
   }, [summary]);
 
@@ -131,16 +134,37 @@ export default function AdminProjectReportPage() {
   const totalPages = Math.max(1, Math.ceil(totalProjects / filters.limit));
 
   return (
-    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div className={styles.page}>
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>รายงานโครงงาน</h1>
             <p className={styles.subtitle}>สถิติและผลการสอบโครงงานพิเศษและวิทยานิพนธ์</p>
           </div>
-          <button type="button" className={styles.button} onClick={() => { loadSummary(year); loadProjects(filters); }} disabled={loading}>
-            {loading ? "กำลังโหลด..." : "รีเฟรช"}
-          </button>
+          <div className={btn.buttonRow}>
+            <button type="button" className={btn.button} onClick={() => { loadSummary(year); loadProjects(filters); }} disabled={loading}>
+              {loading ? "กำลังโหลด..." : "รีเฟรช"}
+            </button>
+            <button
+              type="button"
+              className={btn.button}
+              disabled={projects.length === 0}
+              onClick={() =>
+                downloadCSV(
+                  projects,
+                  [
+                    { key: "projectCode", header: "รหัสโครงงาน" },
+                    { key: "projectTitle", header: "ชื่อโครงงาน" },
+                    { key: "status", header: "สถานะ", format: (v) => PROJECT_STATUS_LABELS[String(v ?? "")] ?? String(v ?? "") },
+                    { key: "members", header: "นักศึกษา", format: (v) => ((v as ProjectListItem["members"]) ?? []).map((m) => `${m.studentCode} ${m.name}`).join(", ") },
+                    { key: "advisorName", header: "ที่ปรึกษา" },
+                  ],
+                  `project-report-${year}`
+                )
+              }
+            >
+              ส่งออก CSV
+            </button>
+          </div>
         </header>
 
         {message ? (
@@ -149,30 +173,50 @@ export default function AdminProjectReportPage() {
           </div>
         ) : null}
 
-        {/* Year filter */}
+        {/* Filters */}
         <section className={styles.card}>
           <div className={styles.filters}>
-            <select className={styles.select} value={String(year)} onChange={(e) => setYear(Number(e.target.value))}>
+            <select aria-label="ปีการศึกษา" className={styles.select} value={String(year)} onChange={(e) => setYear(Number(e.target.value))}>
               {displayYears.map((y) => (
                 <option key={y} value={y}>ปีการศึกษา {y}</option>
               ))}
+            </select>
+            <select
+              aria-label="ภาคเรียน"
+              className={styles.select}
+              value={semester !== undefined ? String(semester) : ""}
+              onChange={(e) => setSemester(e.target.value ? Number(e.target.value) : undefined)}
+            >
+              <option value="">ทุกภาคเรียน</option>
+              <option value="1">ภาค 1</option>
+              <option value="2">ภาค 2</option>
+              <option value="3">ภาคฤดูร้อน</option>
             </select>
           </div>
         </section>
 
         {/* KPI Cards */}
-        {kpis.length > 0 ? (
-          <section className={styles.card}>
+        <section className={styles.card}>
+          {loading && !summary ? (
+            <StatSkeleton count={4} />
+          ) : kpis.length > 0 ? (
             <div className={styles.stats}>
               {kpis.map((kpi) => (
-                <div key={kpi.label} className={styles.statItem}>
+                <div
+                  key={kpi.label}
+                  className={`${styles.statItem} ${styles.statItemClickable} ${filters.status === kpi.filterValue ? styles.statItemActive : ""}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, status: prev.status === kpi.filterValue ? "" : kpi.filterValue, page: 1 }))}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") setFilters((prev) => ({ ...prev, status: prev.status === kpi.filterValue ? "" : kpi.filterValue, page: 1 })); }}
+                >
                   <p className={styles.statLabel}>{kpi.label}</p>
                   <p className={styles.statValue}>{kpi.value ?? "-"}</p>
                 </div>
               ))}
             </div>
-          </section>
-        ) : null}
+          ) : null}
+        </section>
 
         {/* Project 1 & 2 */}
         {summary ? (
@@ -212,6 +256,7 @@ export default function AdminProjectReportPage() {
           <h3 className={styles.sectionTitle}>รายการโครงงาน</h3>
           <div className={styles.filters}>
             <select
+              aria-label="สถานะโครงงาน"
               className={styles.select}
               value={filters.status}
               onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value, page: 1 }))}
@@ -264,7 +309,7 @@ export default function AdminProjectReportPage() {
                         {p.status !== "cancelled" ? (
                           <button
                             type="button"
-                            className={`${styles.button} ${styles.buttonDanger}`}
+                            className={`${btn.button} ${btn.buttonDanger}`}
                             onClick={() => { setCancelTarget(p); setCancelReason(""); }}
                           >
                             ยกเลิก
@@ -274,7 +319,11 @@ export default function AdminProjectReportPage() {
                     </tr>
                   ))
                 ) : (
-                  <tr><td colSpan={6}><p className={styles.empty}>{projectsLoading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}</p></td></tr>
+                  projectsLoading ? (
+                    <TableSkeleton rows={5} columns={6} />
+                  ) : (
+                    <tr><td colSpan={6}><p className={styles.empty}>ไม่พบข้อมูล</p></td></tr>
+                  )
                 )}
               </tbody>
             </table>
@@ -282,8 +331,8 @@ export default function AdminProjectReportPage() {
 
           <div className={styles.pagination}>
             <p className={styles.paginationInfo}>หน้า {filters.page} / {totalPages} (ทั้งหมด {totalProjects} รายการ)</p>
-            <button type="button" className={styles.button} disabled={filters.page <= 1} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}>ก่อนหน้า</button>
-            <button type="button" className={styles.button} disabled={filters.page >= totalPages} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}>ถัดไป</button>
+            <button type="button" className={btn.button} disabled={filters.page <= 1} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}>ก่อนหน้า</button>
+            <button type="button" className={btn.button} disabled={filters.page >= totalPages} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}>ถัดไป</button>
           </div>
         </section>
 
@@ -303,9 +352,9 @@ export default function AdminProjectReportPage() {
                   placeholder="ระบุเหตุผล (ถ้าไม่ระบุจะใช้ค่าเริ่มต้น)"
                 />
               </label>
-              <div className={styles.buttonRow}>
-                <button type="button" className={styles.button} onClick={() => setCancelTarget(null)} disabled={cancelBusy}>ปิด</button>
-                <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={submitCancel} disabled={cancelBusy}>
+              <div className={btn.buttonRow}>
+                <button type="button" className={btn.button} onClick={() => setCancelTarget(null)} disabled={cancelBusy}>ปิด</button>
+                <button type="button" className={`${btn.button} ${btn.buttonDanger}`} onClick={submitCancel} disabled={cancelBusy}>
                   {cancelBusy ? "กำลังยกเลิก..." : "ยืนยันยกเลิก"}
                 </button>
               </div>
@@ -313,6 +362,5 @@ export default function AdminProjectReportPage() {
           </div>
         ) : null}
       </div>
-    </RoleGuard>
   );
 }

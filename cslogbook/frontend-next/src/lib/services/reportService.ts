@@ -237,9 +237,10 @@ export async function getProjectAcademicYears(): Promise<number[]> {
   return Array.isArray(res.data) ? res.data : [];
 }
 
-export async function getProjectStatusSummary(params: { year?: number } = {}): Promise<ProjectStatusSummary | null> {
+export async function getProjectStatusSummary(params: { year?: number; semester?: number } = {}): Promise<ProjectStatusSummary | null> {
   const query = new URLSearchParams();
   if (params.year) query.set("year", String(params.year));
+  if (params.semester) query.set("semester", String(params.semester));
   const qs = query.toString();
   const res = await apiFetch<{ success: boolean; data: ProjectStatusSummary }>(`/reports/projects/status-summary${qs ? `?${qs}` : ""}`);
   return res.data ?? null;
