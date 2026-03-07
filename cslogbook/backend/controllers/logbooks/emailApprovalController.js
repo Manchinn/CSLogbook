@@ -541,17 +541,19 @@ exports.getApprovalDetails = async (req, res) => {
       try {
         logger.info(`Attempting to fetch company data for studentId: ${tokenInfo.studentId}`);
 
-        // ✅ วิธีที่ 1: Query ผ่าน Document Model โดยตรง
+        // ✅ วิธีที่ 1: Query ผ่าน Document Model โดยตรง (required join เพื่อให้ได้เฉพาะ document ที่มี internship data)
         const companyDocument = await Document.findOne({
-          where: { 
-            userId: tokenInfo.studentId,     // ✅ ใช้ studentId ใน User relation
-            documentType: 'internship' 
+          where: {
+            userId: tokenInfo.studentId,
+            documentType: 'internship'
           },
           include: [
             {
               model: InternshipDocument,
               as: 'internshipDocument',
-              attributes: ['companyName', 'supervisorName', 'supervisorEmail']
+              attributes: ['companyName', 'supervisorName', 'supervisorEmail'],
+              required: true,
+              where: { companyName: { [Op.ne]: null } }
             }
           ],
           order: [['created_at', 'DESC']],
@@ -576,15 +578,17 @@ exports.getApprovalDetails = async (req, res) => {
 
           if (studentUser?.user?.userId) {
             const userDocument = await Document.findOne({
-              where: { 
-                userId: studentUser.user.userId,  // ✅ ใช้ userId ที่ถูกต้อง
-                documentType: 'internship' 
+              where: {
+                userId: studentUser.user.userId,
+                documentType: 'internship'
               },
               include: [
                 {
                   model: InternshipDocument,
                   as: 'internshipDocument',
-                  attributes: ['companyName', 'supervisorName', 'supervisorEmail']
+                  attributes: ['companyName', 'supervisorName', 'supervisorEmail'],
+                  required: true,
+                  where: { companyName: { [Op.ne]: null } }
                 }
               ],
               order: [['created_at', 'DESC']],
@@ -605,6 +609,15 @@ exports.getApprovalDetails = async (req, res) => {
       } catch (companyError) {
         logger.error(`Error fetching company data:`, companyError);
         companyName = 'ไม่ระบุ';
+      }
+    }
+
+    // ✅ Fallback: ถ้ายังไม่มี companyName ให้ดึงจาก entries (logbook join internship_documents)
+    if (companyName === 'ไม่ระบุ' && timesheetEntries.length > 0) {
+      const entryCompany = timesheetEntries.find(e => e.companyName)?.companyName;
+      if (entryCompany) {
+        companyName = entryCompany;
+        logger.info(`✅ Company name from timesheet entry: ${companyName}`);
       }
     }
 

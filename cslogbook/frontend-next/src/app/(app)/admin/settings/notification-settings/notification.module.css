@@ -84,22 +84,51 @@
 
 .notifInfo {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
-.notifType {
-  font-size: 0.88rem;
+.notifHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notifLabel {
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.notifBadge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .notifDesc {
   font-size: 0.78rem;
   color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.notifDetails {
+  margin: 2px 0 0;
+  padding-left: 1.1em;
+  list-style: disc;
+  display: grid;
+  gap: 1px;
+}
+
+.notifDetailItem {
+  font-size: 0.74rem;
+  color: var(--color-text-disabled);
+  line-height: 1.5;
 }
 
 .notifControls {

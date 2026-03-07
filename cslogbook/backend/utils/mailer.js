@@ -455,8 +455,8 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
 
 // สำหรับการแจ้งเตือนเมื่อหัวหน้างานดำเนินการอนุมัติหรือปฏิเสธบันทึกการฝึกงาน
 async function sendTimeSheetApprovalResultNotification(email, studentName, status, comment, entryData) {
-  if (!isNotificationEnabled('DOCUMENT')) {
-    console.log('Document approval result email notification is currently disabled');
+  if (!isNotificationEnabled('APPROVAL')) {
+    logger.info('Timesheet approval result email notification is currently disabled');
     return Promise.resolve();
   }
 
@@ -466,8 +466,8 @@ async function sendTimeSheetApprovalResultNotification(email, studentName, statu
     
     // สร้าง HTML สำหรับ comment section
     const commentSection = comment ? `
-      <div class="comment-box">
-        <h4>ความคิดเห็นจากหัวหน้างาน:</h4>
+      <div class="comment-box" style="border-left: 4px solid ${statusColor};">
+        <h4 style="color: ${statusColor};">ความคิดเห็นจากหัวหน้างาน:</h4>
         <p>${comment}</p>
       </div>
     ` : '';
@@ -490,10 +490,10 @@ async function sendTimeSheetApprovalResultNotification(email, studentName, statu
 
     // OLD: const response = await sgMail.send(msg);
     const response = await sendEmail(msg); // NEW
-    console.log('Approval result notification sent successfully');
+    logger.info('Approval result notification sent successfully');
     return response;
   } catch (error) {
-    console.error('Error sending approval result notification:', error);
+    logger.error('Error sending approval result notification:', error);
     throw error;
   }
 }

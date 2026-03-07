@@ -498,7 +498,7 @@ class NotificationSettingsService {
      */
     async enableAllNotifications(adminUserId = null) {
         try {
-            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING'];
             
             // ใช้ bulkUpdateNotifications สำหรับประสิทธิภาพที่ดีขึ้น
             const settings = notificationTypes.map(type => ({ type, enabled: true }));
@@ -527,7 +527,7 @@ class NotificationSettingsService {
      */
     async disableAllNotifications(adminUserId = null) {
         try {
-            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL'];
+            const notificationTypes = ['LOGIN', 'DOCUMENT', 'LOGBOOK', 'EVALUATION', 'APPROVAL', 'MEETING'];
             
             // ใช้ bulkUpdateNotifications สำหรับประสิทธิภาพที่ดีขึ้น
             const settings = notificationTypes.map(type => ({ type, enabled: false }));

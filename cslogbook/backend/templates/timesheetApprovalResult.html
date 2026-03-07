@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ผลการพิจารณาบันทึกการฝึกงาน</title>
     <style>
-        :root {
-            --status-color: {{statusColor}};
-        }
         body {
             font-family: 'Sarabun', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             line-height: 1.6;
@@ -45,28 +42,19 @@
         .info-box {
             background-color: #f8f9fa;
             padding: 15px;
+            border-radius: 4px;
+        }
         .comment-box {
             margin: 20px 0;
             padding: 15px;
             background-color: #f9f9f9;
-            border-left: 4px solid var(--status-color);
             border-radius: 3px;
         }
         .comment-box h4 {
             margin-top: 0;
-            color: var(--status-color);
-        }
-            margin-top: 0;
-            color: var(--status-color);
         }
         .comment-box p {
             margin-bottom: 0;
-        }
-        .status-approved {
-            color: #52c41a;
-        }
-        .status-rejected {
-            color: #f5222d;
         }
         .footer {
             background-color: #f0f0f0;
@@ -82,14 +70,14 @@
     <div class="container">
         <div class="header">
             <img src="https://www.sci.kmutnb.ac.th/wp-content/uploads/2020/08/cropped-sci-logo-1.png" alt="KMUTNB Logo">
-            <h1 style="color: solid var(--status-color);">บันทึกการฝึกงานได้รับการ{{statusText}}แล้ว</h1>
+            <h1 style="color: #ffffff;">บันทึกการฝึกงานได้รับการ{{statusText}}แล้ว</h1>
         </div>
         <div class="content">
             <div class="info-box">
                 <p>เรียน คุณ {{studentName}},</p>
-                <p>บันทึกการฝึกงานของคุณวันที่ {{workDate}} ได้รับการ<strong style="color: var(--status-color);">{{statusText}}</strong>จากหัวหน้างานแล้ว</p>
+                <p>บันทึกการฝึกงานของคุณวันที่ {{workDate}} ได้รับการ<strong style="color: {{statusColor}};">{{statusText}}</strong>จากหัวหน้างานแล้ว</p>
             </div>
-            
+
             {{commentSection}}
         </div>
         <div class="footer">
