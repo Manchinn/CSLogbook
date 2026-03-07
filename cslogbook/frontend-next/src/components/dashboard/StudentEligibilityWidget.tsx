@@ -86,14 +86,14 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
       hydrated={hydrated}
       isLoading={isLoading}
       error={error || !data}
-      loadingFallback={<p>Loading student eligibility...</p>}
+      loadingFallback={<p>กำลังโหลดสิทธิ์นักศึกษา...</p>}
       errorFallback={<p className={styles.error}>ไม่สามารถโหลดสิทธิ์นักศึกษาได้</p>}
     >
       {data ? (
         <section className={styles.wrapper}>
           <div className={styles.header}>
             <div>
-              <p className={styles.eyebrow}>Student widgets</p>
+              <p className={styles.eyebrow}>สิทธิ์นักศึกษา</p>
               <h2>สิทธิ์การลงทะเบียน</h2>
             </div>
             <div className={styles.badges}>

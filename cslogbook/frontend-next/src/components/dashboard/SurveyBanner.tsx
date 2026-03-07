@@ -91,7 +91,7 @@ export function SurveyBanner() {
       <div className={styles.body}>
         <p className={styles.title}>แบบประเมินการใช้งานระบบ CSLogbook</p>
         <p className={styles.desc}>
-          ช่วยประเมินการใช้งานระบบเพื่อปรับปรุงให้ดียิ่งขึ้น — ใช้เวลาเพียง 1–2 นาที
+          ช่วยประเมินการใช้งานระบบเพื่อปรับปรุงให้ดียิ่งขึ้น — ใช้เวลาเพียง 3–5 นาที
         </p>
       </div>
       <div className={styles.actions}>

@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import styles from "./StudentProjectStatusWidget.module.css";
 
 type StudentProjectStatusWidgetProps = {
@@ -57,13 +58,13 @@ export function StudentProjectStatusWidget({ enabled }: StudentProjectStatusWidg
     <section className={styles.wrapper}>
       <div className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Project</p>
+          <p className={styles.eyebrow}>โครงงาน</p>
           <h3 className={styles.title}>สถานะโครงงาน</h3>
         </div>
         <div className={styles.badges}>
-          <span className={styles.chip}>Phase: {phaseChip}</span>
-          {workflow?.isBlocked ? <span className={`${styles.chip} ${styles.chipNegative}`}>Blocked</span> : null}
-          {workflow?.isComplete ? <span className={`${styles.chip} ${styles.chipPositive}`}>Completed</span> : null}
+          <span className={styles.chip}>ระยะ: {labelStatus(phaseChip)}</span>
+          {workflow?.isBlocked ? <span className={`${styles.chip} ${styles.chipNegative}`}>ถูกบล็อก</span> : null}
+          {workflow?.isComplete ? <span className={`${styles.chip} ${styles.chipPositive}`}>เสร็จสิ้น</span> : null}
         </div>
       </div>
 
@@ -87,7 +88,7 @@ export function StudentProjectStatusWidget({ enabled }: StudentProjectStatusWidg
             </div>
             <div className={styles.metaRow}>
               <dt>อาจารย์ที่ปรึกษา</dt>
-              <dd>{project.advisorId ? `ID ${project.advisorId}` : "ยังไม่ระบุ"}</dd>
+              <dd>{project.advisorName || "ยังไม่ระบุ"}</dd>
             </div>
             <div className={styles.metaRow}>
               <dt>สมาชิก</dt>
@@ -100,19 +101,19 @@ export function StudentProjectStatusWidget({ enabled }: StudentProjectStatusWidg
           <p className={styles.cardTitle}>ความคืบหน้า</p>
           <div className={styles.statGrid}>
             <div className={styles.statItem}>
-              <span className={styles.statLabel}>สถานะโปรเจกต์</span>
-              <strong className={styles.statValue}>{project.status || "draft"}</strong>
+              <span className={styles.statLabel}>สถานะโครงงาน</span>
+              <strong className={styles.statValue}>{labelStatus(project.status, "ร่าง")}</strong>
               <p className={styles.statMeta}>บันทึกล่าสุด: {workflow?.lastActivityAt ? new Date(workflow.lastActivityAt).toLocaleDateString("th-TH") : "-"}</p>
             </div>
             <div className={styles.statItem}>
               <span className={styles.statLabel}>สิทธิ์ยื่นสอบหัวข้อ</span>
               <strong className={styles.statValue}>{workflow?.canSubmitTopicDefense ? "พร้อม" : "ยัง"}</strong>
-              <p className={styles.statMeta}>สอบหัวข้อ: {workflow?.topicExamResult ?? "-"}</p>
+              <p className={styles.statMeta}>สอบหัวข้อ: {labelStatus(workflow?.topicExamResult)}</p>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statLabel}>สิทธิ์ยื่นสอบ Thesis</span>
+              <span className={styles.statLabel}>สิทธิ์ยื่นสอบปริญญานิพนธ์</span>
               <strong className={styles.statValue}>{workflow?.canSubmitThesisDefense ? "พร้อม" : "ยัง"}</strong>
-              <p className={styles.statMeta}>สอบ Thesis: {workflow?.thesisExamResult ?? "-"}</p>
+              <p className={styles.statMeta}>สอบปริญญานิพนธ์: {labelStatus(workflow?.thesisExamResult)}</p>
             </div>
           </div>
           {workflow?.blockReason ? <p className={styles.blockNote}>สาเหตุบล็อก: {workflow.blockReason}</p> : null}
