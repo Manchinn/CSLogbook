@@ -255,15 +255,14 @@ class MeetingService {
         : typeof payload.notificationNote === 'string' && payload.notificationNote.trim()
           ? payload.notificationNote.trim()
           : null;
-      try {
-        await this.sendMeetingScheduledNotifications({
-          project: context.project,
-          meeting: serialized,
-          actor,
-          members: context.members || [],
-          note: notificationNote
-        });
-      } catch (notificationError) {
+      // fire-and-forget: ไม่ block user response
+      this.sendMeetingScheduledNotifications({
+        project: context.project,
+        meeting: serialized,
+        actor,
+        members: context.members || [],
+        note: notificationNote
+      }).catch(notificationError => {
         logger.error('meetingService.createMeeting notification error', {
           message: notificationError.message,
           projectId,
@@ -271,7 +270,7 @@ class MeetingService {
           actorId: actor.userId,
           stack: notificationError.stack
         });
-      }
+      });
     }
 
     return serialized;

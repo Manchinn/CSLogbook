@@ -12,6 +12,16 @@
 const nodemailer = require('nodemailer');
 const gmailTransport = require('./gmailTransport');
 const logger = require('./logger');
+const { withRetry } = require('./retryUtil');
+
+// เช็คว่า error เป็นแบบ retryable (network/server error)
+function isRetryableError(err) {
+  const code = err.code || err.status || err.response?.status;
+  if ([429, 500, 503].includes(code)) return true;
+  if (['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ESOCKET'].includes(err.code)) return true;
+  if (err.message && /socket hang up|network|ECONNREFUSED/i.test(err.message)) return true;
+  return false;
+}
 
 let initialized = false;
 let provider = (process.env.EMAIL_PROVIDER || 'gmail').toLowerCase(); // เปลี่ยน default เป็น gmail
@@ -103,7 +113,10 @@ async function ensureReady() { await init(); }
 
 async function send(msg) {
   await ensureReady();
-  const info = await transport.sendMail(msg);
+  const info = await withRetry(
+    () => transport.sendMail(msg),
+    { maxAttempts: 3, baseDelayMs: 2000, retryableCheck: isRetryableError }
+  );
   // Ethereal preview URL (dev helper)
   if (provider === 'ethereal') {
     try {

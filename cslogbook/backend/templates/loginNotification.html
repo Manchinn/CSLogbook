@@ -1,190 +1,26 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แจ้งเตือนการเข้าสู่ระบบ</title>
-    <style>
-        body {
-            font-family: 'Sarabun', 'Segoe UI', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            line-height: 1.7;
-            color: #333333;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-        }
-        .container {
-            width: 100%;
-            max-width: 650px;
-            margin: 30px auto;
-            background-color: #ffffff;
-            border: 1px solid #e1e8ed;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #AC3520 0%, #8B2A18 100%); /* ใช้สีแดงหมากสุกของ มจพ. */
-            color: #ffffff;
-            padding: 32px 24px;
-            text-align: center;
-        }
-        .header img {
-            max-width: 180px;
-            margin-bottom: 16px;
-            filter: brightness(0) invert(1);
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-        .header p {
-            margin: 8px 0 0 0;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 32px 24px;
-        }
-        .greeting {
-            font-size: 18px;
-            font-weight: 500;
-            color: #1a1a1a;
-            margin-bottom: 24px;
-        }
-        .info-box {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 24px;
-            border-radius: 8px;
-            margin: 24px 0;
-            border-left: 4px solid #AC3520; /* ใช้สีแดงหมากสุกสำหรับ accent */
-        }
-        .info-title {
-            color: #AC3520; /* ใช้สีแดงหมากสุกสำหรับหัวข้อ */
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0 0 16px 0;
-        }
-        .info-list {
-            list-style: none;
-            padding-left: 0;
-            margin: 0;
-        }
-        .info-list li {
-            padding: 8px 0;
-            display: flex;
-            align-items: center;
-            font-size: 15px;
-        }
-        .info-list li .icon {
-            margin-right: 12px;
-            font-size: 16px;
-            width: 20px;
-        }
-        .info-list li strong {
-            color: #AC3520;
-        }
-        .security-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .security-warning h3 {
-            color: #856404;
-            margin: 0 0 12px 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .security-warning p {
-            color: #856404;
-            margin: 8px 0;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .security-warning ul {
-            color: #856404;
-            margin: 12px 0;
-            padding-left: 20px;
-            font-size: 14px;
-        }
-        .footer {
-            background-color: #f8fafc;
-            color: #64748b;
-            text-align: center;
-            padding: 24px;
-            font-size: 13px;
-            border-top: 1px solid #e2e8f0;
-        }
-        .footer p {
-            margin: 4px 0;
-        }
-        .footer .copyright {
-            font-weight: 500;
-            color: #475569;
-        }
-        .footer .disclaimer {
-            font-style: italic;
-            color: #94a3b8;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 20px 16px;
-                border-radius: 8px;
-            }
-            .content {
-                padding: 24px 20px;
-            }
-            .header {
-                padding: 24px 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <img src="https://www.kmutnb.ac.th/getattachment/about/symbols/logo_kmutnb-(6).png.aspx?width=250&height=246" alt="KMUTNB Logo">
-            <h1>แจ้งเตือนการเข้าสู่ระบบ</h1>
-            <p>CS Logbook Management System</p>
-        </div>
-        <div class="content">
-            <div class="greeting">
-                สวัสดี คุณ {{username}},
-            </div>
-            
-            <p>ระบบได้ตรวจพบการเข้าสู่ระบบใหม่ในบัญชีของคุณ หากเป็นการเข้าสู่ระบบของคุณเอง คุณสามารถเพิกเฉยต่ออีเมลนี้ได้</p>
-            
-            <div class="info-box">
-                <h3 class="info-title">รายละเอียดการเข้าสู่ระบบ</h3>
-                <ul class="info-list">
-                    <li><span class="icon">📅</span><strong>วันที่และเวลา: </strong> {{loginDateTime}}</li>
-                    <li><span class="icon">👤</span><strong>ชื่อผู้ใช้: </strong> {{username}}</li>
-                    <li><span class="icon">📧</span><strong>อีเมล: </strong> {{email}}</li>
-                </ul>
-            </div>
+<div class="greeting">
+    สวัสดี คุณ {{username}},
+</div>
 
-            <div class="security-warning">
-                <h3>🔒 ข้อมูลสำคัญด้านความปลอดภัย</h3>
-                <p><strong>หากคุณไม่ได้เป็นผู้เข้าสู่ระบบในครั้งนี้</strong> โปรดดำเนินการต่อไปนี้ทันที:</p>
-                <ul>
-                    <li>เปลี่ยนรหัสผ่านของคุณในระบบ CS Logbook</li>
-                    <li>ตรวจสอบกิจกรรมในบัญชีของคุณ</li>
-                    <li>ติดต่อผู้ดูแลระบบหากพบความผิดปกติ</li>
-                    <li>ตรวจสอบว่าอุปกรณ์อื่นๆ ที่เข้าถึงบัญชีของคุณมีความปลอดภัย</li>
-                </ul>
-                <p>เพื่อความปลอดภัย กรุณาไม่แชร์ข้อมูลการเข้าสู่ระบบกับบุคคลอื่น และใช้รหัสผ่านที่แข็งแรง</p>
-            </div>
-        </div>
-        <div class="footer">
-            <p class="copyright">© {{currentYear}} CS Logbook System</p>
-            <p>ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์</p>
-            <p>มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</p>
-            <p class="disclaimer">อีเมลนี้ถูกส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับอีเมลนี้</p>
-        </div>
-    </div>
-</body>
-</html>
+<p>ระบบได้ตรวจพบการเข้าสู่ระบบใหม่ในบัญชีของคุณ หากเป็นการเข้าสู่ระบบของคุณเอง คุณสามารถเพิกเฉยต่ออีเมลนี้ได้</p>
+
+<div class="info-box">
+    <h3 class="info-title">รายละเอียดการเข้าสู่ระบบ</h3>
+    <ul class="info-list">
+        <li><span class="icon">📅</span><strong>วันที่และเวลา: </strong> {{loginDateTime}}</li>
+        <li><span class="icon">👤</span><strong>ชื่อผู้ใช้: </strong> {{username}}</li>
+        <li><span class="icon">📧</span><strong>อีเมล: </strong> {{email}}</li>
+    </ul>
+</div>
+
+<div class="security-warning">
+    <h3>🔒 ข้อมูลสำคัญด้านความปลอดภัย</h3>
+    <p><strong>หากคุณไม่ได้เป็นผู้เข้าสู่ระบบในครั้งนี้</strong> โปรดดำเนินการต่อไปนี้ทันที:</p>
+    <ul>
+        <li>เปลี่ยนรหัสผ่านของคุณในระบบ CS Logbook</li>
+        <li>ตรวจสอบกิจกรรมในบัญชีของคุณ</li>
+        <li>ติดต่อผู้ดูแลระบบหากพบความผิดปกติ</li>
+        <li>ตรวจสอบว่าอุปกรณ์อื่นๆ ที่เข้าถึงบัญชีของคุณมีความปลอดภัย</li>
+    </ul>
+    <p>เพื่อความปลอดภัย กรุณาไม่แชร์ข้อมูลการเข้าสู่ระบบกับบุคคลอื่น และใช้รหัสผ่านที่แข็งแรง</p>
+</div>

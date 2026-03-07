@@ -41,6 +41,19 @@ function loadTemplate(templateName, variables = {}) {
   }
 }
 
+// ครอบ content HTML ด้วย base template
+function wrapWithBase(contentHtml, vars = {}) {
+    const baseVars = {
+        currentYear: new Date().getFullYear(),
+        extraStyles: '',
+        emailTitle: 'CS Logbook',
+        headerTitle: 'CS Logbook',
+        ...vars,
+        content: contentHtml
+    };
+    return loadTemplate('base', baseVars);
+}
+
 function escapeHtml(value) {
     if (value === undefined || value === null) return '';
     return String(value)
@@ -91,11 +104,27 @@ async function sendLoginNotification(email, username) {
             return { sent: false, reason: 'notification_disabled' };
         }
 
-        const htmlContent = loadTemplate('loginNotification', {
+        const contentHtml = loadTemplate('loginNotification', {
             username: username,
             email: email,
-            loginDateTime: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
-            currentYear: new Date().getFullYear()
+            loginDateTime: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'แจ้งเตือนการเข้าสู่ระบบ',
+            emailTitle: 'แจ้งเตือนการเข้าสู่ระบบ',
+            extraStyles: `
+                .greeting { font-size: 18px; font-weight: 500; color: #1a1a1a; margin-bottom: 24px; }
+                .info-box { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 24px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #AC3520; }
+                .info-title { color: #AC3520; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; }
+                .info-list { list-style: none; padding-left: 0; margin: 0; }
+                .info-list li { padding: 8px 0; display: flex; align-items: center; font-size: 15px; }
+                .info-list li .icon { margin-right: 12px; font-size: 16px; width: 20px; }
+                .info-list li strong { color: #AC3520; }
+                .security-warning { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 24px 0; }
+                .security-warning h3 { color: #856404; margin: 0 0 12px 0; font-size: 16px; font-weight: 600; }
+                .security-warning p { color: #856404; margin: 8px 0; font-size: 14px; line-height: 1.6; }
+                .security-warning ul { color: #856404; margin: 12px 0; padding-left: 20px; font-size: 14px; }
+            `
         });
 
         const msg = {
@@ -140,12 +169,19 @@ async function sendDocumentApprovalNotification(email, username, documentType, s
         // กำหนด CSS class สำหรับสถานะ
         const statusClass = status === 'อนุมัติ' ? 'status-approved' : 'status-rejected';
 
-        const htmlContent = loadTemplate('documentApproval', {
+        const contentHtml = loadTemplate('documentApproval', {
             username: username,
             documentType: documentType,
             status: status,
-            statusClass: statusClass,
-            currentYear: new Date().getFullYear()
+            statusClass: statusClass
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: `แจ้งผลการพิจารณา${documentType}`,
+            emailTitle: 'แจ้งผลการพิจารณาเอกสาร',
+            extraStyles: `
+                .status-approved { color: #52c41a; font-weight: bold; }
+                .status-rejected { color: #f5222d; font-weight: bold; }
+            `
         });
 
         const msg = {
@@ -188,10 +224,16 @@ async function sendLogbookSubmissionNotification(email, username, title) {
             return { sent: false, reason: 'notification_disabled' };
         }
 
-        const htmlContent = loadTemplate('logbookSubmission', {
+        const contentHtml = loadTemplate('logbookSubmission', {
             username: username,
-            title: title,
-            currentYear: new Date().getFullYear()
+            title: title
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'การส่ง Logbook ใหม่',
+            emailTitle: 'แจ้งเตือนการส่ง Logbook ใหม่',
+            extraStyles: `
+                .logbook-title { background-color: #f0f8ff; padding: 10px; border-radius: 5px; border-left: 4px solid #AC3520; margin: 15px 0; }
+            `
         });
 
         const msg = {
@@ -294,7 +336,7 @@ async function sendMeetingScheduledNotification({
             `
             : '';
 
-        const htmlContent = loadTemplate('meetingScheduledNotification', {
+        const contentHtml = loadTemplate('meetingScheduledNotification', {
             recipientName: escapeHtml(recipientName || 'ผู้เข้าร่วม'),
             projectName: escapeHtml(projectName || 'โครงงานพิเศษ'),
             meetingTitle: escapeHtml(meetingTitle || 'การประชุมโครงงาน'),
@@ -305,7 +347,6 @@ async function sendMeetingScheduledNotification({
             participantsHtml: participantsSection,
             initiatorName: escapeHtml(initiatorName || 'ผู้ใช้ระบบ'),
             noteSection,
-            currentYear: new Date().getFullYear(),
             generatedDateTime: new Date().toLocaleString('th-TH', {
                 year: 'numeric',
                 month: 'long',
@@ -313,6 +354,23 @@ async function sendMeetingScheduledNotification({
                 hour: '2-digit',
                 minute: '2-digit'
             })
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'แจ้งนัดหมายการพบ',
+            emailTitle: 'แจ้งนัดหมายการพบอาจารย์',
+            extraStyles: `
+                .salutation { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+                .meeting-box { background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%); border-radius: 12px; padding: 20px 22px; margin-bottom: 24px; border-left: 4px solid #AC3520; }
+                .meeting-box strong { color: #1e3a8a; display: block; font-size: 15px; margin-bottom: 6px; }
+                .meeting-box div { font-size: 14px; color: #1f2937; margin: 4px 0; }
+                .section-title { font-size: 15px; font-weight: 600; color: #1f2937; margin: 26px 0 12px; }
+                .participant-list { margin: 0; padding: 18px 22px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+                .participant-list ul { margin: 0; padding-left: 18px; color: #334155; font-size: 14px; }
+                .note-box { margin-top: 24px; padding: 16px 18px; border-radius: 10px; background: #fef3c7; border: 1px solid #fbbf24; }
+                .note-box__title { font-weight: 600; color: #b45309; margin-bottom: 8px; font-size: 14px; }
+                .note-box__body { font-size: 14px; color: #92400e; line-height: 1.5; }
+                .cta { margin-top: 28px; text-align: center; font-size: 14px; color: #475569; line-height: 1.6; }
+            `
         });
 
         const subject = `CS Logbook - แจ้งนัดหมายการพบ (${meetingTitle || projectName || 'Project'})`;
@@ -417,15 +475,28 @@ async function sendTimeSheetApprovalRequest(email, supervisorName, studentName, 
             `;
         }
 
-        const htmlContent = loadTemplate('timesheetApprovalRequest', {
+        const contentHtml = loadTemplate('timesheetApprovalRequest', {
             supervisorName: supervisorName,
             studentName: studentName,
             studentCode: timeSheetData?.studentCode || (Array.isArray(timeSheetData) && timeSheetData[0]?.studentCode) || 'ไม่ระบุ',
             companyName: timeSheetData?.companyName || (Array.isArray(timeSheetData) && timeSheetData[0]?.companyName) || 'ไม่ระบุ',
             introText: introText,
             timeSheetHtml: timeSheetHtml,
-            webApprovalLink: webApprovalLink, // ใช้ลิงก์เว็บแทน
-            currentYear: new Date().getFullYear()
+            webApprovalLink: webApprovalLink
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'คำขออนุมัติบันทึกการฝึกงาน',
+            emailTitle: 'แจ้งเตือนรายการรออนุมัติ',
+            extraStyles: `
+                .message-box { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #AC3520; text-align: center; }
+                .message-box .salutation { font-weight: 600; color: #2c3e50; margin-bottom: 10px; font-size: 16px; }
+                .message-box .content-text { color: #34495e; line-height: 1.7; font-size: 14px; margin-bottom: 15px; }
+                .button-container { display: flex; justify-content: center; margin-top: 20px; }
+                .button { display: inline-block; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; color: #ffffff !important; font-size: 15px; text-align: center; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                .important-notice { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 25px 0; border-left: 4px solid #f39c12; }
+                .important-notice h4 { color: #856404; margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }
+                .important-notice p { color: #856404; margin: 0; font-size: 13px; line-height: 1.5; }
+            `
         });
 
         const msg = {
@@ -473,13 +544,22 @@ async function sendTimeSheetApprovalResultNotification(email, studentName, statu
       </div>
     ` : '';
 
-    // ใช้ template แทนการเขียน HTML ตรงๆ
-    const htmlContent = loadTemplate('timesheetApprovalResult', {
+    const contentHtml = loadTemplate('timesheetApprovalResult', {
       studentName: studentName,
       statusText: statusText,
       statusColor: statusColor,
       workDate: entryData.workDate,
       commentSection: commentSection
+    });
+    const htmlContent = wrapWithBase(contentHtml, {
+      headerTitle: `บันทึกการฝึกงานได้รับการ${statusText}แล้ว`,
+      emailTitle: 'ผลการพิจารณาบันทึกการฝึกงาน',
+      extraStyles: `
+        .info-box { background-color: #f8f9fa; padding: 15px; border-radius: 4px; }
+        .comment-box { margin: 20px 0; padding: 15px; background-color: #f9f9f9; border-radius: 3px; }
+        .comment-box h4 { margin-top: 0; }
+        .comment-box p { margin-bottom: 0; }
+      `
     });
     
     const msg = {
@@ -517,20 +597,55 @@ async function sendInternshipEvaluationRequestEmail(supervisorEmail, supervisorN
             return { sent: false, reason: 'notification_disabled' };
         }
 
-        const htmlContent = loadTemplate('evaluationRequest', {
+        const contentHtml = loadTemplate('evaluationRequest', {
             supervisorName: supervisorName,
             studentFullName: studentFullName,
             studentCode: studentCode,
             companyName: companyName,
             evaluationLink: evaluationLink,
-            expiresAt: new Date(expiresAt).toLocaleDateString('th-TH', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            }),
-            currentYear: new Date().getFullYear()
+            expiresAt: new Date(expiresAt).toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'คำขอประเมินผลการฝึกงาน',
+            emailTitle: 'คำขอประเมินผลการฝึกงาน',
+            extraStyles: `
+                .official-header { text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #AC3520; }
+                .official-header h2 { color: #2c3e50; font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
+                .official-header .document-type { color: #7f8c8d; font-size: 13px; font-weight: 500; }
+                .greeting-box { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #AC3520; }
+                .greeting-box .salutation { font-weight: 600; color: #2c3e50; margin-bottom: 10px; font-size: 16px; }
+                .greeting-box .content-text { color: #34495e; line-height: 1.7; text-align: justify; }
+                .student-info { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #dee2e6; border-left: 4px solid #AC3520; }
+                .student-info h4 { color: #2c3e50; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; }
+                .info-row { display: flex; margin-bottom: 10px; align-items: flex-start; }
+                .info-label { font-weight: 600; color: #2c3e50; min-width: 140px; margin-right: 15px; }
+                .info-value { color: #495057; flex: 1; }
+                .evaluation-purpose { background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #28a745; }
+                .evaluation-purpose h3 { color: #155724; margin: 0 0 12px 0; font-size: 16px; font-weight: 600; }
+                .evaluation-purpose p { color: #155724; margin: 0; line-height: 1.6; text-align: justify; }
+                .action-section { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 25px; margin: 30px 0; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }
+                .action-section h3 { color: #2c3e50; margin: 0 0 15px 0; font-size: 18px; font-weight: 600; }
+                .action-section p { color: #6c757d; margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
+                .button-container { margin: 25px 0; }
+                .evaluation-button { display: inline-block; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; color: #ffffff; font-size: 16px; text-align: center; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); min-width: 250px; }
+                .expiry-notice { background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 1px solid #ffeaa7; border-radius: 8px; padding: 18px; margin: 20px 0; border-left: 4px solid #f39c12; }
+                .expiry-notice h4 { color: #856404; margin: 0 0 10px 0; font-size: 15px; font-weight: 600; }
+                .expiry-notice p { color: #856404; margin: 5px 0; font-size: 14px; line-height: 1.5; }
+                .expiry-date { background-color: #fff; padding: 8px 12px; border-radius: 4px; display: inline-block; font-weight: 600; margin: 5px 0; }
+                .important-notice { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid #bbdefb; border-radius: 8px; padding: 18px; margin: 20px 0; border-left: 4px solid #2196f3; }
+                .important-notice h4 { color: #0d47a1; margin: 0 0 10px 0; font-size: 15px; font-weight: 600; }
+                .important-notice ul { color: #0d47a1; margin: 8px 0; padding-left: 20px; font-size: 13px; line-height: 1.6; }
+                .important-notice li { margin: 5px 0; }
+                .appreciation { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #9c27b0; text-align: center; }
+                .appreciation p { color: #4a148c; margin: 0; font-size: 15px; font-weight: 500; line-height: 1.6; }
+                @media (max-width: 600px) { .info-row { flex-direction: column; } .info-label { min-width: auto; margin-bottom: 5px; } .evaluation-button { min-width: auto; width: 100%; padding: 12px 20px; } }
+            `
         });
 
         const msg = {
@@ -575,11 +690,14 @@ async function sendEvaluationSubmittedNotificationToStudent(studentEmail, studen
             return { sent: false, reason: 'notification_disabled' };
         }
 
-        const htmlContent = loadTemplate('studentEvaluationSubmitted', {
+        const contentHtml = loadTemplate('studentEvaluationSubmitted', {
             studentFirstName: studentFirstName,
             evaluatorName: evaluatorName,
-            companyName: companyName,
-            currentYear: new Date().getFullYear()
+            companyName: companyName
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'แจ้งผลการประเมินการฝึกงาน',
+            emailTitle: 'ผลการประเมินการฝึกงาน'
         });
 
         const subject = `CS Logbook - ผลการประเมินการฝึกงานของคุณที่ ${companyName} ได้รับการส่งแล้ว`;
@@ -626,12 +744,15 @@ async function sendEvaluationSubmittedNotificationToAdvisor(advisorEmail, studen
             return { sent: false, reason: 'notification_disabled' };
         }
 
-        const htmlContent = loadTemplate('advisorEvaluationSubmitted', {
+        const contentHtml = loadTemplate('advisorEvaluationSubmitted', {
             studentFullName: studentFullName,
             studentCode: studentCode,
             companyName: companyName,
-            evaluatorName: evaluatorName,
-            currentYear: new Date().getFullYear()
+            evaluatorName: evaluatorName
+        });
+        const htmlContent = wrapWithBase(contentHtml, {
+            headerTitle: 'แจ้งผลการประเมินการฝึกงาน',
+            emailTitle: 'แจ้งเตือนการส่งผลประเมินการฝึกงาน'
         });
 
         const subject = `CS Logbook - นักศึกษา (${studentFullName}) ได้รับการประเมินผลการฝึกงานแล้ว`;
@@ -661,14 +782,16 @@ async function sendEvaluationSubmittedNotificationToAdvisor(advisorEmail, studen
 }
 
 
-module.exports = { 
-    sendLoginNotification, 
-    sendDocumentApprovalNotification, 
+module.exports = {
+    sendLoginNotification,
+    sendDocumentApprovalNotification,
     sendLogbookSubmissionNotification,
     sendMeetingScheduledNotification,
     sendTimeSheetApprovalRequest,
     sendTimeSheetApprovalResultNotification,
     sendInternshipEvaluationRequestEmail,
-    sendEvaluationSubmittedNotificationToStudent, // Added
-    sendEvaluationSubmittedNotificationToAdvisor  // Added
+    sendEvaluationSubmittedNotificationToStudent,
+    sendEvaluationSubmittedNotificationToAdvisor,
+    loadTemplate,
+    wrapWithBase
 };

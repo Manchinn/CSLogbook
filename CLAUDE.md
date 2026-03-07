@@ -192,6 +192,8 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 23 | 03-06 | Academic/curriculum bug fixes (B1-F5), settings page redesign |
 | 24 | 03-07 | PDF system audit: Thai font fix, data correctness, departmentInfo config |
 | 26 | 03-07 | Notification settings UI: Thai labels + bullet details, email infra audit |
+| 27 | 03-07 | Gmail REST API migration, SSO email mapping, login notification |
+| 28 | 03-07 | Email improvements: retry logic, base template, fire-and-forget, tx bug fix |
 
 ### Pending
 
@@ -206,6 +208,8 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 |---|---|
 | `backend/config/scoring.js` | `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
 | `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` — critical for academic/curriculum |
+| `backend/utils/retryUtil.js` | `withRetry()` — exponential backoff สำหรับ email transport |
+| `backend/templates/base.html` | Base email template — unified KMUTNB branding, `{{content}}` slot |
 | `backend/config/corsOrigins.js` | Dynamic CORS via `ALLOWED_ORIGINS` env |
 | `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค, คณะ, มหาวิทยาลัย — ใช้ใน PDF ทุกประเภท |
 | `src/lib/utils/statusLabels.ts` | `labelStatus()` — use instead of raw enums |

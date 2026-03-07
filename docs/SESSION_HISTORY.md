@@ -338,4 +338,42 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 - SSO ส่ง email ใน `ssoData.email` (OIDC standard) แต่ code เดิมดูแค่ `profile.email` ซึ่งเป็น `{}`
 - `updateUserFromSso` overwrite email ทุกครั้ง รวมถึงค่าไม่ valid → แก้ให้ validate ก่อน overwrite
 - SSO login ไม่ได้เรียก `sendLoginNotification` → เพิ่มใน ssoController callback
->>>>>>> claude/claude-md-mm56ik11ksjo6flh-JgWXL
+## Session 28 (claude, 2026-03-07) — Email System Improvements: Retry, Base Template, Fire-and-forget
+
+**บริบท:** หลังจากแก้ปัญหา email ส่งไม่ได้ใน Session 27 (SMTP → Gmail REST API) ระบบส่งได้แล้ว แต่ยังมีจุดอ่อน 3 ด้าน: ไม่มี retry เมื่อ API fail, template 10 ไฟล์ duplicate HTML ทั้งหมด, email blocking user request
+
+### 1. Retry Logic (Transport Level)
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง retry utility — `withRetry()` exponential backoff 3 attempts (2s→4s→8s) | `backend/utils/retryUtil.js` (NEW) |
+| ครอบ `transport.sendMail()` ด้วย retry + `isRetryableError()` (429/500/503/network) | `backend/utils/emailTransport.js` |
+
+### 2. Base Email Template System
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| สร้าง unified base template (KMUTNB red gradient, logo, footer) | `backend/templates/base.html` (NEW) |
+| เพิ่ม `wrapWithBase()` + export `loadTemplate` | `backend/utils/mailer.js` |
+| แก้ทุก send function (9 ฟังก์ชัน) ให้ใช้ `wrapWithBase()` | `backend/utils/mailer.js` |
+| Refactor 10 templates เป็น content-only (ลบ DOCTYPE/head/header/footer) | `backend/templates/*.html` (10 ไฟล์) |
+| สร้าง template files สำหรับ password emails | `backend/templates/passwordResetOtp.html`, `passwordChanged.html` (NEW) |
+| ย้าย inline HTML เป็น template + wrapWithBase | `backend/utils/passwordMailer.js` |
+
+### 3. Fire-and-forget Email Sending
+
+| งาน | ไฟล์ที่เปลี่ยน |
+|---|---|
+| ลบ `await` จาก login notification (มี try-catch ภายในอยู่แล้ว) | `backend/services/authService.js` |
+| ลบ `await` จาก meeting notification, ใช้ `.catch()` | `backend/services/meetingService.js` |
+| **Bug fix:** ย้าย email ไปหลัง `transaction.commit()` (2 จุด: approve+reject) — ก่อนหน้านี้ email fail จะ rollback transaction ทั้งหมด | `backend/services/emailApprovalService.js` |
+| ลบ `await` จาก evaluation notification | `backend/services/internship/evaluation.service.js` |
+
+**Architecture เปลี่ยน:**
+```
+ก่อน: Controller → await sendEmail() → Gmail API → response (ช้า, blocking)
+หลัง: Controller → sendEmail() (fire-and-forget) → response (เร็ว)
+       └→ Background: retry 3x → Gmail API
+```
+
+**Bug fix สำคัญ:** `emailApprovalService.js` — email อยู่ก่อน `transaction.commit()` ถ้า Gmail API fail จะ rollback DB ทั้ง approve/reject transaction → ย้ายไปหลัง commit + fire-and-forget

@@ -311,8 +311,8 @@ class AuthService {
       // 5. อัปเดตเวลาเข้าสู่ระบบ
       await this.updateLastLogin(user.userId);
 
-      // 6. ส่งการแจ้งเตือน (optional)
-      await this.sendLoginNotification(user.email, user);
+      // 6. ส่งการแจ้งเตือน (optional, fire-and-forget)
+      this.sendLoginNotification(user.email, user);
 
       // 7. บันทึก log การเข้าสู่ระบบสำเร็จ
       logger.info('AuthService: User authentication successful', {
