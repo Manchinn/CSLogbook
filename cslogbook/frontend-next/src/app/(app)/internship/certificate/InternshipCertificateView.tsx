@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { approvalStatusLabel } from "@/lib/utils/statusLabels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
@@ -51,25 +52,6 @@ function statusLabel(status: string | null | undefined): StatusLabel {
       return { text: "ยังไม่ส่งคำขอ", tone: "muted" };
     default:
       return { text: status || "ไม่ทราบสถานะ", tone: "info" };
-  }
-}
-
-function approvalStatusLabel(status?: string | null) {
-  switch (status) {
-    case "approved":
-      return "อนุมัติแล้ว";
-    case "pending":
-      return "รอพิจารณา";
-    case "rejected":
-      return "ไม่อนุมัติ";
-    case "cancelled":
-      return "ยกเลิก";
-    case "uploaded":
-      return "อัปโหลดแล้ว (รออนุมัติ)";
-    case "not_uploaded":
-      return "ยังไม่อัปโหลด";
-    default:
-      return "ไม่พบข้อมูล";
   }
 }
 

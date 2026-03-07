@@ -93,7 +93,7 @@ module.exports = (sequelize, DataTypes) => {
       field: 'additional_comments'
     },
     status: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM('submitted_by_supervisor', 'completed'),
       allowNull: false,
       defaultValue: 'submitted_by_supervisor',
     },

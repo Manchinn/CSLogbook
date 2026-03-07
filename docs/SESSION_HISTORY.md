@@ -338,3 +338,75 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 - SSO ส่ง email ใน `ssoData.email` (OIDC standard) แต่ code เดิมดูแค่ `profile.email` ซึ่งเป็น `{}`
 - `updateUserFromSso` overwrite email ทุกครั้ง รวมถึงค่าไม่ valid → แก้ให้ validate ก่อน overwrite
 - SSO login ไม่ได้เรียก `sendLoginNotification` → เพิ่มใน ssoController callback
+
+## Session 29 (claude, 2026-03-08) — Status/Workflow Audit & Dead Column Cleanup
+
+**Scope:** Full-stack audit ทุกจุดที่กำหนด status, state, workflow step ทั้ง 3 layers
+
+### Audit Results
+
+สำรวจ 50+ DB columns, 10+ backend constants, 15+ frontend mappings — ผลอยู่ใน `plans/whimsical-exploring-dolphin.md`
+
+**6 Observations พบ:**
+
+| # | Issue | สถานะ |
+|---|---|---|
+| C1 | Case inconsistency ผลสอบ (PASS vs passed) | ✅ NOT A BUG — service layer normalize ที่ `projectExamResultService.js:464` |
+| C2 | STRING(50) columns ไม่มี constraint ใน ProjectWorkflowState | ✅ **แก้แล้ว** — ลบ 4 columns |
+| C3 | Frontend label duplication (11 files สร้าง local statusLabel() ซ้ำ) | ✅ **แก้แล้ว** (Session 30) |
+| C4 | `documentService.js` STATUS_LABELS มีค่าไม่ตรง Document ENUM | ✅ **แก้แล้ว** (Session 30) |
+| C5 | DefenseRequestStepper handle `staff_returned`, `advisor_rejected` ไม่มีใน DB ENUM | ✅ **แก้แล้ว** (Session 30) |
+| C6 | `InternshipEvaluation.status` เป็น STRING ไม่มี constraint | ✅ **แก้แล้ว** (Session 30) |
+
+### C2 Fix: ลบ 4 unused columns จาก project_workflow_states
+
+| ไฟล์ | Action |
+|---|---|
+| `backend/migrations/20260308100000-remove-unused-workflow-state-columns.js` | **สร้างใหม่** — migration ลบ 4 columns |
+| `backend/models/ProjectWorkflowState.js` | ลบ 4 field definitions + ลบ write code ใน `updateFromDefenseRequest()` |
+| `backend/scripts/backfillProjectWorkflowStates.js` | ลบ 2 lines ที่ populate topic/thesis defense status |
+
+**Columns ที่ลบ:**
+- `topic_defense_status` — snapshot only, ไม่มีใครอ่าน
+- `thesis_defense_status` — snapshot only, ไม่มีใครอ่าน
+- `system_test_status` — NULL ทั้งหมด, ไม่เคยถูกเขียน
+- `final_document_status` — NULL ทั้งหมด, ไม่เคยถูกเขียน
+
+**Note:** `permissions.js` มี `finalDocumentStatus` เป็น RBAC permission name — ไม่เกี่ยวกับ DB column, ไม่ต้องแก้
+
+## Session 30 (claude, 2026-03-08) — C3-C6 Tech Debt Fixes
+
+**Scope:** แก้ 4 tech debt items ที่พบจาก Session 29 audit
+
+### C5: DefenseRequestStepper phantom statuses
+
+| ไฟล์ | Action |
+|---|---|
+| `frontend-next/src/components/common/DefenseRequestStepper.tsx` | ลบ 2 phantom cases: `advisor_rejected`, `staff_returned` |
+
+### C4: documentService STATUS_LABELS mismatch
+
+| ไฟล์ | Action |
+|---|---|
+| `backend/services/documentService.js` | ลบ dead labels 5 ตัว, เพิ่ม labels ที่ขาด 4 ตัวให้ตรงกับ Document ENUM |
+
+### C6: InternshipEvaluation.status ENUM constraint
+
+| ไฟล์ | Action |
+|---|---|
+| `backend/models/InternshipEvaluation.js` | เปลี่ยน STRING(50) → ENUM('submitted_by_supervisor', 'completed') |
+| `backend/migrations/20260308110000-change-internship-evaluation-status-to-enum.js` | **สร้างใหม่** — migration พร้อม safety check |
+
+### C3: Frontend status label/tone centralization
+
+| ไฟล์ | Action |
+|---|---|
+| `frontend-next/src/lib/utils/statusLabels.ts` | เพิ่ม `StatusTone` type, `STATUS_TONES` map, `statusTone()`, `labelStatusWithTone()`, `approvalStatusLabel()` + labels ที่ขาด 7 ตัว |
+| `frontend-next/src/app/(app)/project-pairs/page.tsx` | ลบ local statusLabels, ใช้ `labelStatus()` |
+| `frontend-next/src/app/(app)/student-deadlines/calendar/view/StudentDeadlineCalendar.tsx` | ลบ local statusLabel(), ใช้ `labelStatus()` with fallback |
+| `frontend-next/src/app/(app)/project/phase2/thesis-defense/ThesisDefenseRequestContent.tsx` | ลบ phantom labels + local statusTones, ใช้ shared `statusTone()` |
+| `frontend-next/src/app/(app)/project/phase2/system-test/SystemTestRequestContent.tsx` | ลบ local statusTones, ใช้ shared `statusTone()` |
+| `frontend-next/src/app/(app)/internship/logbook/InternshipLogbookView.tsx` | ลบ local approvalStatusLabel(), import จาก shared |
+| `frontend-next/src/app/(app)/internship/certificate/InternshipCertificateView.tsx` | ลบ local approvalStatusLabel(), import จาก shared |
+
+**Note:** Files ที่มี context-specific labels (reports, student-profile, ProjectDraftDetailView) เก็บ local maps ไว้ — เป็น intentional ไม่ใช่ duplication

@@ -50,7 +50,16 @@ export const STATUS_LABELS: Record<string, string> = {
   failed: "ไม่ผ่าน",
 
   // Deadline / document timeliness
-  very_late: "ส่งช้ามาก",
+  very_late:      "ส่งช้ามาก",
+  in_window:      "กำลังเปิดรับ",
+  locked:         "ปิดรับ",
+  submitted_late: "ส่งแล้ว (ช้า)",
+  announcement:   "ประกาศ",
+
+  // Project / document states
+  archived:     "เก็บถาวร",
+  uploaded:     "อัปโหลดแล้ว (รออนุมัติ)",
+  not_uploaded: "ยังไม่อัปโหลด",
 
   // Student eligibility compound states
   in_progress_internship: "กำลังฝึกงาน",
@@ -74,6 +83,94 @@ export const STATUS_LABELS: Record<string, string> = {
 export function labelStatus(value?: string | null, fallback = "-"): string {
   if (!value) return fallback;
   return STATUS_LABELS[value] ?? value;
+}
+
+/* ── Tone (semantic color) mapping ─────────────────────────────── */
+
+export type StatusTone = "success" | "warning" | "danger" | "info" | "muted" | "default";
+
+export const STATUS_TONES: Record<string, StatusTone> = {
+  // Success
+  approved:           "success",
+  completed:          "success",
+  passed:             "success",
+  staff_verified:     "success",
+  staff_approved:     "success",
+  submitted:          "info",
+  eligible:           "success",
+  ready:              "success",
+  active:             "success",
+
+  // Info
+  advisor_in_review:  "info",
+  pending_advisor:    "info",
+  pending_staff:      "info",
+  scheduled:          "info",
+  draft:              "info",
+  in_window:          "info",
+  announcement:       "info",
+
+  // Warning
+  pending:            "warning",
+  pending_approval:   "warning",
+  in_progress:        "warning",
+  advisor_approved:   "warning",
+  overdue:            "danger",
+  very_late:          "danger",
+  submitted_late:     "warning",
+
+  // Danger
+  rejected:           "danger",
+  failed:             "danger",
+  cancelled:          "danger",
+  advisor_rejected:   "danger",
+  staff_rejected:     "danger",
+  not_eligible:       "danger",
+
+  // Muted
+  not_requested:      "muted",
+  not_started:        "muted",
+  inactive:           "muted",
+  locked:             "muted",
+  not_uploaded:       "muted",
+  archived:           "muted",
+};
+
+/**
+ * Returns the semantic tone for a status value.
+ */
+export function statusTone(value?: string | null, fallback: StatusTone = "default"): StatusTone {
+  if (!value) return fallback;
+  return STATUS_TONES[value] ?? fallback;
+}
+
+/**
+ * Returns both label and tone for a status value.
+ */
+export function labelStatusWithTone(
+  value?: string | null,
+  fallback = "-",
+): { label: string; tone: StatusTone } {
+  return {
+    label: labelStatus(value, fallback),
+    tone: statusTone(value),
+  };
+}
+
+/**
+ * Returns Thai label for internship approval/upload status.
+ * Used by logbook and certificate views.
+ */
+export function approvalStatusLabel(status?: string | null): string {
+  switch (status) {
+    case "approved":      return "อนุมัติแล้ว";
+    case "pending":       return "รอพิจารณา";
+    case "rejected":      return "ไม่อนุมัติ";
+    case "cancelled":     return "ยกเลิก";
+    case "uploaded":      return "อัปโหลดแล้ว (รออนุมัติ)";
+    case "not_uploaded":  return "ยังไม่อัปโหลด";
+    default:              return "ไม่พบข้อมูล";
+  }
 }
 
 /**

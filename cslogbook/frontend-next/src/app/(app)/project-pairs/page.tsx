@@ -5,6 +5,7 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useProjectPairMeta, useProjectPairMutations, useProjectPairs, useProjectStudentLookup } from "@/hooks/useProjectPairs";
 import type { ProjectPairFilters, ProjectPairRecord, ProjectStudentLookup } from "@/lib/services/projectPairsService";
+import { labelStatus } from "@/lib/utils/statusLabels";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./page.module.css";
@@ -36,15 +37,6 @@ type EditForm = {
   timelineNote: string;
   constraints: string;
   risk: string;
-};
-
-const statusLabels: Record<string, string> = {
-  draft: "ร่าง",
-  advisor_assigned: "มีอาจารย์ที่ปรึกษาแล้ว",
-  in_progress: "กำลังดำเนินการ",
-  completed: "เสร็จสิ้น",
-  archived: "เก็บถาวร",
-  cancelled: "ยกเลิกแล้ว",
 };
 
 const projectTypeLabels: Record<string, string> = {
@@ -398,7 +390,7 @@ export default function ProjectPairsPage() {
               <option value="">ทุกสถานะ</option>
               {statusOptions.map((s) => (
                 <option key={s} value={s}>
-                  {statusLabels[s] ?? s}
+                  {labelStatus(s)}
                 </option>
               ))}
             </select>
@@ -482,7 +474,7 @@ export default function ProjectPairsPage() {
                       </td>
                       <td>
                         <span className={`${styles.tag} ${p.status === "completed" ? styles.tagOk : styles.tagMuted}`}>
-                          {statusLabels[p.status ?? ""] ?? p.status ?? "-"}
+                          {labelStatus(p.status)}
                         </span>
                       </td>
                       <td className={responsive.hideOnMobile}>
@@ -554,7 +546,7 @@ export default function ProjectPairsPage() {
                   <>
                     <div className={styles.detailSection}>
                       <p className={styles.detailTitle}>{projectName(selected)}</p>
-                      <p className={styles.subText}>สถานะ: {statusLabels[selected.status ?? ""] ?? selected.status ?? "-"}</p>
+                      <p className={styles.subText}>สถานะ: {labelStatus(selected.status)}</p>
                       <p className={styles.subText}>ประเภท: {projectTypeLabels[selected.projectType ?? ""] ?? selected.projectType ?? "-"}</p>
                       <p className={styles.subText}>อัปเดตล่าสุด: {selected.updatedAt ? new Date(selected.updatedAt).toLocaleString("th-TH") : "-"}</p>
                     </div>

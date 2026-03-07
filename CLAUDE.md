@@ -192,6 +192,10 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 23 | 03-06 | Academic/curriculum bug fixes (B1-F5), settings page redesign |
 | 24 | 03-07 | PDF system audit: Thai font fix, data correctness, departmentInfo config |
 | 26 | 03-07 | Notification settings UI: Thai labels + bullet details, email infra audit |
+| 27 | 03-07 | Gmail REST API migration, SSO email mapping, login notification |
+| 28 | 03-07 | Email improvements: retry logic, base template, fire-and-forget, tx bug fix |
+| 29 | 03-08 | Status/workflow audit (3 layers), remove 4 unused ProjectWorkflowState columns |
+| 30 | 03-08 | C3-C6 tech debt fixes: label centralization, phantom statuses, ENUM constraints |
 
 ### Pending
 
