@@ -1,5 +1,10 @@
 {
   "dependencies": {
     "antd": "^5.24.4"
+  },
+  "scripts": {
+    "test:e2e": "cd playwright-e2e && npx playwright test",
+    "test:e2e:ui": "cd playwright-e2e && npx playwright test --ui",
+    "test:e2e:smoke": "cd playwright-e2e && npx playwright test tests/01-smoke/"
   }
 }
