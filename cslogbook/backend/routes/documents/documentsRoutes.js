@@ -19,9 +19,16 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('อนุญาตเฉพาะไฟล์ PDF เท่านั้น'), false);
+        }
+    }
 });
 
 // Routes
@@ -35,7 +42,7 @@ router.get('/student-overview', authenticateToken, documentController.getStudent
 router.get('/:id/view', authenticateToken, documentController.viewDocument);
 // ดาวน์โหลดไฟล์ PDF
 router.get('/:id/download', authenticateToken, documentController.downloadDocument);
-router.get('/:id', documentController.getDocumentById);
+router.get('/:id', authenticateToken, documentController.getDocumentById);
 // (ลบชั่วคราว) getDocumentHistory ยังไม่ได้ implement ใน controller
 // router.get('/:id/history', authenticateToken, documentController.getDocumentHistory);
 // ใช้ uploadDocument แทน submitDocument (ฟังก์ชันมีอยู่จริงใน controller)

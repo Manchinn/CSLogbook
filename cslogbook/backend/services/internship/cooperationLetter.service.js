@@ -8,6 +8,7 @@ const {
   User,
 } = require("../../models");
 const logger = require("../../utils/logger");
+const { sanitizeFilename } = require("../../utils/sanitizeFilename");
 const { calculateStudentYear } = require("../../utils/studentUtils");
 const { formatThaiDate } = require("../../utils/dateUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
@@ -235,7 +236,7 @@ class InternshipCooperationLetterService {
         pdf.on("end", () => resolve(Buffer.concat(buffers)));
       });
 
-      const fileName = `หนังสือขอความอนุเคราะห์-${pdfData.fullName}-${documentId}.pdf`;
+      const fileName = `หนังสือขอความอนุเคราะห์-${sanitizeFilename(pdfData.fullName)}-${documentId}.pdf`;
 
       logger.debug("[DEBUG] Cooperation letter PDF generated:", {
         documentId,

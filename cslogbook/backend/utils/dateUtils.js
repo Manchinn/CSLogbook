@@ -44,12 +44,16 @@ exports.calculateWorkdays = async (startDate, endDate) => {
  * @returns {string}
  */
 exports.formatThaiDate = (date) => {
+  if (!date) return '-';
+
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+
   const thaiMonths = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
     'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
     'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
   ];
-  const d = new Date(date);
   const day = d.getDate();
   const month = thaiMonths[d.getMonth()];
   const year = d.getFullYear() + 543;

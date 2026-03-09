@@ -36,7 +36,16 @@ const uploadDocument = async (req, res) => {
 const getDocumentById = async (req, res) => {
     try {
         const documentData = await documentService.getDocumentById(req.params.id);
-        
+
+        // Ownership check — staff/admin/teacher ดูได้ทั้งหมด, student ดูได้เฉพาะของตัวเอง
+        const staffRoles = ['admin', 'teacher', 'head', 'staff'];
+        if (!staffRoles.includes(req.user.role) && documentData.userId !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'ไม่มีสิทธิ์เข้าถึงเอกสารนี้'
+            });
+        }
+
         res.json({
             success: true,
             data: documentData
@@ -44,21 +53,21 @@ const getDocumentById = async (req, res) => {
 
     } catch (error) {
         logger.error('Get Document Error:', error);
-        
+
         if (error.message === 'ต้องระบุ ID ของเอกสาร') {
             return res.status(400).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         if (error.message === 'ไม่พบเอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร',
@@ -118,7 +127,7 @@ const getDocuments = async (req, res) => {
             offset: offset ? parseInt(offset) : 0 
         };
         
-        const result = await documentService.getDocuments(filters, pagination);
+        const result = await documentService.getDocuments(filters, pagination, req.user.userId, req.user.role);
         
         res.json(result);
         
@@ -258,33 +267,43 @@ const getRecentDocuments = async (req, res) => {
 // แสดงไฟล์เอกสาร PDF โดยตรงในเบราว์เซอร์
 const viewDocument = async (req, res) => {
     try {
-        const document = await documentService.validateDocumentFile(req.params.id);
+        const document = await documentService.validateDocumentFile(
+            req.params.id, req.user.userId, req.user.role
+        );
 
         // ตั้งค่า header สำหรับการแสดงไฟล์ PDF โดยตรงใน browser
+        const fileName = document.fileName || path.basename(document.filePath);
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${document.fileName || path.basename(document.filePath)}"`);
-        
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+
         // อ่านและส่งไฟล์
         const fileStream = fs.createReadStream(document.filePath);
         fileStream.pipe(res);
-        
+
     } catch (error) {
         logger.error('View Document Error:', error);
-        
+
+        if (error.message === 'ไม่มีสิทธิ์เข้าถึงเอกสารนี้') {
+            return res.status(403).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         if (error.message === 'ไม่พบเอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         if (error.message === 'ไม่พบไฟล์เอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการแสดงเอกสาร'
@@ -295,34 +314,43 @@ const viewDocument = async (req, res) => {
 // ดาวน์โหลดไฟล์เอกสาร
 const downloadDocument = async (req, res) => {
     try {
-        const document = await documentService.validateDocumentFile(req.params.id);
+        const document = await documentService.validateDocumentFile(
+            req.params.id, req.user.userId, req.user.role
+        );
 
         // ตั้งค่าการดาวน์โหลดไฟล์
         const fileName = document.fileName || path.basename(document.filePath);
         res.setHeader('Content-Type', document.mimeType || 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+
         // ส่งไฟล์
         const fileStream = fs.createReadStream(document.filePath);
         fileStream.pipe(res);
-        
+
     } catch (error) {
         logger.error('Download Document Error:', error);
-        
+
+        if (error.message === 'ไม่มีสิทธิ์เข้าถึงเอกสารนี้') {
+            return res.status(403).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         if (error.message === 'ไม่พบเอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         if (error.message === 'ไม่พบไฟล์เอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการดาวน์โหลดเอกสาร'

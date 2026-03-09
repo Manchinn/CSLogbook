@@ -205,6 +205,7 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 37 | 03-09 | E2E seed script (7-step pipeline) + fix test skip conditions (160 pass, 172 skip) |
 | 38 | 03-09 | PDF audit + สร้างหนังสือขอความอนุเคราะห์ (NEW PDF) + แก้ flow ปุ่ม download 3 ปุ่ม |
 | 39 | 03-09 | PDF data flow deep dive + fix 3 bugs (studentCode, date format, doc number year) |
+| 40 | 03-09 | PDF preview/download audit + fix filename .pdf, Content-Disposition header |
 
 ### Pending
 
