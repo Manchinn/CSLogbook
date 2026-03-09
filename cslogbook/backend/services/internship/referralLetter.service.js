@@ -12,7 +12,6 @@ const { sanitizeFilename } = require("../../utils/sanitizeFilename");
 const { calculateStudentYear } = require("../../utils/studentUtils");
 const { formatThaiDate } = require("../../utils/dateUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
-const { formatThaiDate } = require("../../utils/dateUtils");
 
 // Thai font paths
 const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
