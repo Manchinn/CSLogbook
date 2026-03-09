@@ -988,6 +988,67 @@ exports.downloadReferralLetter = async (req, res) => {
 };
 
 /**
+ * ดาวน์โหลดหนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน (สร้างแบบ real-time)
+ * ไม่ต้องรอ acceptance letter — download ได้ทันทีหลัง CS05 approved
+ */
+exports.downloadCooperationLetter = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { documentId } = req.params;
+
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: "ไม่พบรหัสเอกสาร คพ.05",
+      });
+    }
+
+    // สร้าง PDF หนังสือขอความอนุเคราะห์แบบ real-time
+    const pdfData =
+      await internshipManagementService.generateCooperationLetterPDF(
+        userId,
+        documentId
+      );
+
+    if (!pdfData || !pdfData.pdfBuffer) {
+      return res.status(404).json({
+        success: false,
+        message: "ไม่สามารถสร้างหนังสือขอความอนุเคราะห์ได้",
+      });
+    }
+
+    // ตั้งค่า headers สำหรับการดาวน์โหลด PDF
+    const fileName =
+      pdfData.fileName || `หนังสือขอความอนุเคราะห์-${documentId}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}"`
+    );
+    res.setHeader("Content-Length", pdfData.pdfBuffer.length);
+
+    // ส่ง PDF buffer
+    return res.send(pdfData.pdfBuffer);
+  } catch (error) {
+    console.error("Download Cooperation Letter Error:", error);
+
+    const statusCode = error.message.includes("ไม่พบ")
+      ? 404
+      : error.message.includes("ไม่ได้รับการอนุมัติ")
+      ? 403
+      : error.message.includes("ไม่ครบถ้วน")
+      ? 400
+      : 500;
+
+    return res.status(statusCode).json({
+      success: false,
+      message:
+        error.message || "เกิดข้อผิดพลาดในการดาวน์โหลดหนังสือขอความอนุเคราะห์",
+    });
+  }
+};
+
+/**
  * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว
  */
 exports.markReferralLetterDownloaded = async (req, res) => {

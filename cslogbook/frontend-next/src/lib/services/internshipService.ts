@@ -258,3 +258,51 @@ export async function downloadReferralLetter(token: string, documentId: number) 
 
   return { success: true, message: "ดาวน์โหลดหนังสือส่งตัวแล้ว", filename };
 }
+
+/**
+ * ดาวน์โหลดหนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน → trigger browser download
+ * download ได้ทันทีหลัง CS05 approved (ไม่ต้องรอ acceptance letter)
+ * GET /internship/download-cooperation-letter/:documentId
+ */
+export async function downloadCooperationLetter(token: string, documentId: number) {
+  if (!_apiBaseUrl) {
+    throw new Error("API base URL is not configured");
+  }
+
+  const response = await fetch(
+    `${_apiBaseUrl}/internship/download-cooperation-letter/${documentId}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    try {
+      const body = await response.json();
+      throw new Error(body?.message || "ไม่สามารถดาวน์โหลดหนังสือขอความอนุเคราะห์ได้");
+    } catch (err) {
+      if (err instanceof Error) throw err;
+      throw new Error("ไม่สามารถดาวน์โหลดหนังสือขอความอนุเคราะห์ได้");
+    }
+  }
+
+  const blob = await response.blob();
+  if (!blob || blob.size === 0) {
+    throw new Error("ไม่พบไฟล์ PDF จากเซิร์ฟเวอร์");
+  }
+
+  // trigger browser download
+  const filename = `หนังสือขอความอนุเคราะห์-${documentId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return { success: true, message: "ดาวน์โหลดหนังสือขอความอนุเคราะห์แล้ว", filename };
+}

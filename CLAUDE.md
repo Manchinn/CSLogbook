@@ -203,6 +203,8 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 35 | 03-08 | E2E tests: multi-role workflow specs — meeting-logbook, kp02-defense, thesis-flow (19 tests) |
 | 36 | 03-08 | E2E tests: security route-access (40 tests) + internship workflow B1-B5 (66 tests) |
 | 37 | 03-09 | E2E seed script (7-step pipeline) + fix test skip conditions (160 pass, 172 skip) |
+| 38 | 03-09 | PDF audit + สร้างหนังสือขอความอนุเคราะห์ (NEW PDF) + แก้ flow ปุ่ม download 3 ปุ่ม |
+| 39 | 03-09 | PDF data flow deep dive + fix 3 bugs (studentCode, date format, doc number year) |
 
 ### Pending
 

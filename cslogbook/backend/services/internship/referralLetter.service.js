@@ -9,6 +9,7 @@ const {
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
 const { calculateStudentYear } = require("../../utils/studentUtils");
+const { formatThaiDate } = require("../../utils/dateUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
 
 // Thai font paths
@@ -235,7 +236,7 @@ class InternshipReferralLetterService {
       const yearInfo = calculateStudentYear(student.studentCode);
       const pdfData = {
         // ข้อมูลเอกสาร
-        documentNumber: `CS05/${new Date().getFullYear()}/${documentId}`,
+        documentNumber: `CS05/${new Date().getFullYear() + 543}/${documentId}`,
         documentDate: new Date(),
 
         // ข้อมูลนักศึกษา
@@ -307,7 +308,7 @@ class InternshipReferralLetterService {
       // เลขที่เอกสารและวันที่
       pdf.font("Thai").fontSize(12);
       pdf.text(`เลขที่: ${pdfData.documentNumber}`, { align: "left" });
-      pdf.text(`วันที่: ${pdfData.documentDate.toLocaleDateString("th-TH")}`, {
+      pdf.text(`วันที่: ${formatThaiDate(pdfData.documentDate)}`, {
         align: "right",
       });
 
@@ -342,9 +343,7 @@ class InternshipReferralLetterService {
       );
 
       pdf.text(
-        `ตั้งแต่วันที่ ${new Date(pdfData.startDate).toLocaleDateString(
-          "th-TH"
-        )} ถึงวันที่ ${new Date(pdfData.endDate).toLocaleDateString("th-TH")}`,
+        `ตั้งแต่วันที่ ${formatThaiDate(pdfData.startDate)} ถึงวันที่ ${formatThaiDate(pdfData.endDate)}`,
         {
           align: "justify",
         }

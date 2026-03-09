@@ -775,3 +775,56 @@ Implement E2E seed script pipeline + แก้ test skip conditions ที่ท
 | `playwright-e2e/tests/04-workflows/thesis-flow.spec.ts` | Fix skip condition + saveBtn ref + beforeEach |
 | `cslogbook/backend/validators/projectValidators.js` | Allow KP02 extra fields |
 | `cslogbook/backend/services/projectManagementService.js` | Add WorkflowState on admin create |
+
+## Session 38 (claude, 2026-03-09) — PDF System Audit + หนังสือขอความอนุเคราะห์
+
+### สิ่งที่ทำ
+
+1. **PDF System Survey** — สำรวจ codebase ทั้ง frontend/backend หาทุกจุดที่เกี่ยวกับ PDF
+   - พบ PDF ที่ generate ด้วย pdfkit 3 เอกสาร: หนังสือส่งตัว, หนังสือรับรองฝึกงาน, สรุปบันทึกฝึกงาน
+   - พบ uploaded PDF 4 ประเภท: คพ.05, หนังสือตอบรับ, เอกสารโครงงาน, เอกสาร internship
+2. **BUG พบ**: ปุ่ม "ดาวน์โหลดหนังสือขอความอนุเคราะห์" ใน InternshipFlowContent.tsx จริงๆ เรียก endpoint หนังสือส่งตัว + เงื่อนไขผิด (ต้องรอ acceptance approved)
+3. **สร้าง "หนังสือขอความอนุเคราะห์" PDF** — เอกสารใหม่ที่ download ได้ทันทีหลัง CS05 approved
+4. **แก้ Frontend** — แยกปุ่มเป็น 3 ปุ่ม: หนังสือขอความอนุเคราะห์ (NEW), แบบฟอร์มตอบรับ (เดิม), หนังสือส่งตัว (FIXED label)
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `backend/services/internship/cooperationLetter.service.js` | **NEW** — PDF generation หนังสือขอความอนุเคราะห์ (pdfkit + Loma font) |
+| `backend/services/internshipManagementService.js` | เพิ่ม `generateCooperationLetterPDF` delegate |
+| `backend/controllers/documents/internshipController.js` | เพิ่ม `downloadCooperationLetter` handler |
+| `backend/routes/documents/internshipRoutes.js` | เพิ่ม route `GET /download-cooperation-letter/:documentId` |
+| `frontend-next/src/lib/services/internshipService.ts` | เพิ่ม `downloadCooperationLetter()` |
+| `frontend-next/src/hooks/useInternshipCooperationLetter.ts` | **NEW** — useMutation hook |
+| `frontend-next/src/app/(app)/internship-registration/flow/view/InternshipFlowContent.tsx` | แยก 3 ปุ่ม + แก้ label |
+
+---
+
+## Session 39 (claude, 2026-03-09) — PDF Data Flow Audit + Critical/High Bug Fixes
+
+### บริบท
+
+Deep dive data flow ของ PDF ทั้ง 4 เอกสาร (ต่อจาก Session 38) แล้วตรวจ layout/content quality พบ issues 12 รายการ แก้ Critical + High 3 ข้อ
+
+### Issues ที่พบจาก Audit
+
+| # | Issue | Severity | สถานะ |
+|---|-------|----------|-------|
+| 1 | studentId ใช้ PK แทน studentCode ใน logbook summary PDF | **Critical** | ✅ แก้แล้ว |
+| 2 | Date format ใช้ toLocaleDateString แทน formatThaiDate ใน referralLetter | **High** | ✅ แก้แล้ว |
+| 3 | เลขที่เอกสาร ใช้ปี ค.ศ. แทน พ.ศ. ใน referralLetter | **High** | ✅ แก้แล้ว |
+| 4 | Hardcoded department strings ใน certificate (6 จุด) | Medium | ❌ ยังไม่แก้ |
+| 5 | PDF Author hardcoded ใน referralLetter + certificate | Medium | ❌ ยังไม่แก้ |
+| 6 | Title fontSize inconsistent — certificate ใช้ 20 (อื่นใช้ 18) | Medium | ❌ ยังไม่แก้ |
+| 7 | Logbook summary margin=40 ต่างจาก 50 ที่เหลือ | Low | ❌ ยังไม่แก้ |
+| 8 | Logbook summary ไม่มี PDF metadata | Low | ❌ ยังไม่แก้ |
+| 9 | Logbook entry.workDate ไม่ผ่าน formatThaiDate | Medium | ❌ ยังไม่แก้ |
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `backend/services/internshipLogbookService.js` | Fix #1: `studentId: student.studentId` → `student.studentCode` ใน `getInternshipSummaryForPDF` |
+| `backend/services/internship/referralLetter.service.js` | Fix #2: เพิ่ม `formatThaiDate` import, เปลี่ยน 3 จุดจาก `toLocaleDateString("th-TH")` → `formatThaiDate()` |
+| `backend/services/internship/referralLetter.service.js` | Fix #3: `getFullYear()` → `getFullYear() + 543` ในเลขที่เอกสาร |
