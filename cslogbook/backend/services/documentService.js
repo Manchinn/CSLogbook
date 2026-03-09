@@ -1569,24 +1569,15 @@ class DocumentService {
     async generateCertificatePDF(requestId) {
         try {
             const { InternshipCertificateRequest } = require('../models');
+            const internshipCertificateService = require('./internship/certificate.service');
 
+            // Query request เพื่อหา userId ของนักศึกษา
             const request = await InternshipCertificateRequest.findByPk(requestId, {
                 include: [
                     {
                         model: Student,
                         as: 'student',
-                        include: [
-                            {
-                                model: User,
-                                as: 'user',
-                                attributes: ['firstName', 'lastName'],
-                            },
-                        ],
-                    },
-                    {
-                        model: InternshipDocument,
-                        as: 'internship',
-                        attributes: ['startDate', 'endDate', 'companyName'],
+                        attributes: ['userId'],
                     },
                 ],
             });
@@ -1599,20 +1590,11 @@ class DocumentService {
                 throw new Error('คำขอยังไม่ได้รับการอนุมัติ');
             }
 
-            // เตรียมข้อมูลสำหรับสร้าง PDF
-            const certificateData = {
-                certificateNumber: request.certificateNumber,
-                studentName: `${request.student.user.firstName} ${request.student.user.lastName}`,
-                studentId: request.student.studentCode,
-                totalHours: request.totalHours,
-                startDate: request.internship?.startDate,
-                endDate: request.internship?.endDate,
-                issueDate: request.processedAt,
-            };
+            // ใช้ certificate.service.js ที่มี pdfkit + Thai font จริง
+            const userId = request.student.userId;
+            const certificateData = await internshipCertificateService.getCertificateData(userId);
+            const pdfBuffer = await internshipCertificateService.createCertificatePDF(certificateData);
 
-            // ใช้ PDF service ที่มีอยู่แล้ว
-            const pdfBuffer = await this.generatePDFFromTemplate('certificate', certificateData);
-            
             logger.info(`Certificate PDF generated for request: ${requestId}`);
             return pdfBuffer;
         } catch (error) {
@@ -1661,47 +1643,6 @@ class DocumentService {
         }
     }
 
-    /**
-     * Helper function สำหรับสร้าง PDF จาก template
-     */
-    async generatePDFFromTemplate(templateType, data) {
-        try {
-            // TODO: ใช้ระบบ PDF generation ที่มีอยู่แล้ว
-            // เรียกใช้ PDF service จาก templates folder
-            
-            // Placeholder สำหรับตอนนี้
-            const pdfContent = this.createCertificatePDFContent(data);
-            return Buffer.from(pdfContent);
-        } catch (error) {
-            logger.error('Error generating PDF from template:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * สร้างเนื้อหา PDF หนังสือรับรอง (placeholder)
-     */
-    createCertificatePDFContent(data) {
-        const thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-        const formatThaiDate = (d) => {
-            if (!d) return '-';
-            const dt = new Date(d);
-            if (isNaN(dt.getTime())) return '-';
-            return `${dt.getDate()} ${thaiMonths[dt.getMonth()]} พ.ศ. ${dt.getFullYear() + 543}`;
-        };
-
-        // TODO: ใช้ PDF template system ที่มีอยู่
-        return `
-        หนังสือรับรองการฝึกงาน
-        หมายเลข: ${data.certificateNumber}
-
-        ขอรับรองว่า ${data.studentName} รหัสนักศึกษา ${data.studentId}
-        ได้เข้าร่วมการฝึกงานครบ ${data.totalHours} ชั่วโมง
-        ตั้งแต่วันที่ ${formatThaiDate(data.startDate)} ถึง ${formatThaiDate(data.endDate)}
-
-        ออกให้ ณ วันที่ ${formatThaiDate(data.issueDate)}
-        `;
-    }
 
     _isProjectFinalDocument(document) {
         if (!document) {

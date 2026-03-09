@@ -206,6 +206,9 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 38 | 03-09 | PDF audit + สร้างหนังสือขอความอนุเคราะห์ (NEW PDF) + แก้ flow ปุ่ม download 3 ปุ่ม |
 | 39 | 03-09 | PDF data flow deep dive + fix 3 bugs (studentCode, date format, doc number year) |
 | 40 | 03-09 | PDF preview/download audit + fix filename .pdf, Content-Disposition header |
+| 41 | 03-09 | PDF security audit + IDOR fixes (6/6) + PDF_AUDIT_REPORT.md |
+| 42 | 03-09 | Data Integrity audit (P6) + cooperation letter recovery + fix C1/C2/H2 |
+| 43 | 03-09 | Fix C3 certificate PDF (rewire to pdfkit) + H4 internshipId filter (7/7 queries) |
 
 ### Pending
 
