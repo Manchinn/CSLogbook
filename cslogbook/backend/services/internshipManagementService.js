@@ -515,6 +515,18 @@ class InternshipManagementService {
     return internshipReferralLetterService.generateReferralLetterPDF(userId, documentId);
   }
 
+  /**
+   * สร้าง PDF หนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน
+   * download ได้ทันทีหลัง CS05 approved (ไม่ต้องรอ acceptance letter)
+   * @param {number} userId - ID ของผู้ใช้
+   * @param {number} documentId - ID ของเอกสาร CS05
+   * @returns {Promise<Object>} ข้อมูล PDF buffer และ metadata
+   */
+  async generateCooperationLetterPDF(userId, documentId) {
+    const internshipCooperationLetterService = require('./internship/cooperationLetter.service');
+    return internshipCooperationLetterService.generateCooperationLetterPDF(userId, documentId);
+  }
+
 
   // ============= Acceptance Letter Management =============
   // NOTE: Methods moved to services/internship/acceptanceLetter.service.js

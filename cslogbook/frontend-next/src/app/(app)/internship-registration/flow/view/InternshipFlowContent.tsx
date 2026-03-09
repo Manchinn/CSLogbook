@@ -9,6 +9,7 @@ import { useStudentDeadlines } from "@/hooks/useStudentDeadlines";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
 import { useCurrentCS05 } from "@/hooks/useCurrentCS05";
 import { useReferralLetterStatus, useDownloadReferralLetter } from "@/hooks/useInternshipReferralLetter";
+import { useDownloadCooperationLetter } from "@/hooks/useInternshipCooperationLetter";
 import { useAcceptanceLetterStatus, useUploadAcceptanceLetter } from "@/hooks/useInternshipCompanyInfo";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
 import styles from "./flow.module.css";
@@ -104,6 +105,7 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
     queriesEnabled && showDownloadPanel
   );
   const downloadReferralMutation = useDownloadReferralLetter(token);
+  const downloadCooperationMutation = useDownloadCooperationLetter(token);
 
   // สถานะหนังสือตอบรับ + upload mutation
   const { data: acceptanceStatus } = useAcceptanceLetterStatus(
@@ -277,30 +279,21 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
           <p className={styles.downloadPanelKicker}>Step 4 — รอหนังสือตอบรับ</p>
           <h2 className={styles.downloadPanelTitle}>เอกสารที่ต้องดาวน์โหลด</h2>
           <p className={styles.cardHint}>
-            ดาวน์โหลดหนังสือส่งตัวเพื่อนำไปยื่นต่อสถานประกอบการ และดาวน์โหลดแบบฟอร์มหนังสือตอบรับ
+            ดาวน์โหลดหนังสือขอความอนุเคราะห์เพื่อนำไปยื่นต่อสถานประกอบการ พร้อมแบบฟอร์มหนังสือตอบรับ
           </p>
 
           <div className={styles.downloadBtnRow}>
-            {/* ปุ่มดาวน์โหลดหนังสือส่งตัวนักศึกษา */}
-            {referralStatus?.isReady ? (
-              <button
-                type="button"
-                className={styles.downloadBtn}
-                disabled={downloadReferralMutation.isPending}
-                onClick={() => documentId && downloadReferralMutation.mutate(documentId)}
-              >
-                {downloadReferralMutation.isPending ? "กำลังดาวน์โหลด..." : "ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน"}
-              </button>
-            ) : (
-              <span className={styles.downloadBtnDisabled}>
-                ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน
-                <span className={styles.downloadBadge}>
-                  {referralLoading ? "กำลังตรวจสอบ" : "รอออกหนังสือ"}
-                </span>
-              </span>
-            )}
+            {/* ปุ่ม 1: ดาวน์โหลดหนังสือขอความอนุเคราะห์ — enable ทันทีหลัง CS05 approved */}
+            <button
+              type="button"
+              className={styles.downloadBtn}
+              disabled={downloadCooperationMutation.isPending}
+              onClick={() => documentId && downloadCooperationMutation.mutate(documentId)}
+            >
+              {downloadCooperationMutation.isPending ? "กำลังดาวน์โหลด..." : "ดาวน์โหลดหนังสือขอความอนุเคราะห์ฝึกงาน"}
+            </button>
 
-            {/* ปุ่มดาวน์โหลดแบบฟอร์มหนังสือตอบรับ (เปิดได้เสมอ) */}
+            {/* ปุ่ม 2: ดาวน์โหลดแบบฟอร์มหนังสือตอบรับ (เปิดได้เสมอ) */}
             <button
               type="button"
               className={styles.downloadBtnSecondary}
@@ -308,12 +301,36 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
             >
               ดาวน์โหลดแบบฟอร์มหนังสือตอบรับ
             </button>
+
+            {/* ปุ่ม 3: ดาวน์โหลดหนังสือส่งตัว — enable หลัง acceptance approved */}
+            {referralStatus?.isReady ? (
+              <button
+                type="button"
+                className={styles.downloadBtn}
+                disabled={downloadReferralMutation.isPending}
+                onClick={() => documentId && downloadReferralMutation.mutate(documentId)}
+              >
+                {downloadReferralMutation.isPending ? "กำลังดาวน์โหลด..." : "ดาวน์โหลดหนังสือส่งตัวฝึกงาน"}
+              </button>
+            ) : (
+              <span className={styles.downloadBtnDisabled}>
+                ดาวน์โหลดหนังสือส่งตัวฝึกงาน
+                <span className={styles.downloadBadge}>
+                  {referralLoading ? "กำลังตรวจสอบ" : "รอหนังสือตอบรับอนุมัติ"}
+                </span>
+              </span>
+            )}
           </div>
 
           {/* แสดง error ถ้าดาวน์โหลดไม่สำเร็จ */}
+          {downloadCooperationMutation.isError && (
+            <p className={styles.downloadError}>
+              {downloadCooperationMutation.error?.message ?? "ดาวน์โหลดหนังสือขอความอนุเคราะห์ไม่สำเร็จ กรุณาลองใหม่"}
+            </p>
+          )}
           {downloadReferralMutation.isError && (
             <p className={styles.downloadError}>
-              {downloadReferralMutation.error?.message ?? "ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่"}
+              {downloadReferralMutation.error?.message ?? "ดาวน์โหลดหนังสือส่งตัวไม่สำเร็จ กรุณาลองใหม่"}
             </p>
           )}
 

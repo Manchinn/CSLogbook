@@ -279,6 +279,17 @@ router.get(
   internshipController.downloadAcceptanceLetter
 );
 
+// ============= เส้นทางสำหรับหนังสือขอความอนุเคราะห์ =============
+
+// ดาวน์โหลดหนังสือขอความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน - download ได้ทันทีหลัง CS05 approved
+router.get(
+  "/download-cooperation-letter/:documentId",
+  authenticateToken,
+  authorize("internship", "student"),
+  checkInternshipEligibility,
+  internshipController.downloadCooperationLetter
+);
+
 // ============= เส้นทางสำหรับหนังสือส่งตัวนักศึกษา =============
 
 // ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา - ต้องตรวจสอบสิทธิ์ฝึกงาน

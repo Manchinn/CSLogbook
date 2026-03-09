@@ -1121,7 +1121,7 @@ class InternshipLogbookService {
       // จัดเตรียมข้อมูลสำหรับ PDF
       const summaryData = {
         studentInfo: {
-          studentId: student.studentId,
+          studentId: student.studentCode,
           firstName: student.user.firstName,
           lastName: student.user.lastName,
           email: student.user.email,

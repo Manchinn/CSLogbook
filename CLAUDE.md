@@ -198,6 +198,14 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | 30 | 03-08 | C3-C6 tech debt fixes: label centralization, phantom statuses, ENUM constraints |
 | 31 | 03-08 | Workflow state audit → WORKFLOW_STATES.md, evidence_submitted virtual→real fix |
 | 32 | 03-08 | Generate workflowStates.ts constants (enums, transitions, UI config) + 5-round verification |
+| 33 | 03-08 | Playwright E2E testing setup: 156 tests (153 pass), 5 phases, multi-role auth |
+| 34 | 03-08 | E2E tests: admin settings & teacher advisor (22 tests, 21 pass) |
+| 35 | 03-08 | E2E tests: multi-role workflow specs — meeting-logbook, kp02-defense, thesis-flow (19 tests) |
+| 36 | 03-08 | E2E tests: security route-access (40 tests) + internship workflow B1-B5 (66 tests) |
+| 37 | 03-09 | E2E seed script (7-step pipeline) + fix test skip conditions (160 pass, 172 skip) |
+| 38 | 03-09 | PDF audit + สร้างหนังสือขอความอนุเคราะห์ (NEW PDF) + แก้ flow ปุ่ม download 3 ปุ่ม |
+| 39 | 03-09 | PDF data flow deep dive + fix 3 bugs (studentCode, date format, doc number year) |
+| 40 | 03-09 | PDF preview/download audit + fix filename .pdf, Content-Disposition header |
 
 ### Pending
 
@@ -212,6 +220,8 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 |---|---|
 | `backend/config/scoring.js` | `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
 | `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` — critical for academic/curriculum |
+| `backend/utils/retryUtil.js` | `withRetry()` — exponential backoff สำหรับ email transport |
+| `backend/templates/base.html` | Base email template — unified KMUTNB branding, `{{content}}` slot |
 | `backend/config/corsOrigins.js` | Dynamic CORS via `ALLOWED_ORIGINS` env |
 | `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค, คณะ, มหาวิทยาลัย — ใช้ใน PDF ทุกประเภท |
 | `src/lib/utils/statusLabels.ts` | `labelStatus()` — use instead of raw enums |

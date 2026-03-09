@@ -307,13 +307,19 @@ class DocumentService {
     /**
      * ดึงข้อมูลเอกสารทั้งหมดพร้อม filter และ pagination
      */
-    async getDocuments(filters = {}, pagination = {}) {
+    async getDocuments(filters = {}, pagination = {}, userId = null, userRole = null) {
         try {
             const { type, status, search, academicYear, semester } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
             // สร้าง query condition พื้นฐาน
             let whereCondition = {};
+
+            // Student เห็นเฉพาะเอกสารตัวเอง
+            const staffRoles = ['admin', 'teacher', 'head', 'staff'];
+            if (userId && !staffRoles.includes(userRole)) {
+                whereCondition.userId = userId;
+            }
 
             if (type && type !== 'all') {
                 whereCondition.documentType = type.toLowerCase();
@@ -895,12 +901,20 @@ class DocumentService {
     /**
      * ตรวจสอบว่าไฟล์เอกสารมีอยู่จริง
      */
-    async validateDocumentFile(documentId) {
+    async validateDocumentFile(documentId, userId = null, userRole = null) {
         try {
             const document = await Document.findByPk(documentId);
 
             if (!document) {
                 throw new Error('ไม่พบเอกสาร');
+            }
+
+            // Ownership check — staff/admin/teacher ดูได้ทั้งหมด, student ดูได้เฉพาะของตัวเอง
+            if (userId) {
+                const staffRoles = ['admin', 'teacher', 'head', 'staff'];
+                if (!staffRoles.includes(userRole) && document.userId !== userId) {
+                    throw new Error('ไม่มีสิทธิ์เข้าถึงเอกสารนี้');
+                }
             }
 
             if (!document.filePath || !fs.existsSync(document.filePath)) {

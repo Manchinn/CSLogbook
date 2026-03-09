@@ -8,7 +8,9 @@ const {
 } = require("../../models");
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
+const { sanitizeFilename } = require("../../utils/sanitizeFilename");
 const { calculateStudentYear } = require("../../utils/studentUtils");
+const { formatThaiDate } = require("../../utils/dateUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
 const { formatThaiDate } = require("../../utils/dateUtils");
 
@@ -389,7 +391,7 @@ class InternshipReferralLetterService {
         pdf.on("end", () => resolve(Buffer.concat(buffers)));
       });
 
-      const fileName = `หนังสือส่งตัว-${pdfData.studentData[0].fullName}-${documentId}.pdf`;
+      const fileName = `หนังสือส่งตัว-${sanitizeFilename(pdfData.studentData[0].fullName)}-${documentId}.pdf`;
 
       logger.debug("[DEBUG] PDF generated successfully:", {
         documentId,
