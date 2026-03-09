@@ -158,6 +158,9 @@ class InternshipCertificateService {
         canRequestCertificate:
           canRequestCertificate && certificateStatus === "not_requested",
 
+        // internshipId สำหรับ filter query อื่น (ป้องกันดึงข้อมูลผิดรอบ)
+        internshipId: cs05Document.internshipDocument.internshipId,
+
         // ข้อมูลการตรวจสอบเงื่อนไข
         requirements: {
           totalHours: {
@@ -260,10 +263,11 @@ class InternshipCertificateService {
         ],
       });
 
-      // ดึงข้อมูลคำขอหนังสือรับรอง
+      // ดึงข้อมูลคำขอหนังสือรับรอง (filter internshipId ป้องกันดึงผิดรอบ)
       const certificateRequest = await InternshipCertificateRequest.findOne({
         where: {
           studentId: student.studentId,
+          internshipId: status.internshipId,
           status: "approved",
         },
         order: [["created_at", "DESC"]],
@@ -649,7 +653,31 @@ class InternshipCertificateService {
         throw new Error("ไม่พบข้อมูลนักศึกษา");
       }
 
-      // อัปเดตสถานะการดาวน์โหลด
+      // หา internshipId จาก CS05 ล่าสุด (ป้องกัน update ผิดรอบ)
+      const cs05Document = await Document.findOne({
+        where: {
+          userId,
+          documentName: "CS05",
+          status: ["approved", "supervisor_evaluated"],
+        },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+            required: true,
+            attributes: ["internshipId"],
+          },
+        ],
+        order: [["created_at", "DESC"]],
+      });
+
+      if (!cs05Document) {
+        throw new Error("ไม่พบข้อมูลการฝึกงานที่ได้รับการอนุมัติ");
+      }
+
+      const internshipId = cs05Document.internshipDocument.internshipId;
+
+      // อัปเดตสถานะการดาวน์โหลด (filter internshipId ป้องกัน update ผิดรอบ)
       const updateResult = await InternshipCertificateRequest.update(
         {
           downloadedAt: new Date(),
@@ -659,6 +687,7 @@ class InternshipCertificateService {
         {
           where: {
             studentId: student.studentId,
+            internshipId,
             status: "approved",
           },
         }
