@@ -122,7 +122,7 @@ export async function downloadAdminProjectDocument(documentId: number): Promise<
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `project-document-${documentId}`;
+  anchor.download = `project-document-${documentId}.pdf`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
