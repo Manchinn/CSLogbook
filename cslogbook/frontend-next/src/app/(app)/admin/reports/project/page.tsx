@@ -235,7 +235,7 @@ export default function AdminProjectReportPage() {
                 <p className={styles.statValue}>{summary.project1?.failed ?? "-"}</p>
               </div>
               <div className={styles.statItem}>
-                <p className={styles.statLabel}>วิทยานิพนธ์ (ทั้งหมด)</p>
+                <p className={styles.statLabel}>ปริญญานิพนธ์ (ทั้งหมด)</p>
                 <p className={styles.statValue}>{summary.project2?.total ?? "-"}</p>
               </div>
               <div className={styles.statItem}>
