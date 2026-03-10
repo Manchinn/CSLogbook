@@ -1,13 +1,5 @@
 # CLAUDE.md — CSLogbook
 
-## Working Branch
-
-**Always work on branch `claude/claude-md-mm56ik11ksjo6flh-JgWXL`**
-
-ห้าม commit ลง `master` โดยตรง
-
----
-
 ## Project Overview
 
 **CSLogbook** — Full-stack Student Activity Management System (CS&IT department). Manages internship/project workflows, documents, logbooks, meetings, deadlines, student progress.
@@ -144,76 +136,22 @@ CI/CD: push to `master` → GitHub Actions → SSH → `docker compose up -d --b
 
 ---
 
-## Debugging
-
-| Symptom | Check |
-|---|---|
-| CORS errors | `FRONTEND_URL` + `ALLOWED_ORIGINS` in `.env`, `app.js` |
-| 401 Unauthorized | `JWT_SECRET` ≥ 32 chars, token expiry |
-| DB failure | DB env vars, MySQL running, `npm run db:check` |
-| Missing columns | `npm run migrate` |
-| Agents not running | `ENABLE_AGENTS=true` |
-| Logs | `backend/logs/error.log`, `app.log` |
-
----
-
-## Reference Docs
-
-`.github/instructions/`: frontend_structure_guide, overview_components, internship-registration-system, logbook_approval, curriculum, evaluation_status_summary, react-pdf-generation, password_change, copilot
+Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction docs: `.github/instructions/`
 
 ---
 
 ## Session History
 
-Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (44 sessions)
 
+**Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
-| 1 | 02-27 | Bug fixes: login error, status badges, Thai font PDF, statusLabels utility |
-| 2 | 02-28 | Fix KP02 advisor decision missing `defenseType` |
-| 3 | 02-28 | Phase 2 overview: Thai labels, exam result card, thesis gating |
-| 4 | 03-01 | Phase 2 advisor name display in hero card |
-| 5 | 03-01 | Admin UI refactor: detailSection, drawer footer, alert patterns |
-| 6 | 03-01 | Unified project page (Phase 1+2), naming audit "ปริญญานิพนธ์" |
-| 7 | 03-01 | Admin documents UI + teacherPosition in JWT/RBAC |
-| 8 | 03-02 | ConfirmDialog + Skeleton components, replace window.confirm |
-| 11 | 03-03 | RBAC audit, scoring.js extraction, dead route cleanup |
-| 12 | 03-03 | Query key mismatch fix, security/integration audits |
-| 13 | 03-03 | CI/CD pipeline, CORS dynamic origins, "หน้าหลัก" rename |
-| 14 | 03-04 | Logo, DefenseRequestStepper, design tokens, SurveyBanner, 404 page |
-| 15 | 03-05 | Survey URL fix, timesheet delete |
-| 16 | 03-06 | Teacher queue status filters, endpoint verification |
-| 17 | 03-06 | Queue summary stats, always-show table pattern |
-| 18 | 03-06 | Backend summary aggregation for advisor queues |
-| 19 | 03-06 | Teacher queue UI redesign, meeting-approvals key fix |
-| 20 | 03-06 | Staging test plan update (P0-P3 categories) |
-| 21 | 03-06 | Dead routes cleanup, report RBAC (17 routes) |
-| 22 | 03-06 | Hotfix: restore getAcademicDashboard (false positive) |
-| 23 | 03-06 | Academic/curriculum bug fixes (B1-F5), settings page redesign |
-| 24 | 03-07 | PDF system audit: Thai font fix, data correctness, departmentInfo config |
-| 26 | 03-07 | Notification settings UI: Thai labels + bullet details, email infra audit |
-| 27 | 03-07 | Gmail REST API migration, SSO email mapping, login notification |
-| 28 | 03-07 | Email improvements: retry logic, base template, fire-and-forget, tx bug fix |
-| 29 | 03-08 | Status/workflow audit (3 layers), remove 4 unused ProjectWorkflowState columns |
-| 30 | 03-08 | C3-C6 tech debt fixes: label centralization, phantom statuses, ENUM constraints |
-| 31 | 03-08 | Workflow state audit → WORKFLOW_STATES.md, evidence_submitted virtual→real fix |
-| 32 | 03-08 | Generate workflowStates.ts constants (enums, transitions, UI config) + 5-round verification |
-| 33 | 03-08 | Playwright E2E testing setup: 156 tests (153 pass), 5 phases, multi-role auth |
-| 34 | 03-08 | E2E tests: admin settings & teacher advisor (22 tests, 21 pass) |
-| 35 | 03-08 | E2E tests: multi-role workflow specs — meeting-logbook, kp02-defense, thesis-flow (19 tests) |
-| 36 | 03-08 | E2E tests: security route-access (40 tests) + internship workflow B1-B5 (66 tests) |
-| 37 | 03-09 | E2E seed script (7-step pipeline) + fix test skip conditions (160 pass, 172 skip) |
-| 38 | 03-09 | PDF audit + สร้างหนังสือขอความอนุเคราะห์ (NEW PDF) + แก้ flow ปุ่ม download 3 ปุ่ม |
-| 39 | 03-09 | PDF data flow deep dive + fix 3 bugs (studentCode, date format, doc number year) |
-| 40 | 03-09 | PDF preview/download audit + fix filename .pdf, Content-Disposition header |
-| 41 | 03-09 | PDF security audit + IDOR fixes (6/6) + PDF_AUDIT_REPORT.md |
-| 42 | 03-09 | Data Integrity audit (P6) + cooperation letter recovery + fix C1/C2/H2 |
-| 43 | 03-09 | Fix C3 certificate PDF (rewire to pdfkit) + H4 internshipId filter (7/7 queries) |
-
-### Pending
-
-- Staging regression testing — `docs/STAGING_TEST_PLAN.md`
-- Student result pages (out of scope — intentional stubs)
+| 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design |
+| 39-43 | 03-09 | PDF audit, IDOR fixes, data integrity, certificate PDF rewire |
+| 38 | 03-09 | สร้างหนังสือขอความอนุเคราะห์ PDF + download flow |
+| 37 | 03-09 | E2E seed script + fix skip conditions |
+| 36 | 03-08 | E2E: security route-access + internship workflow |
 
 ---
 
@@ -222,37 +160,11 @@ Detailed logs: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md)
 | File | Notes |
 |---|---|
 | `backend/config/scoring.js` | `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
-| `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` — critical for academic/curriculum |
-| `backend/utils/retryUtil.js` | `withRetry()` — exponential backoff สำหรับ email transport |
-| `backend/templates/base.html` | Base email template — unified KMUTNB branding, `{{content}}` slot |
-| `backend/config/corsOrigins.js` | Dynamic CORS via `ALLOWED_ORIGINS` env |
-| `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค, คณะ, มหาวิทยาลัย — ใช้ใน PDF ทุกประเภท |
+| `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` |
+| `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค — ใช้ใน PDF ทุกประเภท |
+| `src/constants/workflowStates.ts` | Enums, transitions, UI config, `canTransition()` |
 | `src/lib/utils/statusLabels.ts` | `labelStatus()` — use instead of raw enums |
-| `src/constants/workflowStates.ts` | Enums, transition maps, UI config, `canTransition()` — generated from WORKFLOW_STATES.md |
-| `src/lib/utils/thaiDateUtils.ts` | `currentBuddhistYear()` shared function |
-| `src/lib/services/teacherService.ts` | Teacher API — `submitKP02AdvisorDecision` needs `defenseType` |
-| `src/hooks/useTeacherModule.ts` | Teacher hooks — supports `defenseType` |
-| `project/phase1/view/ProjectContent.tsx` | **Main project page** — unified Phase 1 + 2 |
-| `ProjectPhase1Sections.tsx` | `PhaseStepsGrid` with section dividers |
-| `ProjectPhase2Sections.tsx` | `SummaryCards`, `Phase2GateNotice`, `MeetingLogbookSection` |
-| `src/lib/project/phase2Gate.ts` | Phase 2 gate reasons (Thai) |
-| `src/app/globals.css` | Design tokens (spacing, shadows, surfaces) |
-| `admin/settings/layout.tsx` | Shared settings tab navigation (6 pages) |
-| `admin/settings/settings.module.css` | Shared CSS for all settings pages |
-| `src/components/common/ConfirmDialog.tsx` | Replaces `window.confirm` |
-| `src/components/common/Skeleton.tsx` | Table/card skeleton loading |
-| `src/components/common/DefenseRequestStepper.tsx` | Defense request stepper |
-| `src/components/dashboard/SurveyBanner.tsx` | Survey banner (3 dashboards) |
-| `docs/compatibility/` | DO_NOT_REMOVE API usage lists |
-| `docs/STAGING_TEST_PLAN.md` | Test checklist (P0-P3) |
-| `.github/workflows/production-deploy.yml` | CI/CD pipeline |
+| `src/lib/utils/thaiDateUtils.ts` | `currentBuddhistYear()` |
+| `src/app/globals.css` | Design tokens |
 
-### Legacy (kept, not mounted)
-
-- `ProjectPhase1Content.tsx`, `ProjectPhase2Content.tsx` — replaced by `ProjectContent.tsx`
-
-### Lessons Learned
-
-- **Verify frontend usage before deleting routes** (Session 21 false positive)
-- **Match cache keys** between queries and mutations (Session 12 mismatch)
-- **Field names: follow backend** — don't rename without checking both sides
+Full list: [`docs/KEY_FILES_REFERENCE.md`](docs/KEY_FILES_REFERENCE.md)

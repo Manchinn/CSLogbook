@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DefenseRequestStepper } from "@/components/common/DefenseRequestStepper";
+import { Phase2GateWarning } from "@/components/common/Phase2GateWarning";
+import { RejectionNotice } from "@/components/common/RejectionNotice";
+import { StudentTable } from "@/components/common/StudentTable";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
@@ -13,8 +16,10 @@ import {
   getThesisDefenseRequest,
   submitThesisDefenseRequest,
 } from "@/lib/services/projectService";
-import { statusTone as sharedStatusTone } from "@/lib/utils/statusLabels";
-import styles from "./thesisDefense.module.css";
+import { formatDate } from "@/lib/utils/formatDateTime";
+import { statusTone } from "@/lib/utils/statusLabels";
+import { toneClassName } from "@/lib/utils/toneStyles";
+import styles from "@/styles/requestPage.module.css";
 
 /** Context-specific labels สำหรับคำขอสอบปริญญานิพนธ์ */
 const statusLabels: Record<string, string> = {
@@ -26,13 +31,6 @@ const statusLabels: Record<string, string> = {
   completed: "บันทึกผลสอบเรียบร้อย",
   cancelled: "คำขอถูกยกเลิก",
 };
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(d);
-}
 
 export default function ThesisDefenseRequestContent() {
   const router = useRouter();
@@ -128,51 +126,40 @@ export default function ThesisDefenseRequestContent() {
     }
   };
 
+  const handleStudentChange = (index: number, field: string, value: string) => {
+    const next = [...students];
+    next[index] = { ...next[index], [field]: value };
+    setStudents(next);
+  };
+
   if (!project) {
     return <div className={styles.notice}>ยังไม่มีโครงงานสำหรับผู้ใช้งานคนนี้</div>;
   }
 
   const status = String(request?.status || "");
   const statusLabel = statusLabels[status] || "ยังไม่พบสถานะคำขอ";
-  const statusToneValue = sharedStatusTone(status);
-  const statusClass =
-    statusToneValue === "success"
-      ? styles.tagSuccess
-      : statusToneValue === "warning"
-        ? styles.tagWarning
-        : statusToneValue === "danger"
-          ? styles.tagDanger
-          : statusToneValue === "info"
-            ? styles.tagInfo
-            : styles.tagDefault;
+  const statusClass = styles[toneClassName(statusTone(status))];
   const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);
   const disabledSubmission =
     phase2GateReasons.length > 0 || !meetingRequirement.satisfied || !systemTestReady || formLocked;
 
   return (
     <div className={styles.page}>
-      <section className={styles.header}>
+      <section className={styles.headerWithBack}>
         <div>
           <h1 className={styles.title}>คำขอสอบปริญญานิพนธ์ (คพ.03)</h1>
           <p className={styles.subtitle}>บันทึกข้อมูลคำขอสอบและติดตามสถานะคำร้อง</p>
         </div>
-        <button type="button" className={styles.secondaryButton} onClick={() => router.push("/project/phase2")}> 
+        <button type="button" className={styles.secondaryButton} onClick={() => router.push("/project/phase2")}>
           กลับไปภาพรวม
         </button>
       </section>
 
       <DefenseRequestStepper status={status} />
 
-      {phase2GateReasons.length > 0 ? (
-        <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
-          <ul className={styles.noticeList}>
-            {phase2GateReasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <Phase2GateWarning reasons={phase2GateReasons} />
+
+      <RejectionNotice status={status} />
 
       <section className={styles.card}>
         <div className={styles.tagRow}>
@@ -197,15 +184,6 @@ export default function ThesisDefenseRequestContent() {
         </div>
       </section>
 
-      {["advisor_rejected", "staff_returned"].includes(status) ? (
-        <section className={styles.noticeRejection}>
-          <p className={styles.noticeTitle}>
-            {status === "advisor_rejected" ? "อาจารย์ส่งคำขอกลับแล้ว" : "เจ้าหน้าที่ส่งคำขอกลับแล้ว"}
-          </p>
-          <p>กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งใหม่ได้เลย</p>
-        </section>
-      ) : null}
-
       {!systemTestReady ? (
         <section className={styles.noticeWarning}>
           <p className={styles.noticeTitle}>ยังไม่ครบเงื่อนไขทดสอบระบบ 30 วัน</p>
@@ -216,43 +194,11 @@ export default function ThesisDefenseRequestContent() {
         </section>
       ) : null}
 
-      <section className={styles.card}>
-        <h3>ข้อมูลนักศึกษา</h3>
-        <div className={styles.table}>
-          <div className={styles.tableHeader}>
-            <span className={styles.tableHeaderCell}>รหัสนักศึกษา</span>
-            <span className={styles.tableHeaderCell}>ชื่อ-นามสกุล</span>
-            <span className={styles.tableHeaderCell}>เบอร์โทรศัพท์</span>
-            <span className={styles.tableHeaderCell}>อีเมล</span>
-          </div>
-          {students.map((student, index) => (
-            <div key={`${student.studentId}-${index}`} className={styles.row}>
-              <input value={student.studentCode || ""} disabled aria-label="รหัสนักศึกษา" />
-              <input value={student.name || ""} disabled aria-label="ชื่อ-นามสกุล" />
-              <input
-                value={student.phone || ""}
-                onChange={(event) => {
-                  const next = [...students];
-                  next[index] = { ...next[index], phone: event.target.value };
-                  setStudents(next);
-                }}
-                disabled={formLocked}
-                aria-label="เบอร์โทรศัพท์"
-              />
-              <input
-                value={student.email || ""}
-                onChange={(event) => {
-                  const next = [...students];
-                  next[index] = { ...next[index], email: event.target.value };
-                  setStudents(next);
-                }}
-                disabled={formLocked}
-                aria-label="อีเมล"
-              />
-            </div>
-          ))}
-        </div>
-      </section>
+      <StudentTable
+        students={students}
+        onStudentChange={handleStudentChange}
+        disabled={formLocked}
+      />
 
       <section className={styles.actions}>
         <button

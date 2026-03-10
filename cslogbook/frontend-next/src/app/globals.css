@@ -69,6 +69,16 @@
   --btn-danger-bg-filled: #cf1322;
   --btn-danger-bg-filled-hover: #a8071a;
 
+  /* ─── Tag / badge semantic tokens ─── */
+  --tag-success-bg: #f6ffed;
+  --tag-success-text: #237804;
+  --tag-warning-bg: #fff7e6;
+  --tag-warning-text: #ad4e00;
+  --tag-danger-bg: #fff1f0;
+  --tag-danger-text: #a8071a;
+  --tag-info-bg: #e6f7ff;
+  --tag-info-text: #0050b3;
+
   /* ─── Spacing scale (4px base) ─── */
   --space-0: 0;
   --space-1: 0.25rem;  /* 4px */
