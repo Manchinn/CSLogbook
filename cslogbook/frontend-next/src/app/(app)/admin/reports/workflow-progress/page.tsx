@@ -7,7 +7,7 @@ import styles from "../internship/page.module.css";
 const WORKFLOW_TYPES = [
   { value: "internship", label: "ฝึกงาน" },
   { value: "project1", label: "โครงงานพิเศษ 1" },
-  { value: "project2", label: "วิทยานิพนธ์" },
+  { value: "project2", label: "ปริญญานิพนธ์" },
 ];
 
 export default function AdminWorkflowProgressPage() {
