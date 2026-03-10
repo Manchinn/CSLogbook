@@ -71,9 +71,19 @@ exports.validateSubmitProject1Request = (req, res, next) => {
     defenseDate: Joi.date().iso().optional().allow(null),
     defenseTime: Joi.string().optional().allow('', null),
     defenseLocation: Joi.string().optional().allow('', null),
-    notes: Joi.string().optional().allow('', null)
+    notes: Joi.string().optional().allow('', null),
+    // ข้อมูลเพิ่มเติมจาก frontend form — ส่งผ่านไปให้ service normalize
+    requestDate: Joi.string().optional().allow('', null),
+    students: Joi.array().optional(),
+    advisorName: Joi.string().optional().allow('', null),
+    coAdvisorName: Joi.string().optional().allow('', null),
+    additionalNotes: Joi.string().optional().allow('', null),
+    projectSnapshotOverride: Joi.object().optional(),
+    intendedDefenseDate: Joi.string().optional().allow('', null),
+    intendedDate: Joi.string().optional().allow('', null),
+    attachments: Joi.array().optional(),
   });
-  
+
   const { error, value } = schema.validate(req.body);
   if (error) {
     return res.status(400).json({

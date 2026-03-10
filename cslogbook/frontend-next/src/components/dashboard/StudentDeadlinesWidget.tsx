@@ -55,7 +55,7 @@ export function StudentDeadlinesWidget({ enabled, days = 7, limit = 5 }: Student
       hydrated={hydrated}
       isLoading={isLoading}
       error={error}
-      loadingFallback={<p>Loading student deadlines...</p>}
+      loadingFallback={<p>กำลังโหลดกำหนดส่ง...</p>}
       errorFallback={<p className={styles.error}>ไม่สามารถโหลดกำหนดส่งได้</p>}
     >
       <section className={styles.wrapper}>
@@ -71,7 +71,7 @@ export function StudentDeadlinesWidget({ enabled, days = 7, limit = 5 }: Student
               <article key={deadline.id} className={styles.item}>
                 <div className={styles.itemHeader}>
                   <p className={styles.name}>{deadline.name}</p>
-                  {deadline.deadlineType ? <span className={styles.chip}>{deadline.deadlineType}</span> : null}
+                  {deadline.deadlineType ? <span className={styles.chip}>{deadline.deadlineType === "SUBMISSION" ? "ส่งเอกสาร" : deadline.deadlineType}</span> : null}
                 </div>
                 <p className={styles.datetime}>{formatDateTime(deadline.deadlineAt)}</p>
                 <p className={styles.countdown}>
@@ -80,7 +80,7 @@ export function StudentDeadlinesWidget({ enabled, days = 7, limit = 5 }: Student
                 <div className={styles.flags}>
                   {deadline.lockAfterDeadline ? <span>⚠️ ล็อกหลังครบกำหนด</span> : null}
                   {deadline.allowLate && !deadline.lockAfterDeadline ? <span>อนุญาตยื่นสาย</span> : null}
-                  {deadline.gracePeriodMinutes ? <span>Grace {deadline.gracePeriodMinutes} นาที</span> : null}
+                  {deadline.gracePeriodMinutes ? <span>ผ่อนผัน {deadline.gracePeriodMinutes} นาที</span> : null}
                 </div>
               </article>
             ))}

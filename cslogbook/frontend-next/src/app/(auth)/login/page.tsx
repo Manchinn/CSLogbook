@@ -19,55 +19,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
 
       <section className={styles.layout}>
-        <div className={styles.brandPanel}>
-          <div className={styles.brandHeader}>
-            <CSLogbookLogo size={52} className={styles.logoBadge} />
-            <h1 className={styles.brandTitle}>CS Logbook</h1>
-            <p className={styles.brandDescription}>
-              ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์สำหรับนักศึกษา อาจารย์
-              และเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
-            </p>
-          </div>
-
-          <div className={styles.highlightList}>
-            <div className={styles.highlightCard}>
-              <div className={styles.highlightIcon}>SSO</div>
-              <div>
-                <p className={styles.highlightTitle}>ล็อกอินด้วย KMUTNB SSO</p>
-                <p className={styles.highlightText}>
-                  เข้าสู่ระบบด้วยบัญชี ICIT Account เพียงครั้งเดียว ปลอดภัยด้วย Two-Factor
-                  Authentication
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.highlightCard}>
-              <div className={styles.highlightIcon}>LIVE</div>
-              <div>
-                <p className={styles.highlightTitle}>อัปเดตสถานะฝึกงานเรียลไทม์</p>
-                <p className={styles.highlightText}>
-                  ดูความคืบหน้าจากทุกบันทึกที่ส่งและสถานะการอนุมัติได้ในหน้าเดียว
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.highlightCard}>
-              <div className={styles.highlightIcon}>TEAM</div>
-              <div>
-                <p className={styles.highlightTitle}>ทำงานร่วมกันได้รวดเร็ว</p>
-                <p className={styles.highlightText}>
-                  อาจารย์ที่ปรึกษาและเจ้าหน้าที่สามารถตรวจสอบอนุมัติได้ทันที
-                </p>
-              </div>
-            </div>
-          </div>
-
+        {/* brand header — แสดงก่อนเสมอทั้ง desktop และ mobile */}
+        <div className={styles.brandHeader}>
+          <CSLogbookLogo size={52} className={styles.logoBadge} />
+          <h1 className={styles.brandTitle}>CS Logbook</h1>
+          <p className={styles.brandDescription}>
+            ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์สำหรับนักศึกษา อาจารย์
+            และเจ้าหน้าที่ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
+          </p>
           <p className={styles.brandFooter}>
             ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ • คณะวิทยาศาสตร์ประยุกต์ •
             มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
           </p>
         </div>
 
+        {/* login card — mobile: อยู่ใต้ brand header, desktop: อยู่คอลัมน์ขวา */}
         <div className={`${styles.card} ${styles.loginCard}`}>
           <div className={styles.header}>
             <h2>ลงชื่อเข้าใช้ระบบ</h2>
@@ -77,6 +43,40 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {errorMessage ? <p className={styles.errorText}>เกิดข้อผิดพลาด: {errorMessage}</p> : null}
 
           <LoginForm />
+        </div>
+
+        {/* highlights — mobile: อยู่ใต้ login card */}
+        <div className={styles.highlightList}>
+          <div className={styles.highlightCard}>
+            <div className={styles.highlightIcon}>SSO</div>
+            <div>
+              <p className={styles.highlightTitle}>ล็อกอินด้วย KMUTNB SSO</p>
+              <p className={styles.highlightText}>
+                เข้าสู่ระบบด้วยบัญชี ICIT Account เพียงครั้งเดียว ปลอดภัยด้วย Two-Factor
+                Authentication
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.highlightCard}>
+            <div className={styles.highlightIcon}>LIVE</div>
+            <div>
+              <p className={styles.highlightTitle}>อัปเดตสถานะฝึกงานเรียลไทม์</p>
+              <p className={styles.highlightText}>
+                ดูความคืบหน้าจากทุกบันทึกที่ส่งและสถานะการอนุมัติได้ในหน้าเดียว
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.highlightCard}>
+            <div className={styles.highlightIcon}>TEAM</div>
+            <div>
+              <p className={styles.highlightTitle}>ทำงานร่วมกันได้รวดเร็ว</p>
+              <p className={styles.highlightText}>
+                อาจารย์ที่ปรึกษาและเจ้าหน้าที่สามารถตรวจสอบอนุมัติได้ทันที
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </main>

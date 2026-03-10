@@ -9,7 +9,6 @@ import { useStudentProjectDetail } from "@/hooks/useStudentProjectDetail";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDeadlineCalendar } from "@/hooks/useStudentDeadlineCalendar";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
-import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
 import { acknowledgeTopicExamResult } from "@/lib/services/studentService";
 import {
   extractDeadlineKeywords,
@@ -74,11 +73,8 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     refetch: refetchProjectDetail,
   } = useStudentProjectDetail(token, queriesEnabled);
 
-  const {
-    data: timeline,
-    isLoading: timelineLoading,
-    error: timelineError,
-  } = useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
+  // timeline data — hook ยังใช้เพื่อ prefetch; ค่า destructure ยังไม่ได้ render
+  useWorkflowTimeline(token, "project", studentId ?? null, queriesEnabled);
 
   const { data: deadlines } = useStudentDeadlineCalendar(
     token,
@@ -665,16 +661,6 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         upcomingDeadlines={upcomingDeadlines}
         formatDate={formatDate}
       />
-
-      {showPhaseContent ? (
-        <WorkflowTimeline
-          title="Timeline โครงงานพิเศษ"
-          subtitle="ครอบคลุมโครงงานพิเศษ 1 และ ปริญญานิพนธ์ ตาม workflow"
-          timeline={timeline}
-          isLoading={timelineLoading}
-          error={timelineError ? "โหลด timeline ไม่สำเร็จ" : null}
-        />
-      ) : null}
 
       <AcknowledgeModal
         ackModalOpen={ackModalOpen}

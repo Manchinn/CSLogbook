@@ -430,22 +430,28 @@ class EmailApprovalService {
         where: { logId: logIds[0] },
       });
 
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await sendTimeSheetApprovalResultNotification(
-        student.user.email,
-        `${student.user.firstName} ${student.user.lastName}`,
+      // เก็บค่าไว้ก่อน commit เพราะ Sequelize instance อาจ detach หลัง commit
+      const studentEmail = student.user.email;
+      const studentFullName = `${student.user.firstName} ${student.user.lastName}`;
+
+      await transaction.commit();
+
+      // fire-and-forget: ส่งอีเมลหลัง commit เพื่อไม่ให้ email fail ทำให้ rollback
+      sendTimeSheetApprovalResultNotification(
+        studentEmail,
+        studentFullName,
         "approved",
         comment,
         firstEntry
-      );
-
-      await transaction.commit();
+      ).catch(err => {
+        logger.error('EmailApprovalService: email_approval_result_failed', { error: err.message });
+      });
 
       return {
         success: true,
         message: "อนุมัติบันทึกการฝึกงานเรียบร้อยแล้ว",
         data: {
-          studentName: `${student.user.firstName} ${student.user.lastName}`,
+          studentName: studentFullName,
           approvedEntries: logIds.length,
           comment,
         },
@@ -537,22 +543,28 @@ class EmailApprovalService {
         transaction,
       });
 
-      // ส่งอีเมลแจ้งเตือนนักศึกษา
-      await sendTimeSheetApprovalResultNotification(
-        student.user.email,
-        `${student.user.firstName} ${student.user.lastName}`,
+      // เก็บค่าไว้ก่อน commit เพราะ Sequelize instance อาจ detach หลัง commit
+      const studentEmail = student.user.email;
+      const studentFullName = `${student.user.firstName} ${student.user.lastName}`;
+
+      await transaction.commit();
+
+      // fire-and-forget: ส่งอีเมลหลัง commit เพื่อไม่ให้ email fail ทำให้ rollback
+      sendTimeSheetApprovalResultNotification(
+        studentEmail,
+        studentFullName,
         "rejected",
         comment,
         firstEntry
-      );
-
-      await transaction.commit();
+      ).catch(err => {
+        logger.error('EmailApprovalService: email_rejection_result_failed', { error: err.message });
+      });
 
       return {
         success: true,
         message: "ปฏิเสธบันทึกการฝึกงานเรียบร้อยแล้ว",
         data: {
-          studentName: `${student.user.firstName} ${student.user.lastName}`,
+          studentName: studentFullName,
           rejectedEntries: logIds.length,
           comment,
         },

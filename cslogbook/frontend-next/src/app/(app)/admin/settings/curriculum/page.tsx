@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   getCurriculums,
   createCurriculum,

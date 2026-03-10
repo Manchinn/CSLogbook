@@ -1,529 +1,77 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คำขอประเมินผลการฝึกงาน - CS Logbook System</title>
-    <style>
-        body {
-            font-family: 'Sarabun', 'TH SarabunPSK', 'Tahoma', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #2c3e50;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-        .container {
-            width: 100%;
-            max-width: 650px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #ffffff;
-            padding: 25px 20px;
-            text-align: center;
-            position: relative;
-        }
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #f39c12, #e74c3c, #9b59b6, #3498db);
-        }
-        .header img {
-            max-width: 180px;
-            margin-bottom: 12px;
-            filter: brightness(1.1);
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-        .header .subtitle {
-            font-size: 14px;
-            margin-top: 8px;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        .content {
-            padding: 30px 25px;
-        }
-        .official-header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #3498db;
-        }
-        .official-header h2 {
-            color: #2c3e50;
-            font-size: 20px;
-            margin: 0 0 8px 0;
-            font-weight: 600;
-        }
-        .official-header .document-type {
-            color: #7f8c8d;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .greeting-box {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #3498db;
-        }
-        .greeting-box .salutation {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        .greeting-box .content-text {
-            color: #34495e;
-            line-height: 1.7;
-            text-align: justify;
-        }
-        .student-info {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border: 1px solid #dee2e6;
-            border-left: 4px solid #17a2b8;
-        }
-        .student-info h4 {
-            color: #2c3e50;
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .student-info h4::before {
-            content: '👨‍🎓';
-            margin-right: 8px;
-            font-size: 18px;
-        }
-        .info-row {
-            display: flex;
-            margin-bottom: 10px;
-            align-items: flex-start;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #2c3e50;
-            min-width: 140px;
-            margin-right: 15px;
-        }
-        .info-value {
-            color: #495057;
-            flex: 1;
-        }
-        .evaluation-purpose {
-            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border-left: 4px solid #28a745;
-        }
-        .evaluation-purpose h3 {
-            color: #155724;
-            margin: 0 0 12px 0;
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .evaluation-purpose h3::before {
-            content: '📊';
-            margin-right: 8px;
-            font-size: 18px;
-        }
-        .evaluation-purpose p {
-            color: #155724;
-            margin: 0;
-            line-height: 1.6;
-            text-align: justify;
-        }
-        .action-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 25px;
-            margin: 30px 0;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #dee2e6;
-        }
-        .action-section h3 {
-            color: #2c3e50;
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .action-section h3::before {
-            content: '🎯';
-            margin-right: 8px;
-            font-size: 20px;
-        }
-        .action-section p {
-            color: #6c757d;
-            margin-bottom: 20px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .button-container {
-            margin: 25px 0;
-        }
-        .evaluation-button {
-            display: inline-block;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            color: #ffffff;
-            font-size: 16px;
-            text-align: center;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            transition: all 0.3s ease;
-            border: none;
-            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-            min-width: 250px;
-        }
-        .evaluation-button:hover {
-            background: linear-gradient(135deg, #1e7e34 0%, #17a2b8 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
-            color: #ffffff;
-        }
-        .evaluation-button::before {
-            content: '📝';
-            margin-right: 8px;
-            font-size: 18px;
-        }
-        .expiry-notice {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 18px;
-            margin: 20px 0;
-            border-left: 4px solid #f39c12;
-        }
-        .expiry-notice h4 {
-            color: #856404;
-            margin: 0 0 10px 0;
-            font-size: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .expiry-notice h4::before {
-            content: '⏰';
-            margin-right: 8px;
-            font-size: 16px;
-        }
-        .expiry-notice p {
-            color: #856404;
-            margin: 5px 0;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .expiry-date {
-            background-color: #fff;
-            padding: 8px 12px;
-            border-radius: 4px;
-            display: inline-block;
-            font-weight: 600;
-            margin: 5px 0;
-        }
-        .important-notice {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border: 1px solid #bbdefb;
-            border-radius: 8px;
-            padding: 18px;
-            margin: 20px 0;
-            border-left: 4px solid #2196f3;
-        }
-        .important-notice h4 {
-            color: #0d47a1;
-            margin: 0 0 10px 0;
-            font-size: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .important-notice h4::before {
-            content: 'ℹ️';
-            margin-right: 8px;
-            font-size: 16px;
-        }
-        .important-notice ul {
-            color: #0d47a1;
-            margin: 8px 0;
-            padding-left: 20px;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-        .important-notice li {
-            margin: 5px 0;
-        }
-        .contact-info {
-            background: linear-gradient(135deg, #e8f4fd 0%, #cce7f0 100%);
-            border: 1px solid #b8daff;
-            border-radius: 8px;
-            padding: 18px;
-            margin: 20px 0;
-            border-left: 4px solid #007bff;
-        }
-        .contact-info h4 {
-            color: #004085;
-            margin: 0 0 12px 0;
-            font-size: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .contact-info h4::before {
-            content: '📞';
-            margin-right: 8px;
-            font-size: 16px;
-        }
-        .contact-row {
-            display: flex;
-            margin-bottom: 8px;
-            align-items: center;
-        }
-        .contact-label {
-            font-weight: 600;
-            color: #004085;
-            min-width: 100px;
-            margin-right: 10px;
-        }
-        .contact-value {
-            color: #004085;
-            font-size: 13px;
-        }
-        .appreciation {
-            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border-left: 4px solid #9c27b0;
-            text-align: center;
-        }
-        .appreciation p {
-            color: #4a148c;
-            margin: 0;
-            font-size: 15px;
-            font-weight: 500;
-            line-height: 1.6;
-        }
-        .appreciation::before {
-            content: '🙏';
-            font-size: 24px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .footer {
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            color: #ecf0f1;
-            text-align: center;
-            padding: 25px 20px;
-            font-size: 13px;
-            border-top: 4px solid #3498db;
-        }
-        .footer .institution {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .footer .department {
-            margin-bottom: 12px;
-            opacity: 0.9;
-        }
-        .footer .system-info {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #455a64;
-            opacity: 0.8;
-            font-size: 12px;
-        }
-        .footer .generated-time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 8px;
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-                border-radius: 4px;
-            }
-            .content {
-                padding: 20px 15px;
-            }
-            .info-row,
-            .contact-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .info-label,
-            .contact-label {
-                min-width: auto;
-                margin-bottom: 5px;
-            }
-            .evaluation-button {
-                min-width: auto;
-                width: 100%;
-                padding: 12px 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header Section -->
-        <div class="header">
-            <img src="https://scontent.fbkk8-2.fna.fbcdn.net/v/t39.30808-6/301788674_572678294646260_6080834268011590388_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHwaSCEIyciHQ9-Z6wGmIws4i0v0ruBTi_iLS_Su4FOL5CK_IbRyxDjD9zstvQr1H7IXx4bGPeYg3Z3B84p5BUW&_nc_ohc=YigkqPcMQVIQ7kNvwGtl1In&_nc_oc=Adm8fsT8FsGImJebnMJkyz4vaxyNqWwJVVVywIwbVS3kjM7e--1Rr7gNkijfj4HSvl4&_nc_zt=23&_nc_ht=scontent.fbkk8-2.fna&_nc_gid=na_Qm_pyW_emT-h2pY4Biw&oh=00_AfKQrvC3Ho39f5kM8ftfeQhDh9H89xk0DQVu2mkvCAd4tw&oe=683D1584" alt="คณะวิทยาศาสตร์ประยุกต์ มจพ.">
-            <h1>ระบบ CS Logbook</h1>
-            <div class="subtitle">ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์</div>
-            <div class="subtitle">มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</div>
-        </div>
+<div class="official-header">
+    <h2>คำขอประเมินผลการฝึกงาน</h2>
+    <div class="document-type">หนังสือราชการภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</div>
+</div>
 
-        <div class="content">
-            <!-- Official Document Header -->
-            <div class="official-header">
-                <h2>คำขอประเมินผลการฝึกงาน</h2>
-                <div class="document-type">หนังสือราชการภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</div>
-            </div>
-
-            <!-- Greeting and Purpose -->
-            <div class="greeting-box">
-                <div class="salutation">เรียน คุณ{{supervisorName}}</div>
-                <div class="content-text">
-                    ด้วยความเคารพ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ 
-                    มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ขอความอนุเคราะห์จากท่านในการประเมินผลการฝึกงาน
-                    ของนักศึกษาที่ได้รับการฝึกงานในหน่วยงานของท่าน ตามรายละเอียดด้านล่างนี้
-                </div>
-            </div>
-
-            <!-- Student Information -->
-            <div class="student-info">
-                <h4>ข้อมูลนักศึกษาที่ขอรับการประเมิน</h4>
-                <div class="info-row">
-                    <div class="info-label">ชื่อ-นามสกุล:</div>
-                    <div class="info-value"><strong>{{studentFullName}}</strong></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">สาขาวิชา:</div>
-                    <div class="info-value">วิทยาการคอมพิวเตอร์และสารสนเทศ</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">หน่วยงานที่ฝึกงาน:</div>
-                    <div class="info-value"><strong>{{companyName}}</strong></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">สถานะการฝึกงาน:</div>
-                    <div class="info-value">ดำเนินการฝึกงานเสร็จสิ้นแล้ว</div>
-                </div>
-            </div>
-
-            <!-- Evaluation Purpose -->
-            <div class="evaluation-purpose">
-                <h3>วัตถุประสงค์ของการประเมิน</h3>
-                <p>
-                    การประเมินผลการฝึกงานนี้มีวัตถุประสงค์เพื่อให้ภาควิชาได้รับทราบถึงความสามารถ ทักษะ 
-                    และพฤติกรรมการทำงานของนักศึกษาในระหว่างการฝึกงาน เพื่อนำไปใช้ในการปรับปรุงหลักสูตร
-                    และพัฒนาคุณภาพของนักศึกษาในอนาคต รวมถึงเป็นข้อมูลสำหรับการประเมินผลการเรียนรู้
-                    ของนักศึกษาในรายวิชาการฝึกงาน
-                </p>
-            </div>
-
-            <!-- Action Section -->
-            <div class="action-section">
-                <h3>การดำเนินการประเมิน</h3>
-                <p>กรุณาคลิกที่ลิงก์ด้านล่างเพื่อเข้าสู่หน้าแบบประเมินผลการฝึกงานผ่านระบบ CS Logbook</p>
-                <div class="button-container">
-                    <a href="{{evaluationLink}}" class="evaluation-button">เข้าสู่หน้าแบบประเมินผลการฝึกงาน</a>
-                </div>
-            </div>
-
-            <!-- Expiry Notice -->
-            <div class="expiry-notice">
-                <h4>กำหนดเวลาการประเมิน</h4>
-                <p>ลิงก์การประเมินนี้จะหมดอายุในวันที่: 
-                    <span class="expiry-date">{{expiresAt}}</span>
-                </p>
-                <p>หากไม่ได้ดำเนินการภายในเวลาดังกล่าว กรุณาติดต่อนักศึกษาเพื่อส่งคำขอใหม่</p>
-            </div>
-
-            <!-- Important Notice -->
-            <div class="important-notice">
-                <h4>ข้อปฏิบัติและข้อมูลสำคัญ</h4>
-                <ul>
-                    <li>ลิงก์การประเมินนี้มีอายุการใช้งาน 7 วัน นับจากวันที่ได้รับอีเมลนี้</li>
-                    <li>การประเมินจะใช้เวลาประมาณ 10-15 นาที</li>
-                    <li>แบบประเมินครอบคลุมด้านทักษะเทคนิค ทักษะการทำงาน และพฤติกรรมการทำงาน</li>
-                    <li>ผลการประเมินจะถูกส่งไปยังภาควิชาและนักศึกษาโดยอัตโนมัติ</li>
-                    <li>ข้อมูลการประเมินจะถูกเก็บเป็นความลับและใช้เพื่อการศึกษาเท่านั้น</li>
-                </ul>
-            </div>
-
-            <!-- Appreciation -->
-            <div class="appreciation">
-                <p>
-                    ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอขอบคุณท่านสำหรับความร่วมมือในการให้โอกาส
-                    นักศึกษาได้ฝึกงาน และการสละเวลาในการประเมินผลการฝึกงานในครั้งนี้
-                </p>
-            </div>
-
-            <!-- Contact Information -->
-            <!-- <div class="contact-info">
-                <h4>ข้อมูลการติดต่อ</h4>
-                <div class="contact-row">
-                    <div class="contact-label">ฝ่ายประสานงาน:</div>
-                    <div class="contact-value"></div>
-                </div>
-                <div class="contact-row">
-                    <div class="contact-label">โทรศัพท์:</div>
-                    <div class="contact-value">02-555-2000 ต่อ 1234</div>
-                </div>
-                <div class="contact-row">
-                    <div class="contact-label">อีเมล:</div>
-                    <div class="contact-value">internship@sci.kmutnb.ac.th</div>
-                </div>
-                <div class="contact-row">
-                    <div class="contact-label">เว็บไซต์:</div>
-                    <div class="contact-value">https://cs.kmutnb.ac.th/</div>
-                </div>
-            </div> -->
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <div class="institution">มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ</div>
-            <div class="department">คณะวิทยาศาสตร์ประยุกต์ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ</div>
-            <div class="system-info">
-                CS Logbook System - ระบบติดตามและประเมินผลการฝึกงาน<br>
-                พัฒนาโดยนักศึกษาภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
-            </div>
-            <div class="generated-time">
-                สร้างเมื่อ: {{generatedDateTime}} | ระบบ CS Logbook v2.0
-            </div>
-        </div>
+<div class="greeting-box">
+    <div class="salutation">เรียน คุณ{{supervisorName}}</div>
+    <div class="content-text">
+        ด้วยความเคารพ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์ประยุกต์
+        มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ขอความอนุเคราะห์จากท่านในการประเมินผลการฝึกงาน
+        ของนักศึกษาที่ได้รับการฝึกงานในหน่วยงานของท่าน ตามรายละเอียดด้านล่างนี้
     </div>
-</body>
-</html>
+</div>
+
+<div class="student-info">
+    <h4>ข้อมูลนักศึกษาที่ขอรับการประเมิน</h4>
+    <div class="info-row">
+        <div class="info-label">ชื่อ-นามสกุล:</div>
+        <div class="info-value"><strong>{{studentFullName}}</strong></div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">สาขาวิชา:</div>
+        <div class="info-value">วิทยาการคอมพิวเตอร์และสารสนเทศ</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">หน่วยงานที่ฝึกงาน:</div>
+        <div class="info-value"><strong>{{companyName}}</strong></div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">สถานะการฝึกงาน:</div>
+        <div class="info-value">ดำเนินการฝึกงานเสร็จสิ้นแล้ว</div>
+    </div>
+</div>
+
+<div class="evaluation-purpose">
+    <h3>วัตถุประสงค์ของการประเมิน</h3>
+    <p>
+        การประเมินผลการฝึกงานนี้มีวัตถุประสงค์เพื่อให้ภาควิชาได้รับทราบถึงความสามารถ ทักษะ
+        และพฤติกรรมการทำงานของนักศึกษาในระหว่างการฝึกงาน เพื่อนำไปใช้ในการปรับปรุงหลักสูตร
+        และพัฒนาคุณภาพของนักศึกษาในอนาคต รวมถึงเป็นข้อมูลสำหรับการประเมินผลการเรียนรู้
+        ของนักศึกษาในรายวิชาการฝึกงาน
+    </p>
+</div>
+
+<div class="action-section">
+    <h3>การดำเนินการประเมิน</h3>
+    <p>กรุณาคลิกที่ลิงก์ด้านล่างเพื่อเข้าสู่หน้าแบบประเมินผลการฝึกงานผ่านระบบ CS Logbook</p>
+    <div class="button-container">
+        <a href="{{evaluationLink}}" class="evaluation-button">เข้าสู่หน้าแบบประเมินผลการฝึกงาน</a>
+    </div>
+</div>
+
+<div class="expiry-notice">
+    <h4>กำหนดเวลาการประเมิน</h4>
+    <p>ลิงก์การประเมินนี้จะหมดอายุในวันที่:
+        <span class="expiry-date">{{expiresAt}}</span>
+    </p>
+    <p>หากไม่ได้ดำเนินการภายในเวลาดังกล่าว กรุณาติดต่อนักศึกษาเพื่อส่งคำขอใหม่</p>
+</div>
+
+<div class="important-notice">
+    <h4>ข้อปฏิบัติและข้อมูลสำคัญ</h4>
+    <ul>
+        <li>ลิงก์การประเมินนี้มีอายุการใช้งาน 7 วัน นับจากวันที่ได้รับอีเมลนี้</li>
+        <li>การประเมินจะใช้เวลาประมาณ 10-15 นาที</li>
+        <li>แบบประเมินครอบคลุมด้านทักษะเทคนิค ทักษะการทำงาน และพฤติกรรมการทำงาน</li>
+        <li>ผลการประเมินจะถูกส่งไปยังภาควิชาและนักศึกษาโดยอัตโนมัติ</li>
+        <li>ข้อมูลการประเมินจะถูกเก็บเป็นความลับและใช้เพื่อการศึกษาเท่านั้น</li>
+    </ul>
+</div>
+
+<div class="appreciation">
+    <p>
+        ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอขอบคุณท่านสำหรับความร่วมมือในการให้โอกาส
+        นักศึกษาได้ฝึกงาน และการสละเวลาในการประเมินผลการฝึกงานในครั้งนี้
+    </p>
+</div>

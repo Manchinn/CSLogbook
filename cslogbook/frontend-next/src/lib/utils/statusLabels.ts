@@ -46,7 +46,9 @@ export const STATUS_LABELS: Record<string, string> = {
   pending_advisor:    "รออาจารย์ตรวจสอบ",
 
   // Exam / evaluation results
+  pass:   "ผ่าน",
   passed: "ผ่าน",
+  fail:   "ไม่ผ่าน",
   failed: "ไม่ผ่าน",
 
   // Deadline / document timeliness
@@ -60,6 +62,15 @@ export const STATUS_LABELS: Record<string, string> = {
   archived:     "เก็บถาวร",
   uploaded:     "อัปโหลดแล้ว (รออนุมัติ)",
   not_uploaded: "ยังไม่อัปโหลด",
+
+  // Project workflow phases (uppercase จาก backend)
+  topic_exam_pending:    "รอยื่นสอบหัวข้อ",
+  topic_exam_scheduled:  "นัดสอบหัวข้อแล้ว",
+  topic_failed:          "สอบหัวข้อไม่ผ่าน",
+  thesis_in_progress:    "กำลังทำปริญญานิพนธ์",
+  thesis_exam_pending:   "รอยื่นสอบปริญญานิพนธ์",
+  thesis_exam_scheduled: "นัดสอบปริญญานิพนธ์แล้ว",
+  thesis_failed:         "สอบปริญญานิพนธ์ไม่ผ่าน",
 
   // Student eligibility compound states
   in_progress_internship: "กำลังฝึกงาน",
@@ -82,7 +93,8 @@ export const STATUS_LABELS: Record<string, string> = {
  */
 export function labelStatus(value?: string | null, fallback = "-"): string {
   if (!value) return fallback;
-  return STATUS_LABELS[value] ?? value;
+  // ลอง exact match ก่อน แล้ว fallback เป็น lowercase เพื่อรองรับ backend ที่ส่ง uppercase เช่น IN_PROGRESS, PASS
+  return STATUS_LABELS[value] ?? STATUS_LABELS[value.toLowerCase()] ?? value;
 }
 
 /* ── Tone (semantic color) mapping ─────────────────────────────── */

@@ -633,16 +633,17 @@ class InternshipEvaluationService {
           if (studentData && studentData.email) {
             logger.info(`📧 กำลังส่งอีเมลแจ้งเตือนไปยัง: ${studentData.email}`);
 
-            await emailService.sendEvaluationSubmittedNotificationToStudent(
+            // fire-and-forget: ไม่ block response
+            emailService.sendEvaluationSubmittedNotificationToStudent(
               studentData.email,
               studentData.firstName,
               document.internshipDocument.companyName,
               evaluationData.supervisorName
-            );
-
-            logger.info(
-              `✅ ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: ${studentData.email}`
-            );
+            ).then(() => {
+              logger.info(`ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: ${studentData.email}`);
+            }).catch(err => {
+              logger.warn('evaluation_email_to_student_failed', { error: err.message });
+            });
           }
         }
       } catch (emailError) {

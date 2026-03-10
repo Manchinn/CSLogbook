@@ -311,8 +311,8 @@ class AuthService {
       // 5. อัปเดตเวลาเข้าสู่ระบบ
       await this.updateLastLogin(user.userId);
 
-      // 6. ส่งการแจ้งเตือน (optional)
-      await this.sendLoginNotification(user.email, user);
+      // 6. ส่งการแจ้งเตือน (optional, fire-and-forget)
+      this.sendLoginNotification(user.email, user);
 
       // 7. บันทึก log การเข้าสู่ระบบสำเร็จ
       logger.info('AuthService: User authentication successful', {
@@ -508,17 +508,9 @@ class AuthService {
     try {
       logger.info(`AuthService: Updating user from SSO: ${user.username}`);
 
-      const names = ssoUserData.displayName.split(' ');
-      // อัปเดต email เฉพาะเมื่อ SSO ส่งค่าที่ valid มาจริง (มี @ และไม่ใช่ undefined@)
-      const ssoEmail = ssoUserData.email;
-      if (ssoEmail && ssoEmail.includes('@') && !ssoEmail.startsWith('undefined@')) {
-        user.email = ssoEmail;
-      }
-      user.firstName = names[0] || user.firstName;
-      user.lastName = names.slice(1).join(' ') || user.lastName;
-      user.role = ssoUserData.role;
+      // SSO ใช้สำหรับยืนยันตัวตนเท่านั้น — ไม่ overwrite ข้อมูลในระบบ
+      // อัปเดตเฉพาะ lastLogin
       user.lastLogin = new Date();
-      
       await user.save();
 
       logger.info(`AuthService: User updated from SSO: ${user.username}`);

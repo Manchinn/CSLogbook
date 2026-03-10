@@ -611,6 +611,8 @@ class ProjectDocumentService {
    */
   async getMyProjects(studentId) {
     // กรองโครงงานที่ cancelled ออก - นักศึกษาไม่สามารถเข้าถึงโครงงานที่ถูกยกเลิกแล้ว
+    // ใช้ subquery กรองโครงงานที่นักศึกษาเป็นสมาชิก แทน where ใน members include
+    // เพื่อให้ members include ดึงสมาชิกทั้งหมดของโครงงาน (ไม่ใช่แค่ตัวเอง)
     const projects = await ProjectDocument.findAll({
       attributes: [
         'projectId', 'projectCode', 'status', 'projectNameTh', 'projectNameEn',
@@ -619,14 +621,17 @@ class ProjectDocumentService {
         'createdByStudentId', 'archivedAt' // ตัด createdAt/updatedAt ออก เพราะ column ใน DB เป็น created_at/updated_at และเราไม่ได้ใช้ใน serialize()
       ], // กำหนด whitelist ป้องกัน Sequelize select column ที่ไม่มี (เช่น student_id เก่า)
       where: {
-        status: { [Op.ne]: 'cancelled' } // ไม่แสดงโครงงานที่ถูกยกเลิก
+        status: { [Op.ne]: 'cancelled' }, // ไม่แสดงโครงงานที่ถูกยกเลิก
+        projectId: {
+          [Op.in]: sequelize.literal(
+            `(SELECT project_id FROM project_members WHERE student_id = ${parseInt(studentId, 10)})`
+          )
+        }
       },
       include: [
         {
           model: ProjectMember,
           as: 'members',
-          where: { studentId },
-          required: true,
           include: [
             {
               model: Student,
@@ -639,7 +644,14 @@ class ProjectDocumentService {
             }
           ]
         },
-        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] }
+        { model: ProjectTrack, as: 'tracks', attributes: ['trackCode'] },
+        {
+          model: Teacher,
+          as: 'advisor',
+          required: false,
+          attributes: ['teacherId'],
+          include: [{ model: User, as: 'user', attributes: ['userId', 'firstName', 'lastName'] }]
+        }
       ],
       order: [['updated_at', 'DESC']]
     });

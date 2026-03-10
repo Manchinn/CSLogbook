@@ -214,6 +214,13 @@ class ProjectManagementService {
         await Promise.all(trackPromises);
       }
 
+      // สร้าง ProjectWorkflowState (เหมือน projectDocumentService.createProject)
+      await ProjectWorkflowState.createForProject(projectDocument.projectId, {
+        phase: advisorId ? 'IN_PROGRESS' : 'DRAFT',
+        userId: student1.user.userId,
+        transaction
+      });
+
       await transaction.commit();
 
       logger.info(`ProjectManagementService: สร้างโครงงานพิเศษสำเร็จ`, {
