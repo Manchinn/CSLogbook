@@ -142,16 +142,16 @@ Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction do
 
 ## Session History
 
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (43 sessions)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (44 sessions)
 
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
+| 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design |
 | 39-43 | 03-09 | PDF audit, IDOR fixes, data integrity, certificate PDF rewire |
 | 38 | 03-09 | สร้างหนังสือขอความอนุเคราะห์ PDF + download flow |
 | 37 | 03-09 | E2E seed script + fix skip conditions |
 | 36 | 03-08 | E2E: security route-access + internship workflow |
-| 35 | 03-08 | E2E: multi-role workflow specs |
 
 ---
 

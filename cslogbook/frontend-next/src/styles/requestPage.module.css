@@ -1,0 +1,417 @@
+/* ─── Shared request page styles ─────────────────────────────────
+   ใช้ร่วมกันระหว่าง exam-submit, thesis-defense, system-test
+   ─────────────────────────────────────────────────────────────── */
+
+/* ── Layout ── */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.headerWithBack {
+  composes: header;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Typography ── */
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  color: var(--color-text);
+}
+
+/* ── Cards ── */
+
+.card {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.cardHint {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* ── Notices ── */
+
+.notice {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.noticeWarning {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--tag-warning-text);
+  background: var(--tag-warning-bg);
+  color: var(--tag-warning-text);
+}
+
+.noticeRejection,
+.noticeError {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #ffa39e;
+  background: var(--tag-danger-bg);
+  color: var(--tag-danger-text);
+}
+
+.noticeTitle {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.noticeList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.noticeInline {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Tags / Badges ── */
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.tagSuccess {
+  composes: tag;
+  background: var(--tag-success-bg);
+  color: var(--tag-success-text);
+}
+
+.tagWarning {
+  composes: tag;
+  background: var(--tag-warning-bg);
+  color: var(--tag-warning-text);
+}
+
+.tagDanger {
+  composes: tag;
+  background: var(--tag-danger-bg);
+  color: var(--tag-danger-text);
+}
+
+.tagInfo {
+  composes: tag;
+  background: var(--tag-info-bg);
+  color: var(--tag-info-text);
+}
+
+.tagDefault {
+  composes: tag;
+}
+
+/* ── Meta grid ── */
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.metaLabel {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.metaValue {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+/* ── Timeline ── */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.timelineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--btn-primary-bg);
+  margin-top: 4px;
+}
+
+.timelineTitle {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.timelineMeta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Form ── */
+
+.form {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fieldHint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fieldHintError {
+  color: var(--tag-danger-text);
+}
+
+/* ── Table ── */
+
+.table {
+  display: grid;
+  gap: 8px;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+
+.tableHeaderCell {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.row input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+/* ── List (advisor approvals) ── */
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.listItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  align-items: center;
+}
+
+.approvalNote {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--tag-danger-text);
+  background: var(--tag-danger-bg);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+/* ── Decision (system-test approval details) ── */
+
+.decisionList {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.decisionItem {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.decisionTitle {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.decisionMeta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Buttons / Actions ── */
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 999px;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.primaryButton {
+  background: var(--btn-primary-bg);
+  color: #fff;
+}
+
+.secondaryButton {
+  background: #f0f0f0;
+  color: #1f1f1f;
+}
+
+.primaryButton[disabled],
+.secondaryButton[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.buttonHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.buttonHintList {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+/* ── Misc ── */
+
+.link {
+  color: var(--btn-primary-bg);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.loadingText {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Phase2GateWarning } from "@/components/common/Phase2GateWarning";
+import { RejectionNotice } from "@/components/common/RejectionNotice";
+import { RequestTimeline, type TimelineItem } from "@/components/common/RequestTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useStudentEligibility } from "@/hooks/useStudentEligibility";
@@ -13,8 +16,10 @@ import {
   uploadSystemTestEvidence,
   type SystemTestRequest,
 } from "@/lib/services/projectService";
-import { statusTone as sharedStatusTone } from "@/lib/utils/statusLabels";
-import styles from "./systemTest.module.css";
+import { formatDate } from "@/lib/utils/formatDateTime";
+import { statusTone } from "@/lib/utils/statusLabels";
+import { toneClassName } from "@/lib/utils/toneStyles";
+import styles from "@/styles/requestPage.module.css";
 
 /** Context-specific labels สำหรับคำขอทดสอบระบบ */
 const statusLabels: Record<string, string> = {
@@ -27,13 +32,6 @@ const statusLabels: Record<string, string> = {
 };
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(d);
-}
 
 export default function SystemTestRequestContent() {
   const router = useRouter();
@@ -94,22 +92,12 @@ export default function SystemTestRequestContent() {
   }, [request]);
 
   const statusLabel = statusLabels[request?.status ?? ""] ?? "ยังไม่เคยส่งคำขอ";
-  const statusToneValue = sharedStatusTone(request?.status);
-  const statusClass =
-    statusToneValue === "success"
-      ? styles.tagSuccess
-      : statusToneValue === "warning"
-        ? styles.tagWarning
-        : statusToneValue === "danger"
-          ? styles.tagDanger
-          : statusToneValue === "info"
-            ? styles.tagInfo
-            : styles.tagDefault;
+  const statusClass = styles[toneClassName(statusTone(request?.status))];
 
   const timelineItems = useMemo(() => {
     const timeline = request?.timeline;
-    if (!timeline) return [] as Array<{ key: string; label: string; timestamp?: string | null }>;
-    const items: Array<{ key: string; label: string; timestamp?: string | null }> = [];
+    if (!timeline) return [] as TimelineItem[];
+    const items: TimelineItem[] = [];
     if (timeline.submittedAt) items.push({ key: "submitted", label: "ส่งคำขอ", timestamp: timeline.submittedAt });
     if (timeline.advisorDecidedAt) {
       items.push({ key: "advisor", label: "อาจารย์ที่ปรึกษาตัดสิน", timestamp: timeline.advisorDecidedAt });
@@ -188,35 +176,22 @@ export default function SystemTestRequestContent() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.header}>
+      <section className={styles.headerWithBack}>
         <div>
           <h1 className={styles.title}>ขอทดสอบระบบ 30 วัน</h1>
           <p className={styles.subtitle}>จัดการคำขอทดสอบระบบและอัปโหลดหลักฐานการประเมิน</p>
         </div>
-        <button type="button" className={styles.secondaryButton} onClick={() => router.push("/project/phase2")}> 
+        <button type="button" className={styles.secondaryButton} onClick={() => router.push("/project/phase2")}>
           กลับไปภาพรวม
         </button>
       </section>
 
-      {phase2GateReasons.length > 0 ? (
-        <section className={styles.noticeWarning}>
-          <p className={styles.noticeTitle}>ปริญญานิพนธ์ยังไม่ปลดล็อก</p>
-          <ul className={styles.noticeList}>
-            {phase2GateReasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <Phase2GateWarning reasons={phase2GateReasons} />
 
-      {allowNewRequest && request && ["advisor_rejected", "staff_rejected"].includes(String(request.status ?? "")) ? (
-        <section className={styles.noticeRejection}>
-          <p className={styles.noticeTitle}>
-            {request.status === "advisor_rejected" ? "อาจารย์ส่งคำขอกลับแล้ว" : "เจ้าหน้าที่ส่งคำขอกลับแล้ว"}
-          </p>
-          <p>กรุณาตรวจสอบหมายเหตุในรายละเอียดการอนุมัติ และแก้ไขข้อมูลแล้วส่งใหม่ได้เลย</p>
-        </section>
-      ) : null}
+      <RejectionNotice
+        status={allowNewRequest && request ? String(request.status ?? "") : ""}
+        message="กรุณาตรวจสอบหมายเหตุในรายละเอียดการอนุมัติ และแก้ไขข้อมูลแล้วส่งใหม่ได้เลย"
+      />
 
       {errorMessage ? (
         <section className={styles.noticeError}>{errorMessage}</section>
@@ -255,7 +230,7 @@ export default function SystemTestRequestContent() {
 
       {(request?.advisorDecision || request?.coAdvisorDecision || request?.staffDecision) && (
         <section className={styles.card}>
-          <h3>รายละเอียดการอนุมัติ</h3>
+          <h3 className={styles.sectionTitle}>รายละเอียดการอนุมัติ</h3>
           <div className={styles.decisionList}>
             {request?.advisorDecision ? (
               <div className={styles.decisionItem}>
@@ -293,25 +268,15 @@ export default function SystemTestRequestContent() {
         </section>
       )}
 
-      {timelineItems.length > 0 ? (
-        <section className={styles.card}>
-          <h3>ไทม์ไลน์คำขอ</h3>
-          <ul className={styles.timeline}>
-            {timelineItems.map((item) => (
-              <li key={item.key} className={styles.timelineItem}>
-                <span className={styles.timelineDot} />
-                <div>
-                  <p className={styles.timelineTitle}>{item.label}</p>
-                  <p className={styles.timelineMeta}>{formatDate(item.timestamp)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <RequestTimeline
+        items={timelineItems}
+        loading={loadingRequest}
+        emptyText="ยังไม่มีข้อมูลไทม์ไลน์"
+        formatTimestamp={formatDate}
+      />
 
       <section className={styles.card}>
-        <h3>บันทึกคำขอทดสอบระบบ</h3>
+        <h3 className={styles.sectionTitle}>บันทึกคำขอทดสอบระบบ</h3>
         <div className={styles.form}>
           <div className={styles.fieldRow}>
             <div className={styles.field}>
@@ -390,7 +355,7 @@ export default function SystemTestRequestContent() {
       </section>
 
       <section className={styles.card}>
-        <h3>อัปโหลดหลักฐานการประเมิน</h3>
+        <h3 className={styles.sectionTitle}>อัปโหลดหลักฐานการประเมิน</h3>
         <p className={styles.cardHint}>อัปโหลดได้เมื่อเจ้าหน้าที่อนุมัติคำขอแล้ว</p>
         <div className={styles.fieldRow}>
           <label htmlFor="system-test-evidence" className={styles.fieldLabel}>
