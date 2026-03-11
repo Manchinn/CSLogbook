@@ -246,7 +246,7 @@ module.exports = {
       await queryInterface.bulkInsert('documents', [{
         user_id: internUser.user_id,
         document_type: 'INTERNSHIP',
-        document_name: `${UAT_PROJECT_PREFIX} เอกสารฝึกงาน`,
+        document_name: 'CS05',
         category: 'proposal',
         status: 'approved',
         submitted_at: now,
@@ -255,7 +255,7 @@ module.exports = {
       }], { transaction: t });
 
       const internDoc = await selectOne(
-        `SELECT document_id FROM documents WHERE user_id = :uid AND document_type = 'INTERNSHIP' AND document_name LIKE '[UAT]%' ORDER BY document_id DESC LIMIT 1`,
+        `SELECT document_id FROM documents WHERE user_id = :uid AND document_type = 'INTERNSHIP' AND document_name = 'CS05' ORDER BY document_id DESC LIMIT 1`,
         { uid: internUser.user_id }
       );
 

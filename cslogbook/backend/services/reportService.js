@@ -589,7 +589,7 @@ module.exports = {
           include: [{
             model: InternshipDocument,
             as: 'internshipDocument',
-            required: true,
+            required: false,
             attributes: ['internshipId', 'companyName', 'internshipPosition', 'supervisorName', 'startDate', 'endDate']
           }]
         }
