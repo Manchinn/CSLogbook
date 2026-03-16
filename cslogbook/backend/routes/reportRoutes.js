@@ -21,6 +21,12 @@ router.get('/projects/status-summary', reportController.getProjectStatusSummary)
 router.get('/projects/advisor-load', reportController.getAdvisorLoad);
 router.get('/projects/academic-years', reportController.getProjectAcademicYears);
 
+// === Document Pipeline Report ===
+router.get('/documents/pipeline', reportController.getDocumentPipeline);
+
+// === Internship Supervisor Report ===
+router.get('/internships/supervisor-report', reportController.getInternshipSupervisorReport);
+
 // === Advisor Workload Enhanced Routes ===
 router.get('/advisors/workload', reportController.getAdvisorLoad); // Alias for detailed view
 router.get('/advisors/:teacherId/detail', reportController.getAdvisorDetail);

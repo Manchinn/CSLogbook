@@ -194,6 +194,52 @@ export type StudentDeadlineHistoryData = {
   }>;
 };
 
+// ---- Document Pipeline Types ----
+
+export type DocumentPipelineItem = {
+  documentName: string;
+  documentType: string;
+  total: number;
+  statuses: Record<string, number>;
+};
+
+export type DocumentPipelineSummary = {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  completed: number;
+  draft: number;
+  other: number;
+};
+
+export type DocumentPipelineData = {
+  academicYear: number;
+  semester: number | null;
+  summary: DocumentPipelineSummary;
+  pipeline: DocumentPipelineItem[];
+};
+
+// ---- Internship Supervisor Report Types ----
+
+export type InternshipSupervisorItem = {
+  companyName: string;
+  supervisorName: string;
+  supervisorEmail: string | null;
+  studentCount: number;
+  totalLogs: number;
+  supervisorApprovalRate: number;
+  advisorApprovalRate: number;
+  evaluationCompletionRate: number;
+  evaluatedStudents: number;
+};
+
+export type InternshipSupervisorReportData = {
+  academicYear: number;
+  semester: number | null;
+  supervisors: InternshipSupervisorItem[];
+};
+
 // ---- Service Functions ----
 
 export async function getInternshipStudentSummary(params: { year?: number; semester?: number } = {}): Promise<InternshipStudentSummary | null> {
@@ -378,6 +424,29 @@ export async function getInternshipLogbookCompliance(params: { year?: number; se
 export async function getStudentDeadlineHistory(studentId: string | number): Promise<StudentDeadlineHistoryData | null> {
   const data = await getStudentDeadlineHistoryCompatibility(studentId);
   return data ?? null;
+}
+
+// ---- Document Pipeline ----
+
+export async function getDocumentPipeline(params: { year?: number; semester?: number; documentType?: string } = {}): Promise<DocumentPipelineData | null> {
+  const query = new URLSearchParams();
+  if (params.year) query.set("year", String(params.year));
+  if (params.semester) query.set("semester", String(params.semester));
+  if (params.documentType) query.set("documentType", params.documentType);
+  const qs = query.toString();
+  const res = await apiFetch<{ success: boolean; data: DocumentPipelineData }>(`/reports/documents/pipeline${qs ? `?${qs}` : ""}`);
+  return res.data ?? null;
+}
+
+// ---- Internship Supervisor Report ----
+
+export async function getInternshipSupervisorReport(params: { year?: number; semester?: number } = {}): Promise<InternshipSupervisorReportData | null> {
+  const query = new URLSearchParams();
+  if (params.year) query.set("year", String(params.year));
+  if (params.semester) query.set("semester", String(params.semester));
+  const qs = query.toString();
+  const res = await apiFetch<{ success: boolean; data: InternshipSupervisorReportData }>(`/reports/internships/supervisor-report${qs ? `?${qs}` : ""}`);
+  return res.data ?? null;
 }
 
 export async function cancelInternship(internshipId: number, reason: string): Promise<void> {

@@ -553,6 +553,184 @@ module.exports = {
    * @param {Object} filters - { year }
    * @returns {Promise<Array>} Array of enrolled internship students
    */
+  /**
+   * Document Pipeline Report:
+   * สถิติเอกสารแยกตามประเภท (documentName) และสถานะ (status)
+   * รองรับ filter ตาม documentType (INTERNSHIP/PROJECT), academicYear, semester
+   */
+  async getDocumentPipeline({ year, semester, documentType }) {
+    const academicYear = resolveYear(year);
+    const sem = semester ? parseInt(semester, 10) : null;
+    const sequelize = db.sequelize;
+
+    // Base WHERE clause
+    const conditions = [];
+    const replacements = {};
+
+    if (documentType) {
+      conditions.push('d.document_type = :documentType');
+      replacements.documentType = documentType;
+    }
+
+    // Join internship_documents หรือ project_documents เพื่อ filter ปี/ภาค
+    let joinClause = '';
+    if (academicYear) {
+      // เช็คจากทั้ง internship_documents และ project_documents
+      joinClause = `
+        LEFT JOIN internship_documents idoc ON idoc.document_id = d.document_id
+        LEFT JOIN project_documents pdoc ON pdoc.document_id = d.document_id`;
+      conditions.push('(idoc.academic_year = :ay OR pdoc.academic_year = :ay)');
+      replacements.ay = academicYear;
+      if (sem) {
+        conditions.push('(idoc.semester = :sem OR pdoc.semester = :sem)');
+        replacements.sem = sem;
+      }
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // 1) สถิติรวมตาม documentName + status
+    const pipelineSql = `
+      SELECT
+        d.document_name AS documentName,
+        d.document_type AS documentType,
+        d.status,
+        COUNT(*) AS count
+      FROM documents d
+      ${joinClause}
+      ${whereClause}
+      GROUP BY d.document_name, d.document_type, d.status
+      ORDER BY d.document_type, d.document_name, d.status`;
+
+    const rows = await sequelize.query(pipelineSql, {
+      type: sequelize.QueryTypes.SELECT,
+      replacements
+    });
+
+    // 2) จัดกลุ่มเป็น { documentName, documentType, total, statuses: { pending: N, approved: N, ... } }
+    const docMap = {};
+    rows.forEach(r => {
+      const key = `${r.documentType}:${r.documentName}`;
+      if (!docMap[key]) {
+        docMap[key] = {
+          documentName: r.documentName,
+          documentType: r.documentType,
+          total: 0,
+          statuses: {}
+        };
+      }
+      const count = parseInt(r.count, 10);
+      docMap[key].statuses[r.status] = count;
+      docMap[key].total += count;
+    });
+
+    const pipeline = Object.values(docMap).sort((a, b) => b.total - a.total);
+
+    // 3) สรุปรวมทุกประเภท
+    const summary = { total: 0, pending: 0, approved: 0, rejected: 0, completed: 0, draft: 0, other: 0 };
+    const knownStatuses = ['pending', 'approved', 'rejected', 'completed', 'draft'];
+    pipeline.forEach(doc => {
+      summary.total += doc.total;
+      Object.entries(doc.statuses).forEach(([status, count]) => {
+        if (knownStatuses.includes(status)) summary[status] += count;
+        else summary.other += count;
+      });
+    });
+
+    return { academicYear, semester: sem || null, summary, pipeline };
+  },
+
+  /**
+   * Internship Supervisor Report:
+   * สถิติพี่เลี้ยงและบริษัทฝึกงาน (จาก InternshipDocument.supervisorName + companyName)
+   * - จำนวนนักศึกษาต่อพี่เลี้ยง/บริษัท
+   * - logbook supervisor approval rate
+   * - evaluation completion rate
+   */
+  async getInternshipSupervisorReport({ year, semester }) {
+    const academicYear = resolveYear(year);
+    const sem = semester ? parseInt(semester, 10) : null;
+    const sequelize = db.sequelize;
+
+    // Filter conditions
+    const conditions = ['d.status != :cancelled'];
+    const replacements = { cancelled: 'cancelled' };
+    if (academicYear) {
+      conditions.push('idoc.academic_year = :ay');
+      replacements.ay = academicYear;
+    }
+    if (sem) {
+      conditions.push('idoc.semester = :sem');
+      replacements.sem = sem;
+    }
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // 1) Group by company + supervisor — student counts & logbook stats
+    const rows = await sequelize.query(`
+      SELECT
+        idoc.company_name AS companyName,
+        COALESCE(idoc.supervisor_name, '-') AS supervisorName,
+        idoc.supervisor_email AS supervisorEmail,
+        COUNT(DISTINCT d.user_id) AS studentCount,
+        COUNT(lb.log_id) AS totalLogs,
+        SUM(CASE WHEN lb.supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApprovedLogs,
+        SUM(CASE WHEN lb.advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApprovedLogs
+      FROM internship_documents idoc
+      INNER JOIN documents d ON d.document_id = idoc.document_id
+      LEFT JOIN internship_logbooks lb ON lb.internship_id = idoc.internship_id
+      ${whereClause}
+      GROUP BY idoc.company_name, idoc.supervisor_name, idoc.supervisor_email
+      ORDER BY studentCount DESC
+    `, {
+      type: sequelize.QueryTypes.SELECT,
+      replacements
+    });
+
+    // 2) Evaluation counts per company
+    const evalRows = await sequelize.query(`
+      SELECT
+        idoc.company_name AS companyName,
+        COALESCE(idoc.supervisor_name, '-') AS supervisorName,
+        COUNT(DISTINCT ev.student_id) AS evaluatedStudents
+      FROM internship_documents idoc
+      INNER JOIN documents d ON d.document_id = idoc.document_id
+      LEFT JOIN internship_evaluations ev ON ev.student_id = d.user_id
+      ${whereClause}
+      GROUP BY idoc.company_name, idoc.supervisor_name
+    `, {
+      type: sequelize.QueryTypes.SELECT,
+      replacements
+    });
+
+    const evalMap = {};
+    evalRows.forEach(r => {
+      evalMap[`${r.companyName}::${r.supervisorName}`] = parseInt(r.evaluatedStudents, 10);
+    });
+
+    // 3) Build result
+    const supervisors = rows.map(r => {
+      const studentCount = parseInt(r.studentCount, 10);
+      const totalLogs = parseInt(r.totalLogs, 10);
+      const supervisorApprovedLogs = parseInt(r.supervisorApprovedLogs, 10);
+      const advisorApprovedLogs = parseInt(r.advisorApprovedLogs, 10);
+      const evalCount = evalMap[`${r.companyName}::${r.supervisorName}`] || 0;
+
+      return {
+        companyName: r.companyName,
+        supervisorName: r.supervisorName,
+        supervisorEmail: r.supervisorEmail || null,
+        studentCount,
+        totalLogs,
+        supervisorApprovalRate: totalLogs ? +((supervisorApprovedLogs / totalLogs) * 100).toFixed(1) : 0,
+        advisorApprovalRate: totalLogs ? +((advisorApprovedLogs / totalLogs) * 100).toFixed(1) : 0,
+        evaluationCompletionRate: studentCount ? +((evalCount / studentCount) * 100).toFixed(1) : 0,
+        evaluatedStudents: evalCount
+      };
+    });
+
+    return { academicYear, semester: sem || null, supervisors };
+  },
+
   async getEnrolledInternshipStudents(filters = {}) {
     const { Student, User, Document, InternshipDocument } = db;
 

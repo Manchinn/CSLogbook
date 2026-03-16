@@ -1,0 +1,243 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  background: var(--color-bg);
+  padding: 1rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+/* ─── KPI Strip ─── */
+.kpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpiCard {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.kpiLabel {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.25;
+}
+
+.kpiValue {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.kpiSub {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ─── Filters ─── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.input,
+.select {
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.65rem;
+  background: #fff;
+  min-width: 160px;
+  font-size: 0.88rem;
+}
+
+.input {
+  flex: 1;
+}
+
+/* ─── Advisor Cards (mobile-first, falls back to table on wide) ─── */
+.advisorGrid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.advisorRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  background: #fff;
+  gap: 0.65rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.advisorRow:hover {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 768px) {
+  .advisorRow {
+    grid-template-columns: 13rem 1fr;
+    align-items: center;
+  }
+}
+
+.advisorInfo {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.advisorName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.advisorCode {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.advisorMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.metricLabel {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.metricValue {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ─── Rate Pill (inline badge) ─── */
+.ratePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.rateHigh { background: #d1fae5; color: #065f46; }
+.rateMid { background: #fef3c7; color: #92400e; }
+.rateLow { background: #fee2e2; color: #991b1b; }
+
+/* ─── Inline bar sparkline ─── */
+.sparkBar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-bg-subtle, #f5f7fa);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.sparkFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Table (fallback for wide screens) ─── */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.6rem 0.65rem;
+  vertical-align: middle;
+}
+
+.table th {
+  background: #f8fafc;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background 0.12s;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.rateCell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  padding: 0.35rem 0;
+}
