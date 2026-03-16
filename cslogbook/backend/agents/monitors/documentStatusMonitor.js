@@ -5,7 +5,7 @@
 
 const { Op } = require('sequelize');
 const { Document, DocumentLog, User } = require('../../models');
-const notificationService = require('../helpers/notificationService');
+const notificationService = require('../../services/notificationService');
 const agentConfig = require('../config');
 const logger = require('../../utils/logger');
 
