@@ -50,6 +50,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 42 | 03-09 | Data Integrity audit (P6) + cooperation letter recovery + fix C1/C2/H2 |
 | 43 | 03-09 | Fix C3 certificate PDF (rewire to pdfkit) + H4 internshipId filter (7/7 queries) |
 | 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design pattern |
+| 45 | 03-16 | Report/stats features: Document Pipeline, Internship Supervisor (สถานประกอบการ), CSV export utility, improve internship+project reports with visual bars/rings, fix source-of-truth (advisor→supervisor) |
 
 ### Pending
 

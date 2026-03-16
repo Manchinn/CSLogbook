@@ -35,9 +35,23 @@ export type EnrolledInternshipStudent = {
   companyName?: string | null;
   internshipPosition?: string | null;
   supervisorName?: string | null;
+  supervisorEmail?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   internshipId?: number | null;
+  documentStatus?: string | null;
+  // Logbook
+  logCount?: number | null;
+  totalHours?: number | null;
+  logSupervisorApproved?: number | null;
+  logAdvisorApproved?: number | null;
+  // Evaluation
+  evaluated?: boolean | null;
+  overallScore?: number | null;
+  passFail?: string | null;
+  // Reflection & Certificate
+  reflectionSubmitted?: boolean | null;
+  certificateStatus?: string | null;
 };
 
 export type ProjectStatusSummary = {

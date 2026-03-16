@@ -61,6 +61,7 @@ export default function AdminProjectReportPage() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>({ status: "", academicYear: anchorYear.current, page: 1, limit: 20 });
+  const [projectSearch, setProjectSearch] = useState("");
 
   // Cancel
   const [cancelTarget, setCancelTarget] = useState<ProjectListItem | null>(null);
@@ -217,35 +218,104 @@ export default function AdminProjectReportPage() {
           ) : null}
         </section>
 
-        {/* Project 1 & 2 */}
+        {/* Status Distribution Bar */}
+        {summary?.byStatus && summary.byStatus.length > 0 ? (
+          <section className={styles.card}>
+            <h3 className={styles.sectionTitle}>สัดส่วนสถานะโครงงาน</h3>
+            {(() => {
+              const colorMap: Record<string, { cls: string; hex: string }> = {
+                draft: { cls: styles.segDefault, hex: "#94a3b8" },
+                pending: { cls: styles.segProcessing, hex: "#3b82f6" },
+                advisor_assigned: { cls: styles.segProcessing, hex: "#6366f1" },
+                approved: { cls: styles.segSuccess, hex: "#22c55e" },
+                in_progress: { cls: styles.segWarning, hex: "#f59e0b" },
+                completed: { cls: styles.segSuccess, hex: "#10b981" },
+                rejected: { cls: styles.segError, hex: "#ef4444" },
+                cancelled: { cls: styles.segError, hex: "#f87171" },
+              };
+              const total = summary.totalProjects ?? 1;
+              return (
+                <>
+                  <div className={styles.statusBar}>
+                    {summary.byStatus.sort((a, b) => b.count - a.count).map(s => {
+                      const pct = total > 0 ? (s.count / total) * 100 : 0;
+                      if (pct < 1) return null;
+                      const info = colorMap[s.status] || { cls: styles.segDefault, hex: "#94a3b8" };
+                      return (
+                        <div key={s.status} className={`${styles.statusBarSeg} ${info.cls}`}
+                          style={{ width: `${pct}%` }}
+                          title={`${PROJECT_STATUS_LABELS[s.status] || s.status}: ${s.count}`}
+                          data-label={pct > 8 ? `${s.count}` : undefined} />
+                      );
+                    })}
+                  </div>
+                  <div className={styles.statusLegend}>
+                    {summary.byStatus.filter(s => s.count > 0).map(s => (
+                      <span key={s.status} className={styles.legendItem}>
+                        <span className={styles.legendDot} style={{ background: (colorMap[s.status] || { hex: "#94a3b8" }).hex }} />
+                        {PROJECT_STATUS_LABELS[s.status] || s.status} ({s.count})
+                      </span>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </section>
+        ) : null}
+
+        {/* Exam Pass/Fail Comparison Bars */}
         {summary ? (
           <section className={styles.card}>
             <h3 className={styles.sectionTitle}>ผลสอบโครงงาน</h3>
-            <div className={styles.stats}>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>โครงงานพิเศษ 1 (ทั้งหมด)</p>
-                <p className={styles.statValue}>{summary.project1?.total ?? "-"}</p>
-              </div>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>ผ่าน</p>
-                <p className={styles.statValue}>{summary.project1?.passed ?? "-"}</p>
-              </div>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>ไม่ผ่าน</p>
-                <p className={styles.statValue}>{summary.project1?.failed ?? "-"}</p>
-              </div>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>ปริญญานิพนธ์ (ทั้งหมด)</p>
-                <p className={styles.statValue}>{summary.project2?.total ?? "-"}</p>
-              </div>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>ผ่าน</p>
-                <p className={styles.statValue}>{summary.project2?.passed ?? "-"}</p>
-              </div>
-              <div className={styles.statItem}>
-                <p className={styles.statLabel}>ไม่ผ่าน</p>
-                <p className={styles.statValue}>{summary.project2?.failed ?? "-"}</p>
-              </div>
+            <div className={styles.examCompare}>
+              {[
+                { label: "โครงงานพิเศษ 1", data: summary.project1 },
+                { label: "ปริญญานิพนธ์", data: summary.project2 },
+              ].map(exam => {
+                const total = exam.data?.total ?? 0;
+                const passed = exam.data?.passed ?? 0;
+                const failed = exam.data?.failed ?? 0;
+                const pending = total - passed - failed;
+                const passPct = total > 0 ? (passed / total) * 100 : 0;
+                const failPct = total > 0 ? (failed / total) * 100 : 0;
+                const pendingPct = total > 0 ? (pending / total) * 100 : 0;
+                return (
+                  <div key={exam.label}>
+                    <div className={styles.examRow}>
+                      <p className={styles.examLabel}>{exam.label}</p>
+                      <div className={styles.examBarWrap}>
+                        {passPct > 0 && (
+                          <div className={styles.examPass} style={{ width: `${passPct}%` }}
+                            data-label={passPct > 12 ? `ผ่าน ${passed}` : undefined}>
+                            {passPct > 12 ? `ผ่าน ${passed}` : ""}
+                          </div>
+                        )}
+                        {failPct > 0 && (
+                          <div className={styles.examFail} style={{ width: `${failPct}%` }}>
+                            {failPct > 12 ? `ไม่ผ่าน ${failed}` : ""}
+                          </div>
+                        )}
+                        {pendingPct > 0 && (
+                          <div className={styles.examPending} style={{ width: `${pendingPct}%` }}>
+                            {pendingPct > 12 ? `รอสอบ ${pending}` : ""}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.examStats}>
+                      <span className={styles.examStat}>ทั้งหมด <span className={styles.examStatValue}>{total}</span></span>
+                      <span className={styles.examStat}>ผ่าน <span className={styles.examStatValue} style={{ color: "#22c55e" }}>{passed}</span></span>
+                      <span className={styles.examStat}>ไม่ผ่าน <span className={styles.examStatValue} style={{ color: "#ef4444" }}>{failed}</span></span>
+                      {pending > 0 && <span className={styles.examStat}>รอสอบ <span className={styles.examStatValue}>{pending}</span></span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.statusLegend} style={{ marginTop: "0.75rem" }}>
+              <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: "#22c55e" }} /> ผ่าน</span>
+              <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: "#ef4444" }} /> ไม่ผ่าน</span>
+              <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: "#94a3b8" }} /> รอสอบ</span>
             </div>
           </section>
         ) : null}
@@ -254,6 +324,12 @@ export default function AdminProjectReportPage() {
         <section className={styles.card}>
           <h3 className={styles.sectionTitle}>รายการโครงงาน</h3>
           <div className={styles.filters}>
+            <input
+              className={styles.input}
+              placeholder="ค้นหาชื่อโครงงาน / นักศึกษา / ที่ปรึกษา"
+              value={projectSearch}
+              onChange={(e) => setProjectSearch(e.target.value)}
+            />
             <select
               aria-label="สถานะโครงงาน"
               className={styles.select}
@@ -286,8 +362,17 @@ export default function AdminProjectReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {projects.length > 0 ? (
-                  projects.map((p, idx) => (
+                {(() => {
+                  const q = projectSearch.toLowerCase();
+                  const filteredProjects = q
+                    ? projects.filter(p =>
+                        p.projectTitle?.toLowerCase().includes(q) ||
+                        p.advisorName?.toLowerCase().includes(q) ||
+                        p.members?.some(m => m.name?.toLowerCase().includes(q) || m.studentCode?.toLowerCase().includes(q))
+                      )
+                    : projects;
+                  return filteredProjects.length > 0 ? (
+                  filteredProjects.map((p, idx) => (
                     <tr key={p.projectId ?? idx}>
                       <td>{p.projectTitle ?? "-"}</td>
                       <td>
@@ -328,7 +413,7 @@ export default function AdminProjectReportPage() {
                   ) : (
                     <tr><td colSpan={5}><p className={styles.empty}>ไม่พบข้อมูล</p></td></tr>
                   )
-                )}
+                ); })()}
               </tbody>
             </table>
           </div>

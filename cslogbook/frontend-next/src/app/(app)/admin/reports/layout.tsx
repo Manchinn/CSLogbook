@@ -9,7 +9,7 @@ const REPORT_TABS = [
   { href: "/admin/reports/internship", label: "ฝึกงาน" },
   { href: "/admin/reports/project", label: "โครงงาน" },
   { href: "/admin/reports/document-pipeline", label: "สถานะเอกสาร" },
-  { href: "/admin/reports/internship-supervisors", label: "พี่เลี้ยงฝึกงาน" },
+  { href: "/admin/reports/internship-supervisors", label: "สถานประกอบการ" },
 ] as const;
 
 export default function ReportsLayout({ children }: { children: React.ReactNode }) {

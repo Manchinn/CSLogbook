@@ -733,8 +733,8 @@ module.exports = {
 
   async getEnrolledInternshipStudents(filters = {}) {
     const { Student, User, Document, InternshipDocument } = db;
+    const sequelize = db.sequelize;
 
-    // ฟังก์ชันคำนวณชั้นปีแบบ dynamic จากรหัสนักศึกษา (สองหลักแรกเป็นปี พ.ศ. - 2500)
     const buddhistYear = () => new Date().getFullYear() + 543;
     const selectedYear = parseInt(filters.year, 10) || buddhistYear();
 
@@ -749,7 +749,7 @@ module.exports = {
 
     const rows = await User.findAll({
       where: { role: 'student' },
-      attributes: ['firstName', 'lastName'],
+      attributes: ['userId', 'firstName', 'lastName'],
       include: [
         {
           model: Student,
@@ -763,25 +763,96 @@ module.exports = {
           as: 'documents',
           required: false,
           where: { documentName: 'CS05' },
-          attributes: ['documentId'],
+          attributes: ['documentId', 'status'],
           include: [{
             model: InternshipDocument,
             as: 'internshipDocument',
             required: false,
-            attributes: ['internshipId', 'companyName', 'internshipPosition', 'supervisorName', 'startDate', 'endDate']
+            attributes: ['internshipId', 'companyName', 'internshipPosition', 'supervisorName', 'supervisorEmail', 'startDate', 'endDate']
           }]
         }
       ],
       order: [[{ model: Student, as: 'student' }, 'studentCode', 'ASC']]
     });
 
+    // Batch: logbook stats per student (count + totalHours)
+    const studentIds = rows.map(r => r.student?.studentId).filter(Boolean);
+    let logbookMap = {};
+    let evalMap = {};
+    let reflectionSet = new Set();
+    let certMap = {};
+
+    if (studentIds.length > 0) {
+      // Logbook: count + sum hours
+      const logStats = await sequelize.query(`
+        SELECT student_id AS studentId,
+          COUNT(log_id) AS logCount,
+          COALESCE(SUM(work_hours), 0) AS totalHours,
+          SUM(CASE WHEN supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApproved,
+          SUM(CASE WHEN advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApproved
+        FROM internship_logbooks
+        WHERE student_id IN (:studentIds)
+        GROUP BY student_id
+      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
+      logStats.forEach(r => {
+        logbookMap[r.studentId] = {
+          logCount: parseInt(r.logCount, 10),
+          totalHours: parseFloat(r.totalHours),
+          supervisorApproved: parseInt(r.supervisorApproved, 10),
+          advisorApproved: parseInt(r.advisorApproved, 10)
+        };
+      });
+
+      // Evaluation: has evaluation + overall score + pass/fail
+      const evalStats = await sequelize.query(`
+        SELECT student_id AS studentId,
+          overall_score AS overallScore,
+          pass_fail AS passFail,
+          status
+        FROM internship_evaluations
+        WHERE student_id IN (:studentIds)
+      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
+      evalStats.forEach(r => {
+        evalMap[r.studentId] = {
+          evaluated: true,
+          overallScore: r.overallScore != null ? parseFloat(r.overallScore) : null,
+          passFail: r.passFail || null,
+          evalStatus: r.status
+        };
+      });
+
+      // Reflection: who submitted
+      const reflections = await sequelize.query(`
+        SELECT DISTINCT student_id AS studentId
+        FROM internship_logbook_reflections
+        WHERE student_id IN (:studentIds)
+      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
+      reflections.forEach(r => reflectionSet.add(r.studentId));
+
+      // Certificate: latest status
+      const certs = await sequelize.query(`
+        SELECT cr.student_id AS studentId, cr.status, cr.total_hours AS certHours
+        FROM internship_certificate_requests cr
+        WHERE cr.student_id IN (:sids)
+        ORDER BY cr.created_at DESC
+      `, { type: sequelize.QueryTypes.SELECT, replacements: { sids: studentIds.map(String) } });
+      certs.forEach(r => {
+        if (!certMap[r.studentId]) certMap[r.studentId] = { certStatus: r.status, certHours: r.certHours };
+      });
+    }
+
     return rows.map(r => {
       const student = r.student;
       const cs05Docs = (r.documents || []).filter(d => d.documentName === 'CS05');
-      const internshipDoc = cs05Docs.length > 0 ? cs05Docs[0]?.internshipDocument : null;
+      const doc = cs05Docs[0];
+      const internshipDoc = doc?.internshipDocument || null;
+      const sid = student.studentId;
+      const lb = logbookMap[sid] || { logCount: 0, totalHours: 0, supervisorApproved: 0, advisorApproved: 0 };
+      const ev = evalMap[sid] || { evaluated: false, overallScore: null, passFail: null, evalStatus: null };
+      const cert = certMap[sid] || { certStatus: null, certHours: null };
 
       return {
-        studentId: student.studentId,
+        studentId: sid,
         studentCode: student.studentCode,
         fullName: `${r.firstName || ''} ${r.lastName || ''}`.trim(),
         internshipStatus: student.internshipStatus,
@@ -790,8 +861,22 @@ module.exports = {
         companyName: internshipDoc?.companyName || null,
         internshipPosition: internshipDoc?.internshipPosition || null,
         supervisorName: internshipDoc?.supervisorName || null,
+        supervisorEmail: internshipDoc?.supervisorEmail || null,
         startDate: internshipDoc?.startDate || null,
         endDate: internshipDoc?.endDate || null,
+        documentStatus: doc?.status || null,
+        // Logbook stats
+        logCount: lb.logCount,
+        totalHours: lb.totalHours,
+        logSupervisorApproved: lb.supervisorApproved,
+        logAdvisorApproved: lb.advisorApproved,
+        // Evaluation
+        evaluated: ev.evaluated,
+        overallScore: ev.overallScore,
+        passFail: ev.passFail,
+        // Reflection & Certificate
+        reflectionSubmitted: reflectionSet.has(sid),
+        certificateStatus: cert.certStatus,
       };
     });
   }

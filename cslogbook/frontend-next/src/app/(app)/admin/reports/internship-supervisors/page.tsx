@@ -83,7 +83,6 @@ export default function InternshipSupervisorsPage() {
         { key: "studentCount", header: "จำนวน นศ." },
         { key: "totalLogs", header: "Logbook ทั้งหมด" },
         { key: "supervisorApprovalRate", header: "พี่เลี้ยงอนุมัติ (%)" },
-        { key: "advisorApprovalRate", header: "อ.อนุมัติ (%)" },
         { key: "evaluationCompletionRate", header: "ประเมินครบ (%)" },
         { key: "evaluatedStudents", header: "ประเมินแล้ว (คน)" },
       ],
@@ -96,8 +95,8 @@ export default function InternshipSupervisorsPage() {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>พี่เลี้ยงฝึกงาน</h1>
-          <p className={styles.subtitle}>สถิติพี่เลี้ยงจากบริษัท, สถานะ logbook, และการประเมิน</p>
+          <h1 className={styles.title}>รายงานสถานประกอบการ</h1>
+          <p className={styles.subtitle}>สถิติบริษัท, พี่เลี้ยง, สถานะ logbook, และการประเมิน</p>
         </div>
         <div className={btn.buttonRow}>
           <button type="button" className={btn.button} onClick={() => loadData(year, semester)} disabled={loading}>
@@ -183,9 +182,8 @@ export default function InternshipSupervisorsPage() {
                   <th style={{ width: "14%" }}>พี่เลี้ยง</th>
                   <th style={{ width: "6%", textAlign: "right" }}>นศ.</th>
                   <th style={{ width: "7%", textAlign: "right" }}>Logbook</th>
-                  <th style={{ width: "16%" }}>พี่เลี้ยงอนุมัติ</th>
-                  <th style={{ width: "16%" }}>อ.อนุมัติ</th>
-                  <th style={{ width: "14%" }}>ประเมินครบ</th>
+                  <th style={{ width: "18%" }}>พี่เลี้ยงอนุมัติ</th>
+                  <th style={{ width: "16%" }}>ประเมินครบ</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,16 +205,6 @@ export default function InternshipSupervisorsPage() {
                         </span>
                         <div className={styles.sparkBar}>
                           <div className={styles.sparkFill} style={{ width: `${s.supervisorApprovalRate}%`, background: rateColor(s.supervisorApprovalRate) }} />
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.rateCell}>
-                        <span className={`${styles.ratePill} ${rateClass(s.advisorApprovalRate)}`}>
-                          {s.advisorApprovalRate}%
-                        </span>
-                        <div className={styles.sparkBar}>
-                          <div className={styles.sparkFill} style={{ width: `${s.advisorApprovalRate}%`, background: rateColor(s.advisorApprovalRate) }} />
                         </div>
                       </div>
                     </td>
