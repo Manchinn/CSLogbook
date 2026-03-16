@@ -1,6 +1,15 @@
 // controllers/reportController.js
 // Controller บาง เรียก service แล้วคืน JSON
 const reportService = require('../services/reportService');
+const { jsonToCsv } = require('../utils/csvExport');
+
+/** Helper: ส่ง CSV response พร้อม BOM */
+function sendCsvResponse(res, rows, columns, filename, options) {
+  const csv = jsonToCsv(rows, columns, options);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  return res.send('\uFEFF' + csv);
+}
 
 exports.getOverview = async (req, res, next) => {
   try {
@@ -96,17 +105,13 @@ exports.getDocumentPipeline = async (req, res, next) => {
       documentType: req.query.documentType
     });
     if (req.query.format === 'csv') {
-      const { jsonToCsv } = require('../utils/csvExport');
       const rows = [];
       data.pipeline.forEach(doc => {
         Object.entries(doc.statuses).forEach(([status, count]) => {
           rows.push({ documentType: doc.documentType, documentName: doc.documentName, status, count });
         });
       });
-      const csv = jsonToCsv(rows, ['documentType', 'documentName', 'status', 'count']);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="document-pipeline.csv"');
-      return res.send('\uFEFF' + csv);
+      return sendCsvResponse(res, rows, ['documentType', 'documentName', 'status', 'count'], 'document-pipeline.csv');
     }
     res.json({ success: true, data });
   } catch (err) {
@@ -122,15 +127,11 @@ exports.getInternshipSupervisorReport = async (req, res, next) => {
       semester: req.query.semester
     });
     if (req.query.format === 'csv') {
-      const { jsonToCsv } = require('../utils/csvExport');
-      const csv = jsonToCsv(data.supervisors, [
+      return sendCsvResponse(res, data.supervisors, [
         'companyName', 'supervisorName', 'supervisorEmail', 'studentCount',
         'totalLogs', 'supervisorApprovalRate', 'advisorApprovalRate',
         'evaluationCompletionRate', 'evaluatedStudents'
-      ]);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="internship-supervisors.csv"');
-      return res.send('\uFEFF' + csv);
+      ], 'internship-supervisors.csv');
     }
     res.json({ success: true, data });
   } catch (err) {
@@ -143,20 +144,16 @@ exports.getEnrolledInternshipStudents = async (req, res, next) => {
   try {
     const data = await reportService.getEnrolledInternshipStudents({ year: req.query.year });
     if (req.query.format === 'csv') {
-      const { jsonToCsv } = require('../utils/csvExport');
-      const csv = jsonToCsv(data, [
+      return sendCsvResponse(res, data, [
         'studentCode', 'fullName', 'internshipStatus', 'studentYear',
         'companyName', 'internshipPosition', 'supervisorName', 'startDate', 'endDate'
-      ], {
+      ], 'enrolled-internship-students.csv', {
         headers: {
           studentCode: 'รหัสนักศึกษา', fullName: 'ชื่อ-นามสกุล', internshipStatus: 'สถานะ',
           studentYear: 'ชั้นปี', companyName: 'บริษัท', internshipPosition: 'ตำแหน่ง',
           supervisorName: 'พี่เลี้ยง', startDate: 'วันเริ่ม', endDate: 'วันสิ้นสุด'
         }
       });
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="enrolled-internship-students.csv"');
-      return res.send('\uFEFF' + csv);
     }
     res.json({ success: true, data });
   } catch (err) {

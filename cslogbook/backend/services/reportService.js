@@ -666,41 +666,37 @@ module.exports = {
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // 1) Group by company + supervisor — student counts & logbook stats
-    const rows = await sequelize.query(`
-      SELECT
-        idoc.company_name AS companyName,
-        COALESCE(idoc.supervisor_name, '-') AS supervisorName,
-        idoc.supervisor_email AS supervisorEmail,
-        COUNT(DISTINCT d.user_id) AS studentCount,
-        COUNT(lb.log_id) AS totalLogs,
-        SUM(CASE WHEN lb.supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApprovedLogs,
-        SUM(CASE WHEN lb.advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApprovedLogs
-      FROM internship_documents idoc
-      INNER JOIN documents d ON d.document_id = idoc.document_id
-      LEFT JOIN internship_logbooks lb ON lb.internship_id = idoc.internship_id
-      ${whereClause}
-      GROUP BY idoc.company_name, idoc.supervisor_name, idoc.supervisor_email
-      ORDER BY studentCount DESC
-    `, {
-      type: sequelize.QueryTypes.SELECT,
-      replacements
-    });
-
     // 2) Evaluation counts per company
-    const evalRows = await sequelize.query(`
-      SELECT
-        idoc.company_name AS companyName,
-        COALESCE(idoc.supervisor_name, '-') AS supervisorName,
-        COUNT(DISTINCT ev.student_id) AS evaluatedStudents
-      FROM internship_documents idoc
-      INNER JOIN documents d ON d.document_id = idoc.document_id
-      LEFT JOIN internship_evaluations ev ON ev.student_id = d.user_id
-      ${whereClause}
-      GROUP BY idoc.company_name, idoc.supervisor_name
-    `, {
-      type: sequelize.QueryTypes.SELECT,
-      replacements
-    });
+    // Run both independent queries in parallel
+    const [rows, evalRows] = await Promise.all([
+      sequelize.query(`
+        SELECT
+          idoc.company_name AS companyName,
+          COALESCE(idoc.supervisor_name, '-') AS supervisorName,
+          idoc.supervisor_email AS supervisorEmail,
+          COUNT(DISTINCT d.user_id) AS studentCount,
+          COUNT(lb.log_id) AS totalLogs,
+          SUM(CASE WHEN lb.supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApprovedLogs,
+          SUM(CASE WHEN lb.advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApprovedLogs
+        FROM internship_documents idoc
+        INNER JOIN documents d ON d.document_id = idoc.document_id
+        LEFT JOIN internship_logbooks lb ON lb.internship_id = idoc.internship_id
+        ${whereClause}
+        GROUP BY idoc.company_name, idoc.supervisor_name, idoc.supervisor_email
+        ORDER BY studentCount DESC
+      `, { type: sequelize.QueryTypes.SELECT, replacements }),
+      sequelize.query(`
+        SELECT
+          idoc.company_name AS companyName,
+          COALESCE(idoc.supervisor_name, '-') AS supervisorName,
+          COUNT(DISTINCT ev.student_id) AS evaluatedStudents
+        FROM internship_documents idoc
+        INNER JOIN documents d ON d.document_id = idoc.document_id
+        LEFT JOIN internship_evaluations ev ON ev.student_id = d.user_id
+        ${whereClause}
+        GROUP BY idoc.company_name, idoc.supervisor_name
+      `, { type: sequelize.QueryTypes.SELECT, replacements })
+    ]);
 
     const evalMap = {};
     evalRows.forEach(r => {
@@ -783,17 +779,43 @@ module.exports = {
     let certMap = {};
 
     if (studentIds.length > 0) {
-      // Logbook: count + sum hours
-      const logStats = await sequelize.query(`
-        SELECT student_id AS studentId,
-          COUNT(log_id) AS logCount,
-          COALESCE(SUM(work_hours), 0) AS totalHours,
-          SUM(CASE WHEN supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApproved,
-          SUM(CASE WHEN advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApproved
-        FROM internship_logbooks
-        WHERE student_id IN (:studentIds)
-        GROUP BY student_id
-      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
+      // Run all 4 independent batch queries in parallel
+      const [logStats, evalStats, reflections, certs] = await Promise.all([
+        // Logbook: count + sum hours
+        sequelize.query(`
+          SELECT student_id AS studentId,
+            COUNT(log_id) AS logCount,
+            COALESCE(SUM(work_hours), 0) AS totalHours,
+            SUM(CASE WHEN supervisor_approved = 1 THEN 1 ELSE 0 END) AS supervisorApproved,
+            SUM(CASE WHEN advisor_approved = 1 THEN 1 ELSE 0 END) AS advisorApproved
+          FROM internship_logbooks
+          WHERE student_id IN (:studentIds)
+          GROUP BY student_id
+        `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } }),
+        // Evaluation: has evaluation + overall score + pass/fail
+        sequelize.query(`
+          SELECT student_id AS studentId,
+            overall_score AS overallScore,
+            pass_fail AS passFail,
+            status
+          FROM internship_evaluations
+          WHERE student_id IN (:studentIds)
+        `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } }),
+        // Reflection: who submitted
+        sequelize.query(`
+          SELECT DISTINCT student_id AS studentId
+          FROM internship_logbook_reflections
+          WHERE student_id IN (:studentIds)
+        `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } }),
+        // Certificate: latest status
+        sequelize.query(`
+          SELECT cr.student_id AS studentId, cr.status, cr.total_hours AS certHours
+          FROM internship_certificate_requests cr
+          WHERE cr.student_id IN (:sids)
+          ORDER BY cr.created_at DESC
+        `, { type: sequelize.QueryTypes.SELECT, replacements: { sids: studentIds.map(String) } })
+      ]);
+
       logStats.forEach(r => {
         logbookMap[r.studentId] = {
           logCount: parseInt(r.logCount, 10),
@@ -802,16 +824,6 @@ module.exports = {
           advisorApproved: parseInt(r.advisorApproved, 10)
         };
       });
-
-      // Evaluation: has evaluation + overall score + pass/fail
-      const evalStats = await sequelize.query(`
-        SELECT student_id AS studentId,
-          overall_score AS overallScore,
-          pass_fail AS passFail,
-          status
-        FROM internship_evaluations
-        WHERE student_id IN (:studentIds)
-      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
       evalStats.forEach(r => {
         evalMap[r.studentId] = {
           evaluated: true,
@@ -820,22 +832,7 @@ module.exports = {
           evalStatus: r.status
         };
       });
-
-      // Reflection: who submitted
-      const reflections = await sequelize.query(`
-        SELECT DISTINCT student_id AS studentId
-        FROM internship_logbook_reflections
-        WHERE student_id IN (:studentIds)
-      `, { type: sequelize.QueryTypes.SELECT, replacements: { studentIds } });
       reflections.forEach(r => reflectionSet.add(r.studentId));
-
-      // Certificate: latest status
-      const certs = await sequelize.query(`
-        SELECT cr.student_id AS studentId, cr.status, cr.total_hours AS certHours
-        FROM internship_certificate_requests cr
-        WHERE cr.student_id IN (:sids)
-        ORDER BY cr.created_at DESC
-      `, { type: sequelize.QueryTypes.SELECT, replacements: { sids: studentIds.map(String) } });
       certs.forEach(r => {
         if (!certMap[r.studentId]) certMap[r.studentId] = { certStatus: r.status, certHours: r.certHours };
       });

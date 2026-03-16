@@ -63,6 +63,17 @@ export default function AdminProjectReportPage() {
   const [filters, setFilters] = useState<ProjectFilters>({ status: "", academicYear: anchorYear.current, page: 1, limit: 20 });
   const [projectSearch, setProjectSearch] = useState("");
 
+  const filteredProjects = useMemo(() => {
+    const q = projectSearch.toLowerCase();
+    return q
+      ? projects.filter(p =>
+          p.projectTitle?.toLowerCase().includes(q) ||
+          p.advisorName?.toLowerCase().includes(q) ||
+          p.members?.some(m => m.name?.toLowerCase().includes(q) || m.studentCode?.toLowerCase().includes(q))
+        )
+      : projects;
+  }, [projects, projectSearch]);
+
   // Cancel
   const [cancelTarget, setCancelTarget] = useState<ProjectListItem | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -362,16 +373,7 @@ export default function AdminProjectReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const q = projectSearch.toLowerCase();
-                  const filteredProjects = q
-                    ? projects.filter(p =>
-                        p.projectTitle?.toLowerCase().includes(q) ||
-                        p.advisorName?.toLowerCase().includes(q) ||
-                        p.members?.some(m => m.name?.toLowerCase().includes(q) || m.studentCode?.toLowerCase().includes(q))
-                      )
-                    : projects;
-                  return filteredProjects.length > 0 ? (
+                {filteredProjects.length > 0 ? (
                   filteredProjects.map((p, idx) => (
                     <tr key={p.projectId ?? idx}>
                       <td>{p.projectTitle ?? "-"}</td>
@@ -413,7 +415,7 @@ export default function AdminProjectReportPage() {
                   ) : (
                     <tr><td colSpan={5}><p className={styles.empty}>ไม่พบข้อมูล</p></td></tr>
                   )
-                ); })()}
+                )}
               </tbody>
             </table>
           </div>

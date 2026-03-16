@@ -35,8 +35,8 @@ export default function InternshipSupervisorsPage() {
   const loadYears = useCallback(async () => {
     const y = await getInternshipAcademicYears();
     setYears(y);
-    if (y.length > 0 && !year) setYear(y[0]);
-  }, [year]);
+    setYear(prev => prev === undefined && y.length > 0 ? y[0] : prev);
+  }, []);
 
   const loadData = useCallback(async (y?: number, sem?: number) => {
     setLoading(true);

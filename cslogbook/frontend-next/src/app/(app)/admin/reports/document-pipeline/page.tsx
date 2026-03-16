@@ -85,8 +85,8 @@ export default function DocumentPipelinePage() {
   const loadYears = useCallback(async () => {
     const y = await getInternshipAcademicYears();
     setYears(y);
-    if (y.length > 0 && !year) setYear(y[0]);
-  }, [year]);
+    setYear(prev => prev === undefined && y.length > 0 ? y[0] : prev);
+  }, []);
 
   const loadData = useCallback(async (y?: number, sem?: number, dt?: string) => {
     setLoading(true);
