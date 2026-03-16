@@ -1,0 +1,30 @@
+stateDiagram-v2
+    [*] --> DRAFT : สร้างโปรเจค
+
+    state "Phase 1 — สอบหัวข้อ" as P1 {
+        DRAFT --> PENDING_ADVISOR : ส่งให้ที่ปรึกษา
+        PENDING_ADVISOR --> ADVISOR_ASSIGNED : ที่ปรึกษารับ
+        ADVISOR_ASSIGNED --> TOPIC_SUBMISSION : ยื่นหัวข้อ
+        TOPIC_SUBMISSION --> TOPIC_EXAM_PENDING : เจ้าหน้าที่รับ
+        TOPIC_EXAM_PENDING --> TOPIC_EXAM_SCHEDULED : กำหนดวันสอบ
+        TOPIC_EXAM_SCHEDULED --> IN_PROGRESS : สอบผ่าน (PASS)
+        TOPIC_EXAM_SCHEDULED --> TOPIC_FAILED : สอบไม่ผ่าน (FAIL)
+        TOPIC_FAILED --> TOPIC_SUBMISSION : ยื่นใหม่
+    }
+
+    state "Phase 2 — สอบป้องกัน" as P2 {
+        IN_PROGRESS --> THESIS_SUBMISSION : ยื่นขอสอบ
+        THESIS_SUBMISSION --> THESIS_EXAM_PENDING : เจ้าหน้าที่รับ
+        THESIS_EXAM_PENDING --> THESIS_EXAM_SCHEDULED : กำหนดวันสอบ
+        THESIS_EXAM_SCHEDULED --> COMPLETED : สอบผ่าน
+        THESIS_EXAM_SCHEDULED --> THESIS_FAILED : สอบไม่ผ่าน
+        THESIS_FAILED --> THESIS_SUBMISSION : ยื่นใหม่
+    }
+
+    COMPLETED --> ARCHIVED : Archive
+    DRAFT --> CANCELLED : ยกเลิก
+    PENDING_ADVISOR --> CANCELLED : ยกเลิก
+
+    COMPLETED --> [*]
+    ARCHIVED --> [*]
+    CANCELLED --> [*]

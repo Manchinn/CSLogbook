@@ -1,0 +1,39 @@
+graph TB
+    subgraph "Client Layer"
+        Browser["Web Browser<br/>(Chrome, Firefox, Safari)"]
+    end
+
+    subgraph "Reverse Proxy Layer"
+        Nginx["Nginx<br/>Port 80/443 (SSL)"]
+    end
+
+    subgraph "Application Layer"
+        Frontend["Next.js 16 Frontend<br/>Port 3000<br/>(App Router, React 19, TypeScript)"]
+        Backend["Express.js Backend<br/>Port 5000<br/>(Node.js 18+, REST API)"]
+        SocketIO["Socket.io Server<br/>(Real-time Notifications)"]
+        Agents["Background Agents<br/>(11 Schedulers)<br/>node-cron / node-schedule"]
+    end
+
+    subgraph "Data Layer"
+        MySQL["MySQL 8.0<br/>utf8mb4 / Asia/Bangkok<br/>43 Tables"]
+        FileStorage["File Storage<br/>uploads/<br/>(PDF Documents)"]
+    end
+
+    subgraph "External Services"
+        GmailAPI["Gmail REST API<br/>(OAuth2 Email)"]
+        KMUTNBSSO["KMUTNB SSO<br/>(Single Sign-On)"]
+    end
+
+    Browser -->|"HTTPS"| Nginx
+    Nginx -->|"/ -> :3000"| Frontend
+    Nginx -->|"/api/ -> :5000"| Backend
+    Nginx -->|"/socket.io/ -> :5000"| SocketIO
+    Nginx -->|"/uploads/ -> :5000"| FileStorage
+    Frontend -->|"API Calls"| Backend
+    Backend -->|"Sequelize ORM"| MySQL
+    Backend -->|"File Upload"| FileStorage
+    Backend -->|"OAuth2"| GmailAPI
+    Backend -->|"SSO Auth"| KMUTNBSSO
+    Agents -->|"Scheduled Tasks"| MySQL
+    Agents -->|"Notifications"| SocketIO
+    SocketIO -->|"WebSocket"| Browser

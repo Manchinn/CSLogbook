@@ -1,0 +1,68 @@
+erDiagram
+    Meeting {
+        int meeting_id PK
+        string meeting_title
+        datetime meeting_date
+        enum meeting_method "onsite|online|hybrid"
+        string meeting_location
+        string meeting_link
+        enum status "scheduled|in_progress|completed|cancelled"
+        enum phase "phase1|phase2"
+        int project_id FK
+        int created_by FK
+    }
+
+    MeetingParticipant {
+        int meeting_id PK_FK
+        int user_id PK_FK
+        enum role "advisor|co_advisor|student|guest"
+        enum attendance_status "present|absent|late"
+        datetime join_time
+        datetime leave_time
+    }
+
+    MeetingLog {
+        int log_id PK
+        int meeting_id FK
+        text discussion_topic
+        text current_progress
+        text problems_issues
+        text next_action_items
+        text advisor_comment
+        enum approval_status "pending|approved|rejected"
+        int approved_by FK
+        datetime approved_at
+        text approval_note
+        int recorded_by FK
+    }
+
+    MeetingAttachment {
+        int attachment_id PK
+        int log_id FK
+        string file_name
+        string file_path
+        string file_type
+        int file_size
+        datetime upload_date
+        int uploaded_by FK
+    }
+
+    MeetingActionItem {
+        int item_id PK
+        int log_id FK
+        text action_description
+        int assigned_to FK
+        date due_date
+        enum status "pending|in_progress|completed|delayed"
+        datetime completion_date
+    }
+
+    Meeting ||--o{ MeetingParticipant : "has participants"
+    Meeting ||--o{ MeetingLog : "has logs"
+    MeetingLog ||--o{ MeetingAttachment : "has files"
+    MeetingLog ||--o{ MeetingActionItem : "has actions"
+    Meeting }o--|| ProjectDocument : "for project"
+    Meeting }o--|| User : "created by"
+    MeetingParticipant }o--|| User : "is user"
+    MeetingLog }o--|| User : "recorded by"
+    MeetingLog }o--o| User : "approved by"

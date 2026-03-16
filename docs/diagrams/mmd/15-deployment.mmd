@@ -1,0 +1,41 @@
+graph TB
+    subgraph "Developer"
+        Dev["Developer<br/>Push to master"]
+    end
+
+    subgraph "GitHub"
+        GH["GitHub Repository"]
+        GA["GitHub Actions<br/>CI/CD Pipeline"]
+        GHCR["GitHub Container Registry<br/>(Docker Images)"]
+    end
+
+    subgraph "VPS Server (168.144.38.167)"
+        subgraph "Docker Compose"
+            FE_C["Frontend Container<br/>Next.js :3000"]
+            BE_C["Backend Container<br/>Express :5000"]
+            DB_C["MySQL Container<br/>:3306"]
+        end
+        NGX["Nginx<br/>:80/:443 (SSL)"]
+        VOL["Persistent Volumes<br/>mysql-data, uploads, logs"]
+    end
+
+    subgraph "External"
+        CERT["Let's Encrypt<br/>(SSL Certificate)"]
+        GMAIL["Gmail API<br/>(Email)"]
+        SSO["KMUTNB SSO"]
+    end
+
+    Dev -->|"git push master"| GH
+    GH -->|"trigger"| GA
+    GA -->|"build & push"| GHCR
+    GA -->|"SSH deploy"| NGX
+    GHCR -->|"docker pull"| FE_C
+    GHCR -->|"docker pull"| BE_C
+    NGX -->|"proxy"| FE_C
+    NGX -->|"proxy"| BE_C
+    BE_C --> DB_C
+    BE_C --> VOL
+    DB_C --> VOL
+    CERT --> NGX
+    BE_C --> GMAIL
+    BE_C --> SSO

@@ -1,0 +1,66 @@
+erDiagram
+    ImportantDeadline {
+        int id PK
+        string name
+        date date
+        enum related_to "internship|project|project1|project2|general"
+        string academic_year
+        int semester
+        boolean is_global
+        datetime deadline_at "UTC"
+        string timezone
+        text description
+        boolean is_critical
+        boolean accepting_submissions
+        boolean allow_late
+        boolean lock_after_deadline
+        int grace_period_minutes
+        datetime window_start_at
+        datetime window_end_at
+        enum deadline_type "SUBMISSION|ANNOUNCEMENT|MANUAL|MILESTONE"
+        boolean is_published
+        enum visibility_scope "ALL|INTERNSHIP_ONLY|PROJECT_ONLY|CUSTOM"
+    }
+
+    DeadlineWorkflowMapping {
+        int id PK
+        int important_deadline_id FK
+        enum workflow_type "internship|project1|project2"
+        string step_key
+        string document_subtype
+        enum auto_assign "on_create|on_submit|on_approve|on_generate"
+        boolean active
+    }
+
+    TimelineStep {
+        int timestamps_id PK
+        int student_id FK
+        enum type "internship|project"
+        int step_order
+        string name
+        text description
+        enum status "waiting|in_progress|completed|blocked"
+        datetime date
+        date start_date
+        date end_date
+        date deadline
+        string document_type
+        string action_text
+        string action_link
+    }
+
+    StudentProgress {
+        int student_progress_id PK
+        int student_id FK
+        enum progress_type "internship|project"
+        int current_step
+        int total_steps
+        int progress_percent
+        boolean is_blocked
+        text block_reason
+        string next_action
+    }
+
+    ImportantDeadline ||--o{ DeadlineWorkflowMapping : "maps to steps"
+    Student ||--o{ TimelineStep : "has timeline"
+    Student ||--o{ StudentProgress : "has progress"

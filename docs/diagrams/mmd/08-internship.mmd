@@ -1,0 +1,102 @@
+erDiagram
+    InternshipDocument {
+        int internship_id PK
+        int document_id FK
+        string company_name
+        text company_address
+        string internship_position
+        string contact_person_name
+        string contact_person_position
+        string supervisor_name
+        string supervisor_position
+        string supervisor_phone
+        string supervisor_email
+        date start_date
+        date end_date
+        int academic_year
+        int semester
+    }
+
+    InternshipLogbook {
+        int log_id PK
+        int internship_id FK
+        int student_id FK
+        int academic_year
+        int semester
+        date work_date
+        string log_title
+        text work_description
+        text learning_outcome
+        text problems
+        text solutions
+        decimal work_hours
+        string time_in
+        string time_out
+        text supervisor_comment
+        int supervisor_approved "0|1"
+        datetime supervisor_approved_at
+        text advisor_comment
+        boolean advisor_approved
+    }
+
+    InternshipLogbookAttachment {
+        int attachment_id PK
+        int log_id FK
+        string file_name
+        string file_path
+        string file_type
+        int file_size
+        datetime upload_date
+    }
+
+    InternshipLogbookRevision {
+        int revision_id PK
+        int log_id FK
+        text work_description
+        text learning_outcome
+        text problems
+        text solutions
+        datetime revision_date
+        int revised_by FK
+    }
+
+    InternshipEvaluation {
+        int evaluation_id PK
+        int approval_token_id FK
+        int internship_id FK
+        int student_id FK
+        string evaluator_name
+        datetime evaluation_date
+        decimal overall_score
+        text strengths
+        text weaknesses_to_improve
+        enum status "submitted_by_supervisor|completed"
+        decimal discipline_score
+        decimal behavior_score
+        decimal performance_score
+        decimal method_score
+        decimal relation_score
+        string pass_fail
+    }
+
+    InternshipCertificateRequest {
+        int id PK
+        string student_id FK
+        int internship_id FK
+        int document_id FK
+        datetime request_date
+        enum status "pending|approved|rejected"
+        decimal total_hours
+        string certificate_number
+        datetime downloaded_at
+        int download_count
+    }
+
+    InternshipDocument }o--|| Document : "base document"
+    InternshipDocument ||--o{ InternshipLogbook : "has logbooks"
+    InternshipDocument ||--o{ InternshipEvaluation : "has evaluations"
+    InternshipDocument ||--o{ InternshipCertificateRequest : "has certificates"
+    InternshipLogbook ||--o{ InternshipLogbookAttachment : "has files"
+    InternshipLogbook ||--o{ InternshipLogbookRevision : "has revisions"
+    InternshipLogbook }o--|| Student : "written by"
+    InternshipEvaluation }o--|| ApprovalToken : "via token"
