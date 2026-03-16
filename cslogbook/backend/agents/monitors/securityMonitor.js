@@ -9,7 +9,7 @@ const path = require('path');
 const readline = require('readline');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../models');
-const notificationService = require('../helpers/notificationService');
+const notificationService = require('../../services/notificationService');
 const agentConfig = require('../config');
 const logger = require('../../utils/logger');
 

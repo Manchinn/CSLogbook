@@ -2,6 +2,7 @@ const { Document, DocumentLog, User, Student, InternshipDocument } = require('..
 const { Op } = require('sequelize');
 const path = require('path');
 const internshipManagementService = require('../../services/internshipManagementService');
+const logger = require('../../utils/logger');
 
 // root ของ uploads directory (รองรับทั้ง env var และ default)
 const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
@@ -260,6 +261,24 @@ exports.approveByHead = async (req, res) => {
       // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติ
     }
 
+    // แจ้งเตือน notification
+    try {
+      const notificationService = require('../../services/notificationService');
+      await notificationService.createAndNotify(doc.userId, {
+        type: 'APPROVAL',
+        title: 'หนังสือตอบรับได้รับการอนุมัติ',
+        message: null,
+        metadata: {
+          documentId: doc.documentId,
+          documentName: 'ACCEPTANCE',
+          action: 'approved',
+          targetUrl: '/internship/documents'
+        }
+      });
+    } catch (notifyErr) {
+      logger.warn('Notification failed (Acceptance approve):', notifyErr.message);
+    }
+
     return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });
   } catch (error) {
     console.error('Acceptance approveByHead error:', error);
@@ -289,20 +308,22 @@ exports.reject = async (req, res) => {
       newStatus: 'rejected',
       comment: reason,
     });
-    // ส่ง real-time notification สำหรับ Acceptance ถูกปฏิเสธ (เผื่อ frontend ใช้งานร่วม)
+    // แจ้งเตือน notification
     try {
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`user_${doc.userId}`).emit('document:rejected', {
+      const notificationService = require('../../services/notificationService');
+      await notificationService.createAndNotify(doc.userId, {
+        type: 'DOCUMENT',
+        title: 'หนังสือตอบรับถูกปฏิเสธ',
+        message: reason || 'กรุณาตรวจสอบและแก้ไข',
+        metadata: {
           documentId: doc.documentId,
           documentName: 'ACCEPTANCE',
-          status: 'rejected',
-          reason,
-          message: 'หนังสือตอบรับการฝึกงานของคุณถูกปฏิเสธ'
-        });
-      }
+          action: 'rejected',
+          targetUrl: '/internship/documents'
+        }
+      });
     } catch (notifyErr) {
-      console.warn('Socket emit failed (Acceptance reject):', notifyErr.message);
+      logger.warn('Notification failed (Acceptance reject):', notifyErr.message);
     }
     return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ' });
   } catch (error) {

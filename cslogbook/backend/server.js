@@ -229,6 +229,9 @@ const io = new Server(server, {
 });
 // เก็บ io ใน app สำหรับ controller/service เรียกใช้
 app.set('io', io);
+// Initialize notification service with Socket.io
+const notificationService = require('./services/notificationService');
+notificationService.init(io);
 
 // Middleware แบบง่ายสำหรับ map token -> userId แล้ว join room เฉพาะ (ต้องปรับถ้ามี auth ที่ซับซ้อน)
 io.use((socket, next) => {

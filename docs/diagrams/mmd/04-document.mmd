@@ -1,0 +1,41 @@
+erDiagram
+    Document {
+        int document_id PK
+        int user_id FK
+        int reviewer_id FK
+        enum document_type "INTERNSHIP|PROJECT"
+        string document_name
+        string file_path
+        enum status "draft|pending|approved|rejected|supervisor_evaluated|acceptance_approved|referral_ready|referral_downloaded|completed|cancelled"
+        datetime review_date
+        text review_comment
+        enum category "proposal|progress|final|acceptance"
+        date due_date
+        int file_size
+        string mime_type
+        datetime submitted_at
+        boolean is_late
+        int late_minutes
+        string late_reason
+        boolean submitted_late
+        int submission_delay_minutes
+        int important_deadline_id FK
+    }
+
+    DocumentLog {
+        int log_id PK
+        int document_id FK
+        int user_id FK
+        enum action_type "create|update|delete|approve|reject"
+        string previous_status
+        string new_status
+        text comment
+        datetime created_at
+    }
+
+    Document ||--o{ DocumentLog : "has logs"
+    Document ||--o| ProjectDocument : "extends to"
+    Document ||--o| InternshipDocument : "extends to"
+    User ||--o{ Document : "owns"
+    User ||--o{ Document : "reviews"
+    ImportantDeadline ||--o{ Document : "deadline for"

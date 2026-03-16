@@ -8,6 +8,7 @@ import { useStudentEligibility } from "@/hooks/useStudentEligibility";
 import { getMenuGroups, type MenuLink, type MenuNode } from "@/lib/navigation/menuConfig";
 import { getCurrentAcademicInfo, type AcademicInfo } from "@/lib/services/academicService";
 import { CSLogbookLogo } from "@/components/common/Logo";
+import NotificationBell from '@/components/common/NotificationBell';
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -160,9 +161,12 @@ export function AppShell({ children }: AppShellProps) {
               ระบบบันทึกและติดตามการฝึกงาน โครงงานพิเศษและปริญญานิพนธ์ ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ
             </h2>
           </div>
-          <button type="button" className={styles.logoutLink} onClick={handleLogout}>
-            ออกจากระบบ
-          </button>
+          <div className={styles.headerActions}>
+            <NotificationBell />
+            <button type="button" className={styles.logoutLink} onClick={handleLogout}>
+              ออกจากระบบ
+            </button>
+          </div>
         </header>
 
         <main className={styles.mainContent}>{children}</main>

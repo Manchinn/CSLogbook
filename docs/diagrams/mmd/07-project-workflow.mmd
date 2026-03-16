@@ -1,0 +1,54 @@
+erDiagram
+    ProjectWorkflowState {
+        int id PK
+        int project_id FK_UK
+        enum current_phase "DRAFT|PENDING_ADVISOR|ADVISOR_ASSIGNED|TOPIC_SUBMISSION|TOPIC_EXAM_PENDING|TOPIC_EXAM_SCHEDULED|TOPIC_FAILED|IN_PROGRESS|THESIS_SUBMISSION|THESIS_EXAM_PENDING|THESIS_EXAM_SCHEDULED|THESIS_FAILED|COMPLETED|ARCHIVED|CANCELLED"
+        string current_step
+        int workflow_step_id FK
+        string project_status
+        string topic_exam_result
+        date topic_exam_date
+        string thesis_exam_result
+        date thesis_exam_date
+        int topic_defense_request_id FK
+        int thesis_defense_request_id FK
+        int system_test_request_id FK
+        int final_document_id FK
+        int meeting_count
+        int approved_meeting_count
+        boolean is_blocked
+        text block_reason
+        boolean is_overdue
+        datetime last_activity_at
+        string last_activity_type
+        int last_updated_by FK
+    }
+
+    WorkflowStepDefinition {
+        int step_id PK
+        enum workflow_type "internship|project1|project2"
+        string step_key UK
+        int step_order
+        string title
+        text description_template
+        string phase_key
+        enum phase_variant "default|late|overdue"
+    }
+
+    StudentWorkflowActivity {
+        int activity_id PK
+        int student_id FK
+        enum workflow_type "internship|project1|project2"
+        string current_step_key
+        enum current_step_status "pending|in_progress|awaiting_student_action|awaiting_admin_action|completed|rejected|skipped|blocked|cancelled"
+        enum overall_workflow_status "not_started|eligible|enrolled|in_progress|completed|blocked|failed|archived|cancelled"
+        json data_payload
+        datetime started_at
+        datetime completed_at
+    }
+
+    ProjectWorkflowState }o--|| ProjectDocument : "state of"
+    ProjectWorkflowState }o--o| WorkflowStepDefinition : "current step"
+    ProjectWorkflowState }o--o| ProjectDefenseRequest : "topic defense"
+    ProjectWorkflowState }o--o| ProjectDefenseRequest : "thesis defense"
+    StudentWorkflowActivity }o--|| Student : "activity of"

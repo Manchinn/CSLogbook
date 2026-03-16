@@ -2,6 +2,7 @@ const { Document, DocumentLog, User, InternshipDocument, Student } = require('..
 const { Op } = require('sequelize');
 const path = require('path');
 const internshipService = require('../../services/internshipService');
+const logger = require('../../utils/logger');
 
 // root ของ uploads directory (รองรับทั้ง env var และ default)
 const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
@@ -181,6 +182,24 @@ exports.approveByHead = async (req, res) => {
       comment: comment || 'อนุมัติโดยหัวหน้าภาค'
     });
 
+    // แจ้งเตือน notification
+    try {
+      const notificationService = require('../../services/notificationService');
+      await notificationService.createAndNotify(doc.userId, {
+        type: 'APPROVAL',
+        title: 'คำร้อง CS05 ได้รับการอนุมัติ',
+        message: null,
+        metadata: {
+          documentId: doc.documentId,
+          documentName: 'CS05',
+          action: 'approved',
+          targetUrl: '/project/documents'
+        }
+      });
+    } catch (notifyErr) {
+      logger.warn('Notification failed (CS05 approve):', notifyErr.message);
+    }
+
   return res.json({ success: true, message: 'อนุมัติ คพ.05 สำเร็จ' });
   } catch (error) {
     console.error('CP05 approveByHead error:', error);
@@ -222,20 +241,22 @@ exports.reject = async (req, res) => {
       comment: reason
     });
 
-    // ส่ง real-time notification ผ่าน socket.io (ถ้าตั้งค่าไว้ใน server)
+    // แจ้งเตือน notification
     try {
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`user_${doc.userId}`).emit('document:rejected', {
+      const notificationService = require('../../services/notificationService');
+      await notificationService.createAndNotify(doc.userId, {
+        type: 'DOCUMENT',
+        title: 'คำร้อง CS05 ถูกปฏิเสธ',
+        message: reason || 'กรุณาตรวจสอบและแก้ไข',
+        metadata: {
           documentId: doc.documentId,
-            documentName: 'CS05',
-          status: 'rejected',
-          reason,
-          message: 'คำร้อง CS05 ของคุณถูกปฏิเสธ กรุณาตรวจสอบและแก้ไข'
-        });
-      }
+          documentName: 'CS05',
+          action: 'rejected',
+          targetUrl: '/project/documents'
+        }
+      });
     } catch (notifyErr) {
-      console.warn('Socket emit failed (CS05 reject):', notifyErr.message);
+      logger.warn('Notification failed (CS05 reject):', notifyErr.message);
     }
 
     return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ' });

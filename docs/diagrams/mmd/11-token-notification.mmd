@@ -1,0 +1,50 @@
+erDiagram
+    ApprovalToken {
+        int token_id PK
+        string token UK
+        string email
+        int document_id FK
+        string log_id
+        string supervisor_id
+        string student_id FK
+        enum type "single|weekly|monthly|full|supervisor_evaluation"
+        enum status "pending|approved|rejected|used"
+        datetime expires_at
+        text comment
+    }
+
+    NotificationSetting {
+        int setting_id PK
+        enum notification_type UK "LOGIN|DOCUMENT|LOGBOOK|EVALUATION|APPROVAL|MEETING"
+        boolean is_enabled
+        text description
+        int updated_by_admin FK
+    }
+
+    SystemLog {
+        int log_id PK
+        string action_type
+        text action_description
+        string ip_address
+        string user_agent
+        int user_id FK
+        datetime created_at
+    }
+
+    UploadHistory {
+        int history_id PK
+        int uploaded_by FK
+        string file_name
+        int total_records
+        int successful_updates
+        int failed_updates
+        json details
+        enum upload_type "students|grades"
+        datetime created_at
+    }
+
+    ApprovalToken }o--o| Document : "for document"
+    ApprovalToken }o--o| Student : "for student"
+    NotificationSetting }o--o| User : "updated by"
+    SystemLog }o--|| User : "by user"
+    UploadHistory }o--|| User : "uploaded by"
