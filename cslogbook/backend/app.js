@@ -41,6 +41,7 @@ const topicExamRoutes = require('./routes/topicExamRoutes'); // 🆕 Topic Exam 
 const projectMembersRoutes = require('./routes/projectMembersRoutes');
 const projectWorkflowStateRoutes = require('./routes/projectWorkflowStateRoutes'); // 🆕 Workflow state tracking
 const projectTransitionRoutes = require('./routes/projectTransitionRoutes'); // 🆕 Project 2 transition routes
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -106,6 +107,7 @@ app.use('/api/documents', documentsRoutes);
 // Public timeline endpoint (ไม่ต้อง auth) — ต้องมาก่อน authenticated timeline
 app.use('/api/timeline/public', timelineRoutes);
 app.use('/api/timeline', authenticateToken, timelineRoutes);
+app.use('/api/notifications', authenticateToken, notificationRoutes);
 app.use('/api/workflow', authenticateToken, workflowRoutes);
 app.use('/api/reports', authenticateToken, reportRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
