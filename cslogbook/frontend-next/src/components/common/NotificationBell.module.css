@@ -1,3 +1,7 @@
+.bellWrapper {
+  position: relative;
+}
+
 .bellButton {
   background: none;
   border: none;
@@ -8,6 +12,7 @@
   border-radius: 6px;
   display: flex;
   align-items: center;
+  position: relative;
   transition: background 0.2s;
 }
 
@@ -15,11 +20,37 @@
   background: var(--color-surface-2, #f0f0f0);
 }
 
+.badge {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   width: 360px;
   max-height: 440px;
   display: flex;
   flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
 }
 
 .dropdownHeader {
@@ -70,7 +101,7 @@
 }
 
 .unread {
-  background: var(--color-surface-1, #f0f7ff);
+  background: #f0f7ff;
 }
 
 .unread:hover {
