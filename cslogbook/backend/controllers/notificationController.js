@@ -44,7 +44,7 @@ const markAsRead = async (req, res) => {
     const userId = req.user.userId;
     const notificationId = parseInt(req.params.id);
 
-    if (!notificationId) {
+    if (isNaN(notificationId)) {
       return res.status(400).json({
         success: false,
         message: 'notification ID ไม่ถูกต้อง'
