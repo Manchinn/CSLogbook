@@ -302,3 +302,10 @@
 .logoutLink:hover {
   background: var(--color-primary-weak);
 }
+
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
