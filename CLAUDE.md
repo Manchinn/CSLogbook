@@ -147,11 +147,11 @@ Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (45 sessions)
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
+| 46 | 03-18 | Redesign approve-documents, fix workflow step order, Thai status labels, timeline to student-profile, logbook date validation |
 | 45 | 03-16 | Report/stats: Document Pipeline, สถานประกอบการ, CSV export, improve internship+project visuals, fix source-of-truth |
 | 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design |
 | 39-43 | 03-09 | PDF audit, IDOR fixes, data integrity, certificate PDF rewire |
 | 38 | 03-09 | สร้างหนังสือขอความอนุเคราะห์ PDF + download flow |
-| 37 | 03-09 | E2E seed script + fix skip conditions |
 
 ---
 

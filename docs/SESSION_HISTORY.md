@@ -51,6 +51,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 43 | 03-09 | Fix C3 certificate PDF (rewire to pdfkit) + H4 internshipId filter (7/7 queries) |
 | 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design pattern |
 | 45 | 03-16 | Report/stats features: Document Pipeline, Internship Supervisor (สถานประกอบการ), CSV export utility, improve internship+project reports with visual bars/rings, fix source-of-truth (advisor→supervisor) |
+| 46 | 03-18 | Redesign approve-documents (drawer+stats+skeleton), fix workflow step order (migration), normalize Thai status labels, remove redundant sections from internship flow page, move full timeline to student-profile, fix auto-create workflow activity bugs, add logbook date validation |
 
 ### Pending
 
