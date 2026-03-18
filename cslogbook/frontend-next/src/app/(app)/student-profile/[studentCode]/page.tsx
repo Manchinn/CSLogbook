@@ -8,6 +8,8 @@ import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDocumentsOverview } from "@/hooks/useStudentDocuments";
+import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
+import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
 import type { StudentProfile } from "@/lib/services/studentService";
 import { updateStudentContactInfo, updateStudentCredits } from "@/lib/services/studentService";
 import { changePasswordInit, confirmPasswordChange } from "@/lib/api/authService";
@@ -183,6 +185,18 @@ export default function StudentProfilePage() {
   const internshipQuery = useStudentInternshipStatus(token, hydrated && canUseStudentEndpoints);
   const projectQuery = useStudentProjectStatus(token, hydrated && canUseStudentEndpoints);
   const documentsQuery = useStudentDocumentsOverview(token, hydrated && canUseStudentEndpoints);
+  // Timeline ต้องใช้ studentId (number PK) ไม่ใช่ studentCode (string)
+  const timelineStudentId = user?.studentId ?? user?.id ?? null;
+  const {
+    data: internshipTimeline,
+    isLoading: internshipTimelineLoading,
+    error: internshipTimelineError,
+  } = useWorkflowTimeline(token, "internship", timelineStudentId, hydrated && canUseStudentEndpoints);
+  const {
+    data: projectTimeline,
+    isLoading: projectTimelineLoading,
+    error: projectTimelineError,
+  } = useWorkflowTimeline(token, "project", timelineStudentId, hydrated && canUseStudentEndpoints);
 
   const handleOpenEdit = () => {
     if (!profileQuery.data) return;
@@ -554,39 +568,23 @@ export default function StudentProfilePage() {
             ) : null}
 
             {activeTab === "timeline" ? (
-              <>
-                <article className={`${styles.card} ${styles.cardInternship} ${styles.statusCard}`}>
-              <header className={styles.cardHeader}>
-                <div>
-                  <p className={styles.cardEyebrow}>Internship</p>
-                  <h3 className={styles.cardTitle}>สถานะฝึกงาน</h3>
-                </div>
-                <span className={`${styles.badge} ${toneClass(internshipEligibility.tone)}`}>
-                  {internshipEligibility.label}
-                </span>
-              </header>
-              <p className={styles.statusText}>{internshipStatusThai}</p>
-              {profile.eligibility?.internship?.message ? (
-                <p className={styles.note}>{profile.eligibility.internship.message}</p>
-              ) : null}
-            </article>
+              <div className={styles.timelineSection}>
+                <WorkflowTimeline
+                  title="ความคืบหน้าฝึกงาน"
+                  subtitle="แสดงขั้นตอนทั้งหมดตั้งแต่ลงทะเบียนจนฝึกงานเสร็จ"
+                  timeline={internshipTimeline}
+                  isLoading={internshipTimelineLoading}
+                  error={internshipTimelineError ? "โหลดข้อมูลไม่สำเร็จ" : null}
+                />
 
-            <article className={`${styles.card} ${styles.cardProject} ${styles.statusCard}`}>
-              <header className={styles.cardHeader}>
-                <div>
-                  <p className={styles.cardEyebrow}>Project</p>
-                  <h3 className={styles.cardTitle}>สถานะโครงงาน</h3>
-                </div>
-                <span className={`${styles.badge} ${toneClass(projectEligibility.tone)}`}>
-                  {projectEligibility.label}
-                </span>
-              </header>
-              <p className={styles.statusText}>{projectStatusThai}</p>
-              {profile.eligibility?.project?.message ? (
-                <p className={styles.note}>{profile.eligibility.project.message}</p>
-              ) : null}
-            </article>
-              </>
+                <WorkflowTimeline
+                  title="ความคืบหน้าโครงงาน"
+                  subtitle="แสดงขั้นตอนทั้งหมดตั้งแต่เริ่มจนโครงงานเสร็จ"
+                  timeline={projectTimeline}
+                  isLoading={projectTimelineLoading}
+                  error={projectTimelineError ? "โหลดข้อมูลไม่สำเร็จ" : null}
+                />
+              </div>
             ) : null}
 
             {activeTab === "documents" && canUseStudentEndpoints ? (

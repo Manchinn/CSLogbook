@@ -29,53 +29,10 @@
   color: var(--color-text);
 }
 
-.lead {
-  margin: 6px 0 0;
-  color: var(--color-text-muted);
-}
-
-.note {
-  margin: 8px 0 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
 .grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.stepGrid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.stepCard {
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
-}
-
-.stepNumber {
-  margin: 0 0 6px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.stepTitle {
-  margin: 0 0 4px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.stepText {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .card {
@@ -104,12 +61,25 @@
   font-size: 13px;
 }
 
-.split {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 12px;
+/* ─── Deadline Bar (compact) ─── */
+.deadlineBar {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(0, 0, 0, 0.04));
 }
 
+.deadlineBarTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Company Info Panel ─── */
 .panel {
   padding: 16px;
   border-radius: 12px;
@@ -155,6 +125,48 @@
   color: var(--color-text);
 }
 
+/* ─── Progress Cards (ชั่วโมง + ใบรับรอง) ─── */
+.progressGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.progressCard {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(0, 0, 0, 0.04));
+}
+
+.progressLabel {
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.progressValue {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.progressUnit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.progressHint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Deadlines ─── */
 .deadlineList {
   list-style: none;
   margin: 0;
@@ -177,6 +189,7 @@
 .deadlineName {
   margin: 0;
   color: var(--color-text);
+  font-size: 13px;
 }
 
 .deadlineMeta {
@@ -191,6 +204,7 @@
   white-space: nowrap;
 }
 
+/* ─── States ─── */
 .error {
   color: #a8071a;
 }
@@ -204,15 +218,11 @@
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* ============= Download Panel — Step 4 (รอหนังสือตอบรับ) ============= */
+/* ============= Download & Upload Panel ============= */
 
 .downloadPanel {
   padding: 18px;

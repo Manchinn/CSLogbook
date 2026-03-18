@@ -133,30 +133,32 @@ class WorkflowService {
 
       logger.info(`Found ${stepDefinitions.length} step definitions for ${workflowType}, activity exists: ${!!workflowActivity}`);
 
-      // สร้าง activity ถ้ายังไม่มีและนักศึกษามีสถานะ enrolled (ปรับปรุงให้รองรับ project ด้วยถ้าต้องการ)
-      if (!workflowActivity && student) {
+      // สร้าง activity อัตโนมัติถ้ายังไม่มี — รองรับทั้ง internship และ project
+      if (!workflowActivity && student && stepDefinitions.length > 0) {
         let shouldCreateActivity = false;
-        let initialStepKey = '';
-        let initialStepStatus = 'completed'; // สมมติว่า eligibility check เสร็จแล้ว
+        let initialStepKey = stepDefinitions[0].stepKey; // ใช้ step แรกจาก DB แทน hardcode
+        let initialStepStatus = 'completed';
         let initialOverallStatus = 'in_progress';
 
-        if (workflowType === 'internship' && student.isEnrolledInternship) {
+        if (workflowType === 'internship' && (student.isEnrolledInternship || student.isEligibleInternship)) {
           shouldCreateActivity = true;
-          initialStepKey = 'INTERNSHIP_ELIGIBILITY_CHECK'; // Key แรกสุด
           if (student.internshipStatus === 'completed') {
-            initialStepKey = 'INTERNSHIP_COMPLETED'; // Key สุดท้ายถ้า completed แล้ว
+            initialStepKey = stepDefinitions[stepDefinitions.length - 1].stepKey;
             initialOverallStatus = 'completed';
           } else if (!student.internshipStatus || student.internshipStatus === 'not_started') {
-            // ถ้า isEnrolled แต่ยังไม่มีสถานะชัดเจน หรือเป็น not_started
-            // อาจจะต้องพิจารณาว่าควรสร้าง activity หรือไม่ หรือสร้างด้วยสถานะอะไร
-            // ในที่นี้ยังคง flow เดิมคือถ้า enrolled และไม่ completed จะเริ่มจาก eligibility check
-             initialOverallStatus = student.internshipStatus || 'in_progress';
+            initialOverallStatus = student.internshipStatus || 'in_progress';
           } else {
             initialOverallStatus = student.internshipStatus;
           }
+        } else if ((workflowType === 'project' || workflowType === 'project1') && (student.isEnrolledProject || student.isEligibleProject)) {
+          shouldCreateActivity = true;
+          if (student.projectStatus === 'completed' || student.projectStatus === 'archived') {
+            initialStepKey = stepDefinitions[stepDefinitions.length - 1].stepKey;
+            initialOverallStatus = student.projectStatus;
+          } else {
+            initialOverallStatus = student.projectStatus || 'in_progress';
+          }
         }
-        // TODO: เพิ่มเงื่อนไขสำหรับ project workflow ถ้าต้องการ
-        // else if (workflowType === 'project' && student.isEnrolledProject) { ... }
 
         if (shouldCreateActivity) {
           logger.info(`Creating new ${workflowType} activity for student ${studentId} based on student status.`);
