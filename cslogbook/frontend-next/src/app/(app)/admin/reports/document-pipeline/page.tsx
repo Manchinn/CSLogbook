@@ -12,6 +12,22 @@ import { StatSkeleton } from "@/components/common/Skeleton";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 
+/* ─── Document Name Mapping ─── */
+const DOC_NAME_TH: Record<string, string> = {
+  CS05: "คำร้องขอฝึกงาน",
+  ACCEPTANCE_LETTER: "หนังสือตอบรับนักศึกษาฝึกงาน",
+};
+
+/** แปลงชื่อเอกสารจาก DB เป็นภาษาไทย */
+function localizeDocName(name: string): string {
+  if (DOC_NAME_TH[name]) return DOC_NAME_TH[name];
+  // "Final Thesis Offline - ชื่อโปรเจค" → "ปริญญานิพนธ์ - ชื่อโปรเจค"
+  if (name.startsWith("Final Thesis Offline - ")) {
+    return name.replace("Final Thesis Offline - ", "ปริญญานิพนธ์ - ");
+  }
+  return name;
+}
+
 /* ─── Status Mapping ─── */
 const STATUS_LABELS: Record<string, string> = {
   draft: "แบบร่าง",
@@ -117,7 +133,7 @@ export default function DocumentPipelinePage() {
       Object.entries(doc.statuses).forEach(([status, count]) => {
         rows.push({
           documentType: doc.documentType === "INTERNSHIP" ? "ฝึกงาน" : "โครงงาน",
-          documentName: doc.documentName,
+          documentName: localizeDocName(doc.documentName),
           status,
           statusLabel: STATUS_LABELS[status] || status,
           count,
@@ -214,7 +230,7 @@ export default function DocumentPipelinePage() {
               {pipeline.map((doc: DocumentPipelineItem) => (
                 <div key={`${doc.documentType}:${doc.documentName}`} className={styles.pipelineRow}>
                   <div className={styles.pipelineMeta}>
-                    <p className={styles.pipelineDocName}>{doc.documentName}</p>
+                    <p className={styles.pipelineDocName}>{localizeDocName(doc.documentName)}</p>
                     <p className={styles.pipelineDocType}>
                       {doc.documentType === "INTERNSHIP" ? "ฝึกงาน" : "โครงงาน"} &middot; {doc.total}
                     </p>
@@ -275,7 +291,7 @@ export default function DocumentPipelinePage() {
                 {pipeline.map((doc) => (
                   <tr key={`${doc.documentType}:${doc.documentName}`}>
                     <td>{doc.documentType === "INTERNSHIP" ? "ฝึกงาน" : "โครงงาน"}</td>
-                    <td><strong>{doc.documentName}</strong></td>
+                    <td><strong>{localizeDocName(doc.documentName)}</strong></td>
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{doc.total}</td>
                     {visibleStatuses.map(s => (
                       <td key={s} style={{ textAlign: "right" }}>
