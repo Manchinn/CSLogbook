@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DefenseRequest, SystemTestRequest } from "@/lib/services/teacherService";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./AdvisorQueue.module.css";
@@ -26,20 +26,29 @@ type AdvisorQueueTableProps<T extends QueueItem> = {
   statusFilter?: string;
   onStatusFilterChange?: (status: string) => void;
   summary?: QueueSummary;
+  /** ใช้สำหรับ system-test ที่มี PDF */
+  showPDFColumn?: boolean;
 };
+
+// Helper: ดึง academicYear/semester จาก item
+function getItemAcademicInfo(item: QueueItem): { academicYear?: number; semester?: number } {
+  if ("project" in item && item.project) {
+    return { academicYear: item.project.academicYear, semester: item.project.semester };
+  }
+  if ("projectSnapshot" in item && item.projectSnapshot) {
+    return { academicYear: item.projectSnapshot.academicYear, semester: item.projectSnapshot.semester };
+  }
+  return {};
+}
 
 // Helper function to get student names from either type
 function getStudentNames(item: QueueItem): string[] {
-  // For DefenseRequest with project.members
   if ("project" in item && item.project?.members) {
     return item.project.members.map((m) => m.name);
   }
-
-  // For SystemTestRequest with submittedBy
   if ("submittedBy" in item && item.submittedBy) {
     return [item.submittedBy.name];
   }
-
   return [];
 }
 
@@ -48,11 +57,9 @@ function getProjectTitle(item: QueueItem): string {
   if ("project" in item && item.project) {
     return item.project.projectNameTh || item.project.projectNameEn || item.projectTitle || "ไม่ระบุชื่อโครงงาน";
   }
-
   if ("projectSnapshot" in item && item.projectSnapshot) {
     return item.projectSnapshot.projectNameTh || item.projectSnapshot.projectNameEn || item.projectTitle || "ไม่ระบุชื่อโครงงาน";
   }
-
   return item.projectTitle || "ไม่ระบุชื่อโครงงาน";
 }
 
@@ -60,213 +67,177 @@ function getProjectTitle(item: QueueItem): string {
 function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: (url: string, fileName: string) => void }) {
   const isDefenseRequest = "project" in item;
   const isSystemTest = "testStartDate" in item;
+  const defenseItem = item as DefenseRequest & {
+    defenseScheduledAt?: string;
+    defenseLocation?: string;
+    defenseNote?: string;
+    submittedLate?: boolean;
+    staffVerificationNote?: string;
+  };
+  const systemTestItem = item as SystemTestRequest;
+  const thDateOpts: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
 
   return (
     <div className={styles.expandedDetails}>
-      {/* Timeline for System Test */}
-      {isSystemTest && (
-        <div className={styles.timelineSection}>
-          <h4 className={styles.detailTitle}>สถานะการอนุมัติ</h4>
-          <div className={styles.timelineMiniContainer}>
-            {/* Mini timeline visualization */}
-            <div className={styles.miniTimeline}>
-              <div className={styles.miniTimelineItem}>
-                <div className={`${styles.miniTimelineDot} ${styles.miniTimelineDotCompleted}`} />
-                <span className={styles.miniTimelineLabel}>ยื่นคำขอ</span>
-              </div>
-
-              {item.advisors?.map((advisor, idx) => (
-                <div key={idx} className={styles.miniTimelineItem}>
-                  <div
-                    className={`${styles.miniTimelineDot} ${
-                      advisor.status === "approved"
-                        ? styles.miniTimelineDotCompleted
-                        : advisor.status === "rejected"
-                        ? styles.miniTimelineDotRejected
-                        : styles.miniTimelineDotPending
-                    }`}
-                  />
-                  <span className={styles.miniTimelineLabel}>{advisor.teacherName}</span>
-                </div>
-              ))}
-
-              {(item.status === "staff_approved" || item.status === "pending_staff") && (
-                <div className={styles.miniTimelineItem}>
-                  <div
-                    className={`${styles.miniTimelineDot} ${
-                      item.status === "staff_approved"
-                        ? styles.miniTimelineDotCompleted
-                        : styles.miniTimelineDotPending
-                    }`}
-                  />
-                  <span className={styles.miniTimelineLabel}>เจ้าหน้าที่</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className={styles.detailsGrid}>
-        {/* Timeline Section for Defense Requests */}
+        {/* ข้อมูลคำขอ — Defense Request (คพ.02 / คพ.03) */}
         {isDefenseRequest && (
           <div className={styles.detailSection}>
-            <h4 className={styles.detailTitle}>Timeline</h4>
-            <div className={styles.timelineContainer}>
-              <div className={styles.timelineItem}>
-                <div className={styles.timelineDot}></div>
-                <div className={styles.timelineContent}>
-                  <div className={styles.timelineLabel}>ยื่นคำขอ</div>
-                  <div className={styles.timelineDate}>
-                    {item.requestDate || item.submittedAt
-                      ? new Date(item.requestDate || item.submittedAt!).toLocaleString("th-TH")
-                      : "-"}
-                  </div>
-                </div>
-              </div>
-
-              {isDefenseRequest && (item as DefenseRequest).myApproval && (
-                <div className={styles.timelineItem}>
-                  <div
-                    className={`${styles.timelineDot} ${
-                      (item as DefenseRequest).myApproval?.status === "approved"
-                        ? styles.timelineDotApproved
-                        : styles.timelineDotPending
-                    }`}
-                  ></div>
-                  <div className={styles.timelineContent}>
-                    <div className={styles.timelineLabel}>การอนุมัติของฉัน</div>
-                    <div className={styles.timelineDate}>
-                      {(item as DefenseRequest).myApproval?.status === "approved"
-                        ? "อนุมัติแล้ว"
-                        : "รออนุมัติ"}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {item.status === "approved" && (
-                <div className={styles.timelineItem}>
-                  <div className={`${styles.timelineDot} ${styles.timelineDotApproved}`}></div>
-                  <div className={styles.timelineContent}>
-                    <div className={styles.timelineLabel}>อนุมัติสมบูรณ์</div>
-                    <div className={styles.timelineDate}>
-                      {(item as { approvedAt?: string }).approvedAt
-                        ? new Date((item as { approvedAt?: string }).approvedAt!).toLocaleString("th-TH")
-                        : "-"}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Meeting Metrics (for Defense Requests) */}
-        {isDefenseRequest && (item as DefenseRequest).project && (
-          <div className={styles.detailSection}>
-            <h4 className={styles.detailTitle}>ข้อมูลโครงงาน</h4>
+            <h4 className={styles.detailTitle}>ข้อมูลคำขอ</h4>
             <div className={styles.metrics}>
               <div className={styles.metricItem}>
-                <span className={styles.metricLabel}>รหัสโครงงาน:</span>
+                <span className={styles.metricLabel}>วันที่ยื่น:</span>
                 <span className={styles.metricValue}>
-                  {(item as DefenseRequest).project?.projectCode || "-"}
+                  {item.submittedAt
+                    ? new Date(item.submittedAt).toLocaleDateString("th-TH", thDateOpts)
+                    : "-"}
                 </span>
               </div>
-              {(item as DefenseRequest).project?.members && (
+              {defenseItem.submittedLate && (
                 <div className={styles.metricItem}>
-                  <span className={styles.metricLabel}>จำนวนสมาชิก:</span>
+                  <span className={styles.metricLabel}>สถานะ:</span>
+                  <span className={`${styles.metricValue} ${styles.lateText}`}>ส่งล่าช้า</span>
+                </div>
+              )}
+              {defenseItem.defenseScheduledAt && (
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>วันนัดสอบ:</span>
                   <span className={styles.metricValue}>
-                    {(item as DefenseRequest).project?.members?.length ?? 0} คน
+                    {new Date(defenseItem.defenseScheduledAt).toLocaleDateString("th-TH", thDateOpts)}
                   </span>
                 </div>
               )}
-              <div className={styles.metricItem}>
-                <span className={styles.metricLabel}>ประเภท:</span>
-                <span className={styles.metricValue}>
-                  {(item as DefenseRequest & { requestType?: string }).requestType === "defense_request"
-                    ? "สอบป้องกัน"
-                    : "อื่นๆ"}
-                </span>
-              </div>
+              {defenseItem.defenseLocation && (
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>สถานที่สอบ:</span>
+                  <span className={styles.metricValue}>{defenseItem.defenseLocation}</span>
+                </div>
+              )}
             </div>
+            {defenseItem.defenseNote && (
+              <div className={styles.noteBox}>{defenseItem.defenseNote}</div>
+            )}
           </div>
         )}
 
-        {/* Staff Verification Notes */}
-        {(item as QueueItem & { staffNote?: string }).staffNote && (
+        {/* Meeting Metrics (Logbook) — คพ.02 / คพ.03 */}
+        {isDefenseRequest && defenseItem.meetingMetrics && (
           <div className={styles.detailSection}>
-            <h4 className={styles.detailTitle}>หมายเหตุจากเจ้าหน้าที่</h4>
-            <div className={styles.noteBox}>{(item as QueueItem & { staffNote?: string }).staffNote}</div>
+            <h4 className={styles.detailTitle}>สถิติบันทึกการพบอาจารย์</h4>
+            <div className={styles.metrics}>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>จำนวนการพบทั้งหมด:</span>
+                <span className={styles.metricValue}>{defenseItem.meetingMetrics.totalMeetings} ครั้ง</span>
+              </div>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>อนุมัติแล้ว:</span>
+                <span className={styles.metricValue}>{defenseItem.meetingMetrics.approvedLogs} ครั้ง</span>
+              </div>
+              <div className={styles.metricItem}>
+                <span className={styles.metricLabel}>ขั้นต่ำที่ต้องอนุมัติ:</span>
+                <span className={styles.metricValue}>{defenseItem.meetingMetrics.minimumRequired} ครั้ง</span>
+              </div>
+              {defenseItem.meetingMetrics.lastApprovalDate && (
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>อนุมัติล่าสุด:</span>
+                  <span className={styles.metricValue}>
+                    {new Date(defenseItem.meetingMetrics.lastApprovalDate).toLocaleDateString("th-TH", thDateOpts)}
+                  </span>
+                </div>
+              )}
+            </div>
+            {defenseItem.meetingMetrics.approvedLogs < defenseItem.meetingMetrics.minimumRequired && (
+              <div className={styles.warningBox}>
+                บันทึกการพบที่อนุมัติยังไม่ถึงขั้นต่ำ ({defenseItem.meetingMetrics.approvedLogs}/{defenseItem.meetingMetrics.minimumRequired})
+              </div>
+            )}
           </div>
         )}
 
-        {/* Approval Notes */}
-        {(item as QueueItem & { advisorNote?: string }).advisorNote && (
-          <div className={styles.detailSection}>
-            <h4 className={styles.detailTitle}>หมายเหตุจากอาจารย์</h4>
-            <div className={styles.noteBox}>{(item as QueueItem & { advisorNote?: string }).advisorNote}</div>
-          </div>
-        )}
-
-        {/* System Test Specific Info */}
+        {/* ข้อมูลคำขอ — System Test */}
         {isSystemTest && (
           <div className={styles.detailSection}>
-            <h4 className={styles.detailTitle}>ข้อมูลการทดสอบระบบ</h4>
+            <h4 className={styles.detailTitle}>ข้อมูลคำขอทดสอบระบบ</h4>
             <div className={styles.metrics}>
               <div className={styles.metricItem}>
                 <span className={styles.metricLabel}>วันเริ่มทดสอบ:</span>
                 <span className={styles.metricValue}>
-                  {item.testStartDate ? new Date(item.testStartDate).toLocaleDateString("th-TH") : "-"}
+                  {systemTestItem.testStartDate ? new Date(systemTestItem.testStartDate).toLocaleDateString("th-TH", thDateOpts) : "-"}
                 </span>
               </div>
               <div className={styles.metricItem}>
                 <span className={styles.metricLabel}>วันสิ้นสุด:</span>
                 <span className={styles.metricValue}>
-                  {item.testDueDate ? new Date(item.testDueDate).toLocaleDateString("th-TH") : "-"}
+                  {systemTestItem.testDueDate ? new Date(systemTestItem.testDueDate).toLocaleDateString("th-TH", thDateOpts) : "-"}
                 </span>
               </div>
-              {item.projectSnapshot?.projectCode && (
-                <div className={styles.metricItem}>
-                  <span className={styles.metricLabel}>รหัสโครงงาน:</span>
-                  <span className={styles.metricValue}>{item.projectSnapshot.projectCode}</span>
-                </div>
-              )}
             </div>
 
-            {/* PDF View Button */}
-            {item.pdfFile && onViewPDF && (
+            {/* หมายเหตุจากนักศึกษา */}
+            {systemTestItem.studentNote && (
+              <div className={styles.noteBox}>{systemTestItem.studentNote}</div>
+            )}
+
+            {/* เอกสารคำขอ PDF */}
+            {systemTestItem.pdfFile && onViewPDF && (
               <div className={styles.pdfSection}>
                 <button
                   type="button"
                   className={styles.btnViewPDF}
-                  onClick={() => onViewPDF(item.pdfFile!.url, item.pdfFile!.filename)}
+                  onClick={() => onViewPDF(systemTestItem.pdfFile!.url, systemTestItem.pdfFile!.filename)}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" />
                     <line x1="16" y1="17" x2="8" y2="17" />
                     <polyline points="10 9 9 9 8 9" />
                   </svg>
-                  <span>ดูเอกสาร PDF</span>
-                  <span className={styles.fileNameBadge}>{item.pdfFile.filename}</span>
+                  <span>ดูเอกสารคำขอ</span>
+                  <span className={styles.fileNameBadge}>{systemTestItem.pdfFile.filename}</span>
+                </button>
+              </div>
+            )}
+
+            {/* ไฟล์หลักฐาน (requestFile จาก backend) */}
+            {(item as SystemTestRequest & { requestFile?: { url: string; filename: string } }).requestFile && onViewPDF && (
+              <div className={styles.pdfSection}>
+                <button
+                  type="button"
+                  className={styles.btnViewPDF}
+                  onClick={() => {
+                    const rf = (item as SystemTestRequest & { requestFile?: { url: string; filename: string } }).requestFile!;
+                    onViewPDF(rf.url, rf.filename);
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  <span>ดูเอกสารคำขอ</span>
+                  <span className={styles.fileNameBadge}>
+                    {(item as SystemTestRequest & { requestFile?: { url: string; filename: string } }).requestFile!.filename}
+                  </span>
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Advisor Approvals Timeline */}
+        {/* หมายเหตุจากเจ้าหน้าที่ */}
+        {((item as QueueItem & { staffNote?: string }).staffNote || defenseItem.staffVerificationNote) && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailTitle}>หมายเหตุจากเจ้าหน้าที่</h4>
+            <div className={styles.noteBox}>
+              {(item as QueueItem & { staffNote?: string }).staffNote || defenseItem.staffVerificationNote}
+            </div>
+          </div>
+        )}
+
+        {/* สถานะการอนุมัติของอาจารย์ */}
         {item.advisors && item.advisors.length > 0 && (
           <div className={styles.detailSection}>
             <h4 className={styles.detailTitle}>สถานะการอนุมัติของอาจารย์</h4>
@@ -275,9 +246,7 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
                 <div key={idx} className={styles.advisorItem}>
                   <div className={styles.advisorHeader}>
                     <span className={styles.advisorName}>{advisor.teacherName}</span>
-                    <span
-                      className={`${styles.advisorBadge} ${styles[`badge-${advisor.status}`]}`}
-                    >
+                    <span className={`${styles.advisorBadge} ${styles[`badge-${advisor.status}`]}`}>
                       {advisor.status === "approved" && "อนุมัติแล้ว"}
                       {advisor.status === "rejected" && "ปฏิเสธแล้ว"}
                       {advisor.status === "pending" && "รออนุมัติ"}
@@ -288,7 +257,7 @@ function ExpandedRowDetails({ item, onViewPDF }: { item: QueueItem; onViewPDF?: 
                   </div>
                   {advisor.approvedAt && (
                     <div className={styles.advisorDate}>
-                      {new Date(advisor.approvedAt).toLocaleString("th-TH")}
+                      {new Date(advisor.approvedAt).toLocaleDateString("th-TH", thDateOpts)}
                     </div>
                   )}
                   {advisor.note && (
@@ -317,31 +286,114 @@ export function AdvisorQueueTable<T extends QueueItem>({
   onStatusFilterChange,
   summary,
 }: AdvisorQueueTableProps<T>) {
-  const [expandedRow, setExpandedRow] = useState<number | string | null>(null);
+  const [detailItem, setDetailItem] = useState<T | null>(null);
+  const [yearFilter, setYearFilter] = useState("");
+  const [semesterFilter, setSemesterFilter] = useState("");
 
-  const toggleExpand = (id: number | string) => {
-    setExpandedRow((prev) => (prev === id ? null : id));
+  // คำนวณ available years/semesters จาก data (client-side)
+  const { availableYears, availableSemesters } = useMemo(() => {
+    const yearsSet = new Set<number>();
+    const semByYear: Record<number, Set<number>> = {};
+
+    for (const item of data) {
+      const { academicYear, semester } = getItemAcademicInfo(item);
+      if (academicYear) {
+        yearsSet.add(academicYear);
+        if (!semByYear[academicYear]) semByYear[academicYear] = new Set();
+        if (semester) semByYear[academicYear].add(semester);
+      }
+    }
+
+    const years = Array.from(yearsSet).sort((a, b) => b - a);
+    const semesters = yearFilter && semByYear[Number(yearFilter)]
+      ? Array.from(semByYear[Number(yearFilter)]).sort((a, b) => a - b)
+      : [];
+    return { availableYears: years, availableSemesters: semesters };
+  }, [data, yearFilter]);
+
+  // Client-side filter by year/semester
+  const filteredData = useMemo(() => {
+    if (!yearFilter && !semesterFilter) return data;
+    return data.filter((item) => {
+      const { academicYear, semester } = getItemAcademicInfo(item);
+      if (yearFilter && String(academicYear) !== yearFilter) return false;
+      if (semesterFilter && String(semester) !== semesterFilter) return false;
+      return true;
+    });
+  }, [data, yearFilter, semesterFilter]);
+
+  const hasExtraFilters = !!yearFilter || !!semesterFilter;
+
+  const resetFilters = () => {
+    setYearFilter("");
+    setSemesterFilter("");
+    if (onStatusFilterChange) onStatusFilterChange("");
   };
 
   const toolbarContent = (
     <div className={styles.toolbar}>
-      {onStatusFilterChange && (
-        <div className={styles.filterBar}>
-          <label htmlFor="advisorStatusFilter" className={styles.filterLabel}>สถานะ</label>
-          <select
-            id="advisorStatusFilter"
-            className={styles.filterSelect}
-            value={statusFilter || ""}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-          >
-            <option value="">ทั้งหมด</option>
-            <option value="pending,pending_advisor">รออนุมัติ</option>
-            <option value="approved,staff_approved">อนุมัติแล้ว</option>
-            <option value="rejected">ปฏิเสธแล้ว</option>
-            {showTestDates && <option value="pending_staff">รอเจ้าหน้าที่</option>}
-          </select>
-        </div>
-      )}
+      <div className={styles.filterBar}>
+        {availableYears.length > 0 && (
+          <>
+            <label htmlFor="advisorYearFilter" className={styles.filterLabel}>ปีการศึกษา</label>
+            <select
+              id="advisorYearFilter"
+              className={styles.filterSelect}
+              value={yearFilter}
+              onChange={(e) => {
+                setYearFilter(e.target.value);
+                setSemesterFilter("");
+              }}
+            >
+              <option value="">ทุกปี</option>
+              {availableYears.map((y) => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {availableSemesters.length > 0 && (
+          <>
+            <label htmlFor="advisorSemesterFilter" className={styles.filterLabel}>ภาคเรียน</label>
+            <select
+              id="advisorSemesterFilter"
+              className={styles.filterSelect}
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+            >
+              <option value="">ทุกภาค</option>
+              {availableSemesters.map((s) => (
+                <option key={s} value={String(s)}>ภาคเรียนที่ {s}</option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {onStatusFilterChange && (
+          <>
+            <label htmlFor="advisorStatusFilter" className={styles.filterLabel}>สถานะ</label>
+            <select
+              id="advisorStatusFilter"
+              className={styles.filterSelect}
+              value={statusFilter || ""}
+              onChange={(e) => onStatusFilterChange(e.target.value)}
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="pending,pending_advisor">รออนุมัติ</option>
+              <option value="approved,staff_approved">อนุมัติแล้ว</option>
+              <option value="rejected">ปฏิเสธแล้ว</option>
+              {showTestDates && <option value="pending_staff">รอเจ้าหน้าที่</option>}
+            </select>
+          </>
+        )}
+
+        {(hasExtraFilters || statusFilter) && (
+          <button type="button" className={styles.btnClearFilter} onClick={resetFilters}>
+            ล้างตัวกรอง
+          </button>
+        )}
+      </div>
       {summary && summary.total > 0 && (
         <div className={styles.summaryBar}>
           <span className={`${styles.summaryBadge} ${styles.summaryTotal}`}>
@@ -361,7 +413,7 @@ export function AdvisorQueueTable<T extends QueueItem>({
     </div>
   );
 
-  const colCount = showTestDates ? 8 : 6;
+  const colCount = 5; // โครงงาน, นักศึกษา, วันที่ยื่นคำขอ, สถานะ, การดำเนินการ
 
   if (isLoading) {
     return (
@@ -392,134 +444,124 @@ export function AdvisorQueueTable<T extends QueueItem>({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.expandCol}><span className="sr-only">รายละเอียด</span></th>
-            <th>โครงงาน</th>
+            <th>ชื่อโครงงาน</th>
             <th>นักศึกษา</th>
             <th className={responsive.hideOnMobile}>วันที่ยื่นคำขอ</th>
-            {showTestDates && (
-              <>
-                <th className={responsive.hideOnMobile}>วันเริ่มทดสอบ</th>
-                <th className={responsive.hideOnMobile}>วันสิ้นสุด</th>
-              </>
-            )}
             <th>สถานะ</th>
             <th>การดำเนินการ</th>
           </tr>
         </thead>
         <tbody>
-          {data.length === 0 && (
+          {filteredData.length === 0 && (
             <tr>
               <td colSpan={colCount} className={styles.emptyRow}>
-                {statusFilter ? "ไม่พบรายการที่ตรงกับตัวกรอง" : emptyMessage}
+                {statusFilter || hasExtraFilters ? "ไม่พบรายการที่ตรงกับตัวกรอง" : emptyMessage}
               </td>
             </tr>
           )}
-          {data.map((item, idx) => {
+          {filteredData.map((item, idx) => {
             const studentNames = getStudentNames(item);
             const projectTitle = getProjectTitle(item);
             const requestDate = item.requestDate || item.submittedAt || "";
 
-            // Determine if status is pending
             const isPending =
               item.status === "pending" ||
               item.status === "pending_advisor" ||
               (item as DefenseRequest).myApproval?.status === "pending";
 
-            const isExpanded = expandedRow === item.id;
-
             return (
-              <Fragment key={`${item.id}-${idx}`}>
-                <tr>
-                  <td>
+              <tr key={`${item.id}-${idx}`}>
+                <td>
+                  <div className={styles.projectTitle}>{projectTitle}</div>
+                </td>
+                <td>
+                  <div className={styles.students}>
+                    {studentNames.length > 0 ? (
+                      studentNames.map((name, i) => (
+                        <div key={i} className={styles.studentName}>
+                          {name}
+                        </div>
+                      ))
+                    ) : (
+                      <div className={styles.studentName}>-</div>
+                    )}
+                  </div>
+                </td>
+                <td className={responsive.hideOnMobile}>
+                  <div className={styles.dateCell}>
+                    {requestDate ? new Date(requestDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) : "-"}
+                  </div>
+                </td>
+                <td>
+                  <span className={`${styles.badge} ${styles[`badge-${item.status}`]}`}>
+                    {item.status === "pending" && "รออนุมัติ"}
+                    {item.status === "pending_advisor" && "รออาจารย์พิจารณา"}
+                    {item.status === "approved" && "อนุมัติแล้ว"}
+                    {item.status === "rejected" && "ปฏิเสธแล้ว"}
+                    {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
+                    {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
+                    {item.status === "completed" && "เสร็จสิ้น"}
+                    {item.status === "advisor_rejected" && "อาจารย์ปฏิเสธ"}
+                    {!["pending", "pending_advisor", "approved", "rejected", "pending_staff", "staff_approved", "completed", "advisor_rejected"].includes(item.status ?? "") &&
+                      (item.status ?? "ไม่ทราบสถานะ")}
+                  </span>
+                </td>
+                <td>
+                  {isPending ? (
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnApprove}`}
+                        onClick={() => onApprove(item)}
+                      >
+                        อนุมัติ
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnReject}`}
+                        onClick={() => onReject(item)}
+                      >
+                        ปฏิเสธ
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      className={styles.expandBtn}
-                      onClick={() => toggleExpand(item.id)}
-                      aria-label={isExpanded ? "ย่อรายละเอียด" : "ขยายรายละเอียด"}
+                      className={`${styles.btn} ${styles.btnDetail}`}
+                      onClick={() => setDetailItem(item)}
                     >
-                      {isExpanded ? "▼" : "▶"}
+                      ดูรายละเอียด
                     </button>
-                  </td>
-                  <td>
-                    <div className={styles.projectTitle}>{projectTitle}</div>
-                  </td>
-                  <td>
-                    <div className={styles.students}>
-                      {studentNames.length > 0 ? (
-                        studentNames.map((name, idx) => (
-                          <div key={idx} className={styles.studentName}>
-                            {name}
-                          </div>
-                        ))
-                      ) : (
-                        <div className={styles.studentName}>-</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className={responsive.hideOnMobile}>{requestDate ? new Date(requestDate).toLocaleDateString("th-TH") : "-"}</td>
-                  {showTestDates && "testStartDate" in item && (
-                    <>
-                      <td className={responsive.hideOnMobile}>
-                        {item.testStartDate
-                          ? new Date(item.testStartDate).toLocaleDateString("th-TH")
-                          : "-"}
-                      </td>
-                      <td className={responsive.hideOnMobile}>
-                        {item.testDueDate
-                          ? new Date(item.testDueDate).toLocaleDateString("th-TH")
-                          : "-"}
-                      </td>
-                    </>
                   )}
-                  <td>
-                    <span className={`${styles.badge} ${styles[`badge-${item.status}`]}`}>
-                      {item.status === "pending" && "รออนุมัติ"}
-                      {item.status === "pending_advisor" && "รออาจารย์พิจารณา"}
-                      {item.status === "approved" && "อนุมัติแล้ว"}
-                      {item.status === "rejected" && "ปฏิเสธแล้ว"}
-                      {item.status === "pending_staff" && "รอเจ้าหน้าที่"}
-                      {item.status === "staff_approved" && "เจ้าหน้าที่อนุมัติแล้ว"}
-                      {item.status === "completed" && "เสร็จสิ้น"}
-                      {item.status === "advisor_rejected" && "อาจารย์ปฏิเสธ"}
-                      {/* fallback สำหรับ status ที่ยังไม่ได้ map */}
-                      {!["pending", "pending_advisor", "approved", "rejected", "pending_staff", "staff_approved", "completed", "advisor_rejected"].includes(item.status ?? "") &&
-                        (item.status ?? "ไม่ทราบสถานะ")}
-                    </span>
-                  </td>
-                  <td>
-                    {isPending && (
-                      <div className={styles.actions}>
-                        <button
-                          type="button"
-                          className={`${styles.btn} ${styles.btnApprove}`}
-                          onClick={() => onApprove(item)}
-                        >
-                          อนุมัติ
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.btn} ${styles.btnReject}`}
-                          onClick={() => onReject(item)}
-                        >
-                          ปฏิเสธ
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <tr key={`${item.id}-expanded`} className={styles.expandedRow}>
-                    <td colSpan={showTestDates ? 8 : 6}>
-                      <ExpandedRowDetails item={item} onViewPDF={onViewPDF} />
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
+                </td>
+              </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+
+    {/* Detail Modal — แสดงรายละเอียดเมื่อกด "ดูรายละเอียด" */}
+    {detailItem && (
+      <div className={styles.modal}>
+        <div className={styles.modalBackdrop} onClick={() => setDetailItem(null)} />
+        <div className={styles.modalContent}>
+          <h2 className={styles.modalTitle}>รายละเอียดคำขอ</h2>
+          <div className={styles.modalBody}>
+            <ExpandedRowDetails item={detailItem} onViewPDF={onViewPDF} />
+          </div>
+          <div className={styles.modalFooter}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSecondary}`}
+              onClick={() => setDetailItem(null)}
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
@@ -549,6 +591,9 @@ export function DecisionModal<T extends QueueItem>({
 
   const studentNames = getStudentNames(item);
   const projectTitle = getProjectTitle(item);
+  const isDefenseRequest = "project" in item;
+  const defenseItem = item as DefenseRequest;
+  const meetingMetrics = isDefenseRequest ? defenseItem.meetingMetrics : undefined;
 
   return (
     <div className={styles.modal}>
@@ -575,6 +620,47 @@ export function DecisionModal<T extends QueueItem>({
               <span>-</span>
             )}
           </p>
+
+          {/* #3: แสดง meeting metrics ใน modal */}
+          {meetingMetrics && (
+            <div className={styles.modalMetrics}>
+              <div className={styles.modalMetricItem}>
+                <span className={styles.modalMetricLabel}>จำนวนการพบ</span>
+                <span className={styles.modalMetricValue}>{meetingMetrics.totalMeetings} ครั้ง</span>
+              </div>
+              <div className={styles.modalMetricItem}>
+                <span className={styles.modalMetricLabel}>อนุมัติแล้ว</span>
+                <span className={styles.modalMetricValue}>{meetingMetrics.approvedLogs} ครั้ง</span>
+              </div>
+              <div className={styles.modalMetricItem}>
+                <span className={styles.modalMetricLabel}>ขั้นต่ำ</span>
+                <span className={styles.modalMetricValue}>{meetingMetrics.minimumRequired} ครั้ง</span>
+              </div>
+            </div>
+          )}
+
+          {/* #3: แสดง advisor approvals ใน modal */}
+          {item.advisors && item.advisors.length > 0 && (
+            <div className={styles.modalAdvisorSection}>
+              <strong className={styles.modalSectionLabel}>สถานะอาจารย์ที่ปรึกษา</strong>
+              {item.advisors.map((advisor, idx) => (
+                <div key={idx} className={styles.modalAdvisorRow}>
+                  <span className={styles.modalAdvisorName}>
+                    {advisor.teacherName}
+                    <span className={styles.modalAdvisorRole}>
+                      {advisor.role === "advisor" ? " (ที่ปรึกษา)" : " (ร่วม)"}
+                    </span>
+                  </span>
+                  <span className={`${styles.advisorBadge} ${styles[`badge-${advisor.status}`]}`}>
+                    {advisor.status === "approved" && "อนุมัติแล้ว"}
+                    {advisor.status === "rejected" && "ปฏิเสธแล้ว"}
+                    {advisor.status === "pending" && "รออนุมัติ"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={styles.formGroup}>
             <label htmlFor="note">
               หมายเหตุ {mode === "reject" && <span className={styles.required}>*</span>}

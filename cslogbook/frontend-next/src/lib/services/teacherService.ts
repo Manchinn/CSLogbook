@@ -269,6 +269,7 @@ export type MeetingMetrics = {
   approvedLogs: number;
   minimumRequired: number;
   lastApprovalDate?: string;
+  perStudent?: { studentId: number; approvedLogs: number; attendedMeetings: number }[];
 };
 
 export type StaffVerification = {
@@ -291,6 +292,8 @@ export type DefenseRequest = {
     projectCode?: string;
     projectNameTh?: string;
     projectNameEn?: string;
+    academicYear?: number;
+    semester?: number;
     members?: ProjectMember[];
   };
   requestDate: string;
@@ -329,13 +332,40 @@ export async function getAdvisorKP02Queue(token: string, filters?: AdvisorQueueF
   const query = params.toString();
   const url = query ? `/projects/kp02/advisor-queue?${query}` : "/projects/kp02/advisor-queue";
 
-  const data = await apiFetchData<{ items: DefenseRequest[]; summary?: QueueSummary }>(url, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
+  // Backend returns requestId — map to id for frontend
+  const items: DefenseRequest[] = (data?.items || []).map((item) => ({
+    ...item,
+    id: item.requestId ?? item.id,
+    projectTitle: item.project?.projectNameTh || item.project?.projectNameEn || "",
+    // map meetingMetrics field names จาก backend → frontend
+    meetingMetrics: item.meetingMetrics
+      ? {
+          totalMeetings: item.meetingMetrics.totalMeetings ?? 0,
+          approvedLogs: item.meetingMetrics.totalApprovedLogs ?? 0,
+          minimumRequired: item.meetingMetrics.requiredApprovedLogs ?? 0,
+          lastApprovalDate: item.meetingMetrics.lastApprovedLogAt ?? undefined,
+          perStudent: item.meetingMetrics.perStudent,
+        }
+      : undefined,
+    // map advisorApprovals → advisors (field name ต่างกัน)
+    advisors: (item.advisorApprovals || item.advisors || []).map((a: Record<string, unknown>) => ({
+      teacherId: a.teacherId,
+      teacherName: (a.teacher as Record<string, unknown>)?.name || a.teacherName || "",
+      role: a.teacherRole || a.role || "advisor",
+      status: a.status || "pending",
+      note: a.note || undefined,
+      approvedAt: a.approvedAt || undefined,
+    })),
+  }));
+
   return {
-    items: data?.items || [],
+    items,
     summary: data?.summary || DEFAULT_SUMMARY,
   };
 }
@@ -365,13 +395,37 @@ export async function getAdvisorThesisQueue(token: string, filters?: AdvisorQueu
   if (filters?.status) params.append("status", filters.status);
   const url = `/projects/kp02/advisor-queue?${params.toString()}`;
 
-  const data = await apiFetchData<{ items: DefenseRequest[]; summary?: QueueSummary }>(url, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
+  const items: DefenseRequest[] = (data?.items || []).map((item) => ({
+    ...item,
+    id: item.requestId ?? item.id,
+    projectTitle: item.project?.projectNameTh || item.project?.projectNameEn || "",
+    meetingMetrics: item.meetingMetrics
+      ? {
+          totalMeetings: item.meetingMetrics.totalMeetings ?? 0,
+          approvedLogs: item.meetingMetrics.totalApprovedLogs ?? 0,
+          minimumRequired: item.meetingMetrics.requiredApprovedLogs ?? 0,
+          lastApprovalDate: item.meetingMetrics.lastApprovedLogAt ?? undefined,
+          perStudent: item.meetingMetrics.perStudent,
+        }
+      : undefined,
+    advisors: (item.advisorApprovals || item.advisors || []).map((a: Record<string, unknown>) => ({
+      teacherId: a.teacherId,
+      teacherName: (a.teacher as Record<string, unknown>)?.name || a.teacherName || "",
+      role: a.teacherRole || a.role || "advisor",
+      status: a.status || "pending",
+      note: a.note || undefined,
+      approvedAt: a.approvedAt || undefined,
+    })),
+  }));
+
   return {
-    items: data?.items || [],
+    items,
     summary: data?.summary || DEFAULT_SUMMARY,
   };
 }
@@ -397,6 +451,8 @@ export type SystemTestRequest = {
     projectCode?: string;
     projectNameTh?: string;
     projectNameEn?: string;
+    academicYear?: number;
+    semester?: number;
   };
   submittedBy?: {
     studentCode: string;
@@ -427,13 +483,20 @@ export async function getAdvisorSystemTestQueue(token: string, filters?: Advisor
   const query = params.toString();
   const url = query ? `/projects/system-test/advisor-queue?${query}` : "/projects/system-test/advisor-queue";
 
-  const data = await apiFetchData<{ items: SystemTestRequest[]; summary?: QueueSummary }>(url, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
+  const items: SystemTestRequest[] = (data?.items || []).map((item) => ({
+    ...item,
+    id: item.requestId ?? item.id,
+    projectTitle: item.projectSnapshot?.projectNameTh || item.projectSnapshot?.projectNameEn || "",
+  }));
+
   return {
-    items: data?.items || [],
+    items,
     summary: data?.summary || DEFAULT_SUMMARY,
   };
 }
