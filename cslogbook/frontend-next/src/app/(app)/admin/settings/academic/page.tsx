@@ -98,6 +98,16 @@ const emptyScheduleForm: ScheduleFormState = {
   projectSemesters: "",
 };
 
+function relatedToLabel(relatedTo?: string | null) {
+  if (!relatedTo) return "ทั่วไป";
+  const val = relatedTo.toLowerCase();
+  if (val.includes("internship")) return "ฝึกงาน";
+  if (val.includes("project2")) return "ปริญญานิพนธ์";
+  if (val.includes("project1")) return "โครงงานพิเศษ 1";
+  if (val.includes("project")) return "โครงงานพิเศษ";
+  return "ทั่วไป";
+}
+
 const emptyDeadlineForm: DeadlineFormState = {
   id: null,
   name: "",
@@ -1044,12 +1054,12 @@ export default function AcademicSettingsPage() {
                   onChange={(event) => handleDeadlineField("deadlineType", event.target.value)}>
                   <option value="SUBMISSION">ส่งเอกสาร</option>
                   <option value="ANNOUNCEMENT">ประกาศ</option>
-                  <option value="MILESTONE">ไมล์สโตน</option>
+                  <option value="MILESTONE">เหตุการณ์สำคัญ</option>
                   <option value="MANUAL">กำหนดเอง</option>
                 </select>
               </label>
               <label className={styles.field}>
-                สำคัญ (Critical)
+                ระดับความสำคัญ
                 <select className={styles.select}
                   value={deadlineForm.isCritical ? "true" : "false"}
                   onChange={(event) => handleDeadlineField("isCritical", event.target.value === "true")}>
@@ -1188,7 +1198,7 @@ export default function AcademicSettingsPage() {
                 {deadlines.map((deadline) => (
                   <tr key={deadline.id}>
                     <td>{deadline.name}</td>
-                    <td>{deadline.relatedTo ?? "-"}</td>
+                    <td>{relatedToLabel(deadline.relatedTo)}</td>
                     {/* แสดงวันที่-เวลาในรูปแบบไทย DD/MM/YYYY (พ.ศ.) HH:mm */}
                     <td>{formatThaiDateTime(deadline.deadlineDate, deadline.deadlineTime)}</td>
                     <td>
