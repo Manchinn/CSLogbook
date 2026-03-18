@@ -324,7 +324,7 @@ export default function InternshipSummaryView() {
         <div className={styles.sectionHeader}>
           <div>
             <div className={styles.label}>บทสรุปประสบการณ์</div>
-            <div className={styles.meta}>Reflection จากการฝึกงาน</div>
+            <div className={styles.meta}>ประสบการณ์จากการฝึกงาน</div>
           </div>
           <button
             className={styles.secondaryButton}
@@ -430,13 +430,13 @@ export default function InternshipSummaryView() {
             </div>
             {entries.map((entry) => {
               const { label, tone } = entryStatusInfo(entry);
-              const tagClass = tone === "success" ? styles.tagSuccess : tone === "danger" ? styles.tagDanger : tone === "muted" ? styles.tagMuted : styles.tag;
+              const tagClass = tone === "success" ? styles.tagSuccess : tone === "danger" ? styles.tagDanger : tone === "muted" ? styles.tagMuted : "";
               return (
                 <div key={entry.logId ?? entry.workDate} className={styles.tableRow}>
                   <span>{formatDate(entry.workDate)}</span>
                   <span>{entry.logTitle || entry.workDescription || "-"}</span>
                   <span>{formatNumber(entry.workHours ?? null)}</span>
-                  <span className={`${styles.tag} ${tagClass}`}>{label}</span>
+                  <span className={`${styles.tag} ${tagClass}`.trim()}>{label}</span>
                 </div>
               );
             })}
