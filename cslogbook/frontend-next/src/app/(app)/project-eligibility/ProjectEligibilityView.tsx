@@ -34,7 +34,7 @@ export default function ProjectEligibilityView() {
 
   const currentCredits      = student?.totalCredits      ?? status?.currentCredits      ?? 0;
   const currentMajorCredits = student?.majorCredits      ?? status?.currentMajorCredits ?? 0;
-  const requiredCredits      = requirements?.totalCredits ?? status?.requiredCredits      ?? 90;
+  const requiredCredits      = requirements?.totalCredits ?? status?.requiredCredits      ?? 0;
   const requiredMajorCredits = requirements?.majorCredits ?? status?.requiredMajorCredits ?? 0;
   const requiresInternship   = requirements?.requireInternship ?? status?.requiresInternshipCompletion ?? false;
 
@@ -43,12 +43,12 @@ export default function ProjectEligibilityView() {
     [requirements?.allowedSemesters]
   );
 
-  const currentSemester     = academicSettings?.currentSemester     ?? 1;
+  const currentSemester     = academicSettings?.currentSemester     ?? null;
   const currentAcademicYear = academicSettings?.currentAcademicYear ?? null;
 
   const passCredits      = currentCredits      >= requiredCredits;
   const passMajorCredits = requiredMajorCredits === 0 || currentMajorCredits >= requiredMajorCredits;
-  const passSemester     = allowedSemesters.includes(currentSemester);
+  const passSemester     = currentSemester !== null && allowedSemesters.includes(currentSemester);
   const canAccess        = eligibility?.canAccessFeature ?? false;
   const canRegister      = eligibility?.canRegister ?? status?.canRegister ?? false;
   const statusReason     = eligibility?.reason ?? status?.reason ?? "ระบบจะตรวจสอบจากข้อมูลล่าสุด";
@@ -59,7 +59,7 @@ export default function ProjectEligibilityView() {
   const checks = useMemo(
     () => [
       {
-        title: "หน่วยกิตรวมสะสม",
+        title: "หน่วยกิตสะสม",
         detail: `${currentCredits} / ${requiredCredits} หน่วยกิต`,
         ok: passCredits,
       },
@@ -135,7 +135,8 @@ export default function ProjectEligibilityView() {
           <p className={styles.kicker}>Project Eligibility</p>
           <h1 className={styles.title}>ตรวจสอบคุณสมบัติโครงงานพิเศษ</h1>
           <p className={styles.lead}>
-            ตรวจสอบสิทธิ์ลงทะเบียนโครงงานพิเศษ ภาคเรียนที่ {currentSemester}
+            ตรวจสอบสิทธิ์ลงทะเบียนโครงงานพิเศษ
+            {currentSemester ? ` ภาคเรียนที่ ${currentSemester}` : ""}
             {currentAcademicYear ? ` ปีการศึกษา ${currentAcademicYear}` : ""}
           </p>
         </div>
@@ -151,9 +152,9 @@ export default function ProjectEligibilityView() {
 
       <div className={styles.grid}>
         <div className={styles.card}>
-          <p className={styles.cardLabel}>หน่วยกิตรวม</p>
+          <p className={styles.cardLabel}>หน่วยกิตสะสม</p>
           <p className={styles.cardValue}>{currentCredits}</p>
-          <p className={styles.cardHint}>ต้องอย่างน้อย {requiredCredits} หน่วยกิต</p>
+          <p className={styles.cardHint}>{requiredCredits ? `ต้องอย่างน้อย ${requiredCredits} หน่วยกิต` : "กำลังโหลดข้อมูลหลักสูตร..."}</p>
         </div>
         {requiredMajorCredits > 0 && (
           <div className={styles.card}>
@@ -164,7 +165,7 @@ export default function ProjectEligibilityView() {
         )}
         <div className={styles.card}>
           <p className={styles.cardLabel}>ภาคเรียนปัจจุบัน</p>
-          <p className={styles.cardValue}>{currentSemester}</p>
+          <p className={styles.cardValue}>{currentSemester ?? "-"}</p>
           <p className={styles.cardHint}>อนุญาตภาค {allowedSemesters.join(", ")}</p>
         </div>
       </div>

@@ -751,12 +751,23 @@ class StudentService {
         }
       }
 
-      // ดึงข้อมูลการตั้งค่าปีการศึกษาล่าสุด
-      const academicSettings = await sequelize.models.Academic.findOne({
-        order: [["created_at", "DESC"]],
+      // ดึงข้อมูลปีการศึกษาที่ active — fallback เป็น isCurrent แล้ว latest
+      let academicSettings = await sequelize.models.Academic.findOne({
+        where: { status: 'active' },
       });
+      if (!academicSettings) {
+        academicSettings = await sequelize.models.Academic.findOne({
+          where: { isCurrent: true },
+          order: [["updated_at", "DESC"]],
+        });
+      }
+      if (!academicSettings) {
+        academicSettings = await sequelize.models.Academic.findOne({
+          order: [["created_at", "DESC"]],
+        });
+      }
 
-      // หาบลักสูตรที่ใช้งานอยู่
+      // หาหลักสูตรที่ใช้งานอยู่ — fallback เหมือน studentUtils.js
       let curriculum = null;
       if (academicSettings?.activeCurriculumId) {
         curriculum = await sequelize.models.Curriculum.findOne({
@@ -764,6 +775,12 @@ class StudentService {
             curriculumId: academicSettings.activeCurriculumId,
             active: true,
           },
+        });
+      }
+      if (!curriculum) {
+        curriculum = await sequelize.models.Curriculum.findOne({
+          where: { active: true },
+          order: [["created_at", "DESC"]],
         });
       }
 
