@@ -26,6 +26,10 @@ const ACTIVE_CS05_STATUSES = [
   "supervisor_approved",
   "supervisor_evaluated",
 ];
+
+// เปิด/ปิด validation วันที่บันทึก — เปลี่ยนเป็น false เพื่อทดสอบบันทึกล่วงหน้า
+const ENFORCE_LOGBOOK_DATE_VALIDATION = false;
+
 class InternshipLogbookService {
   /**
    * ดึงข้อมูลบันทึกการฝึกงานทั้งหมดของนักศึกษา
@@ -150,6 +154,25 @@ class InternshipLogbookService {
 
       if (!document) {
         throw new Error("ไม่พบข้อมูล CS05");
+      }
+
+      // ตรวจสอบวันที่บันทึก: ห้ามบันทึกล่วงหน้า + ต้องอยู่ในช่วงฝึกงาน
+      if (ENFORCE_LOGBOOK_DATE_VALIDATION) {
+        const { startDate, endDate } = document.internshipDocument;
+        const workDateObj = new Date(workDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        workDateObj.setHours(0, 0, 0, 0);
+
+        if (startDate && workDateObj < new Date(startDate)) {
+          throw new Error("ไม่สามารถบันทึกก่อนวันเริ่มฝึกงานได้");
+        }
+        if (endDate && workDateObj > new Date(endDate)) {
+          throw new Error("ไม่สามารถบันทึกหลังวันสิ้นสุดฝึกงานได้");
+        }
+        if (workDateObj > today) {
+          throw new Error("ไม่สามารถบันทึกล่วงหน้าได้ กรุณาบันทึกในวันที่ถึงแล้วเท่านั้น");
+        }
       }
 
       const internshipId = document.internshipDocument.internshipId;
