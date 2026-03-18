@@ -113,7 +113,7 @@ module.exports = (sequelize) => {
                         if (activeSystemCurriculum) {
                             requiredTotalCredits = activeSystemCurriculum.internshipBaseCredits;
                             requiredMajorCreditsForInternship = activeSystemCurriculum.internshipMajorBaseCredits;
-                            curriculumName = `(Fallback) ${activeSystemCurriculum.name}`;
+                            curriculumName = activeSystemCurriculum.name;
                             console.log(`Student.js: Fallback to Active System Curriculum: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         } else {
                             // 5. ไม่พบ curriculum ที่ active ตาม id ที่ได้
@@ -140,7 +140,7 @@ module.exports = (sequelize) => {
                 if (this.totalCredits < requiredTotalCredits) {
                     return {
                         eligible: false,
-                        reason: `หน่วยกิตรวมไม่เพียงพอ (มี ${this.totalCredits} จากเกณฑ์ ${requiredTotalCredits} ของหลักสูตร: ${curriculumName})`,
+                        reason: `หน่วยกิตรวมไม่เพียงพอ`,
                         canAccessFeature: false,
                         canRegister: false
                     };
@@ -150,7 +150,7 @@ module.exports = (sequelize) => {
                     if (this.majorCredits < requiredMajorCreditsForInternship) {
                         return {
                             eligible: false,
-                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอ (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCreditsForInternship} ของหลักสูตร: ${curriculumName})`,
+                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอ`,
                             canAccessFeature: false,
                             canRegister: false
                         };
@@ -160,7 +160,7 @@ module.exports = (sequelize) => {
                 console.log('Student.js - Passed INTERNSHIP credit checks.');
                 return {
                     eligible: true,
-                    reason: `ผ่านเกณฑ์หน่วยกิต (หลักสูตร: ${curriculumName})`,
+                    reason: `ผ่านเกณฑ์หน่วยกิต`,
                 };
 
             } catch (error) {
@@ -223,7 +223,7 @@ module.exports = (sequelize) => {
                             requiredTotalCredits = activeSystemCurriculum.projectBaseCredits;
                             requiredMajorCredits = activeSystemCurriculum.projectMajorBaseCredits;
                             requiresInternshipCompletion = activeSystemCurriculum.requireInternshipBeforeProject;
-                            curriculumName = `(Fallback) ${activeSystemCurriculum.name}`;
+                            curriculumName = activeSystemCurriculum.name;
                             console.log(`Student.js: Fallback to Active System Curriculum for Project: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         }
                     }
@@ -258,7 +258,7 @@ module.exports = (sequelize) => {
                     if (this.majorCredits < requiredMajorCredits) {
                         return {
                             eligible: false,
-                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอสำหรับโครงงาน (มี ${this.majorCredits} จากเกณฑ์ ${requiredMajorCredits} ของหลักสูตร: ${curriculumName})`,
+                            reason: `หน่วยกิตวิชาภาคไม่เพียงพอ`,
                             canAccessFeature: false,
                             canRegister: false,
                         };
@@ -287,7 +287,7 @@ module.exports = (sequelize) => {
                 console.log('Student.js - Passed PROJECT credit checks.');
                 return {
                     eligible: true,
-                    reason: `ผ่านเกณฑ์หน่วยกิตโครงงาน (หลักสูตร: ${curriculumName})`,
+                    reason: `ผ่านเกณฑ์หน่วยกิต`,
                     // เมื่อผ่าน ให้เปิด access และ register (ใน Phase ปัจจุบัน)
                     canAccessFeature: true,
                     canRegister: true,

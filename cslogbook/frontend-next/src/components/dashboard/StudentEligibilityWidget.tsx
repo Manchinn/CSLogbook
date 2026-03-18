@@ -96,18 +96,6 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
               <p className={styles.eyebrow}>สิทธิ์นักศึกษา</p>
               <h2>สิทธิ์การลงทะเบียน</h2>
             </div>
-            <div className={styles.badges}>
-              <span
-                className={`${styles.chip} ${data.eligibility.internship.canAccessFeature ? styles.chipPositive : styles.chipNegative}`}
-              >
-                ฝึกงาน: {data.eligibility.internship.canAccessFeature ? "พร้อมใช้งาน" : "ยังไม่พร้อม"}
-              </span>
-              <span
-                className={`${styles.chip} ${data.eligibility.project.canAccessFeature ? styles.chipPositive : styles.chipNegative}`}
-              >
-                โครงงาน: {data.eligibility.project.canAccessFeature ? "พร้อมใช้งาน" : "ยังไม่พร้อม"}
-              </span>
-            </div>
           </div>
 
           <div className={styles.grid}>
@@ -148,12 +136,6 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
                   )}
                 </div>
               )}
-              <div className={styles.metaGrid}>
-                <span>สิทธิ์เข้าระบบ: {data.eligibility.internship.canAccessFeature ? "ได้" : "ไม่ได้"}</span>
-                <span>ลงทะเบียน: {data.status.internship.canRegister ? "ได้" : "ไม่ได้"}</span>
-                <span>หน่วยกิตสะสมขั้นต่ำ: {data.status.internship.currentCredits?.toLocaleString() ?? "—"}</span>
-                <span>หน่วยกิตภาควิชา: {data.status.internship.currentMajorCredits?.toLocaleString() ?? "—"}</span>
-              </div>
             </article>
 
             <article className={styles.card}>
@@ -191,14 +173,9 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
                   )}
                 </div>
               )}
-              <div className={styles.metaGrid}>
-                <span>ลงทะเบียน: {data.status.project.canRegister ? "ได้" : "ไม่ได้"}</span>
-                <span>
-                  ต้องผ่านฝึกงานก่อน: {data.status.project.requiresInternshipCompletion ? "ใช่" : "ไม่จำเป็น"}
-                </span>
-                <span>หน่วยกิตสะสมขั้นต่ำ: {data.status.project.currentCredits?.toLocaleString() ?? "—"}</span>
-                <span>หน่วยกิตภาควิชา: {data.status.project.currentMajorCredits?.toLocaleString() ?? "—"}</span>
-              </div>
+              {data.status.project.requiresInternshipCompletion && (
+                <p className={styles.note}>* ต้องผ่านฝึกงานก่อนจึงจะลงทะเบียนโครงงานได้</p>
+              )}
             </article>
 
             <article className={styles.card}>

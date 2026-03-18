@@ -28,35 +28,9 @@
   color: var(--color-text-muted);
 }
 
-.badges {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.chip {
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  font-weight: 700;
-  font-size: 0.85rem;
-  border: 1px solid transparent;
-}
-
-.chipPositive {
-  background: #ecfdf3;
-  color: #166534;
-  border-color: #bbf7d0;
-}
-
-.chipNegative {
-  background: rgba(255, 77, 79, 0.08);
-  color: var(--color-error);
-  border-color: rgba(255, 77, 79, 0.26);
-}
-
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 0.8rem;
 }
 
@@ -108,14 +82,6 @@
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.9rem;
-}
-
-.metaGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem 0.6rem;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
 }
 
 .statList {
