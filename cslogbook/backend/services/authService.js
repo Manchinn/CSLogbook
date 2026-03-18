@@ -423,6 +423,32 @@ class AuthService {
   }
 
   /**
+   * ค้นหาผู้ใช้ด้วย email
+   * @param {string} email - อีเมล
+   * @returns {Object|null} ข้อมูลผู้ใช้หรือ null
+   */
+  async findUserByEmail(email) {
+    try {
+      logger.info(`AuthService: Finding user by email: ${email}`);
+
+      const user = await User.findOne({
+        where: { email, activeStatus: true }
+      });
+
+      if (!user) {
+        logger.warn(`AuthService: User not found by email: ${email}`);
+        return null;
+      }
+
+      logger.info(`AuthService: User found by email: ${email}, role: ${user.role}`);
+      return user;
+    } catch (error) {
+      logger.error('AuthService: Error finding user by email', error);
+      throw new Error('ไม่สามารถค้นหาผู้ใช้ได้: ' + error.message);
+    }
+  }
+
+  /**
    * ค้นหาผู้ใช้ด้วย username และ SSO provider
    * @param {string} username - ชื่อผู้ใช้
    * @param {string} ssoProvider - SSO provider (เช่น 'kmutnb')

@@ -2,6 +2,20 @@ import { LoginForm } from "./LoginForm";
 import styles from "./page.module.css";
 import { CSLogbookLogo } from "@/components/common/Logo";
 
+function getSsoErrorMessage(errorCode: string): string {
+  const messages: Record<string, string> = {
+    account_not_found:
+      "ไม่พบบัญชีของท่านในระบบ กรุณาติดต่อเจ้าหน้าที่ภาควิชาเพื่อสร้างบัญชีก่อนเข้าใช้งาน",
+    invalid_state: "เซสชันหมดอายุ กรุณาลองเข้าสู่ระบบอีกครั้ง",
+    token_error: "ไม่สามารถยืนยันตัวตนกับ SSO ได้ กรุณาลองใหม่อีกครั้ง",
+    token_missing_access_token: "ไม่สามารถยืนยันตัวตนกับ SSO ได้ กรุณาลองใหม่อีกครั้ง",
+    userinfo_error: "ไม่สามารถดึงข้อมูลผู้ใช้จาก SSO ได้ กรุณาลองใหม่อีกครั้ง",
+    no_code: "ไม่ได้รับรหัสยืนยันจาก SSO กรุณาลองใหม่อีกครั้ง",
+    server_error: "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง",
+  };
+  return messages[errorCode] || `เกิดข้อผิดพลาด: ${errorCode}`;
+}
+
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -40,7 +54,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p>เข้าสู่ระบบด้วยบัญชี KMUTNB (ICIT Account) ของท่าน</p>
           </div>
 
-          {errorMessage ? <p className={styles.errorText}>เกิดข้อผิดพลาด: {errorMessage}</p> : null}
+          {errorMessage ? <p className={styles.errorText}>{getSsoErrorMessage(errorMessage)}</p> : null}
 
           <LoginForm />
         </div>

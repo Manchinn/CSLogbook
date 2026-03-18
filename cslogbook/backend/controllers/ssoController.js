@@ -118,16 +118,27 @@ exports.callback = async (req, res) => {
     // แปลงข้อมูล SSO เป็นรูปแบบที่ใช้ในระบบ
     const ssoUserData = ssoService.mapSsoUserData(userInfoResult.data, tokenData);
 
-    // ค้นหาหรือสร้างผู้ใช้ในระบบ
+    // ค้นหาผู้ใช้ในระบบ — ไม่สร้างใหม่อัตโนมัติ (admin ต้องสร้างก่อน)
     let user = await authService.findUserByUsernameAndProvider(ssoUserData.username, 'kmutnb');
-    
+
     if (user) {
       // อัปเดตข้อมูลผู้ใช้จาก SSO
       user = await authService.updateUserFromSso(user, ssoUserData);
       logger.info('SSO Controller: Updated existing user', { userId: user.userId });
     } else {
-      // ตรวจสอบว่ามี user ที่ username เดียวกันแต่ไม่ใช่ SSO หรือไม่
-      const existingUser = await authService.findUserByUsername(ssoUserData.username);
+      // ลอง match ด้วย username ก่อน
+      let existingUser = await authService.findUserByUsername(ssoUserData.username);
+
+      // ถ้าไม่เจอ ลอง match ด้วย email เป็น fallback
+      if (!existingUser && ssoUserData.email) {
+        existingUser = await authService.findUserByEmail(ssoUserData.email);
+        if (existingUser) {
+          logger.info('SSO Controller: Matched user by email fallback', {
+            email: ssoUserData.email, userId: existingUser.userId
+          });
+        }
+      }
+
       if (existingUser) {
         // Link บัญชีเดิมกับ SSO
         existingUser.ssoProvider = 'kmutnb';
@@ -136,9 +147,15 @@ exports.callback = async (req, res) => {
         user = existingUser;
         logger.info('SSO Controller: Linked existing user to SSO', { userId: user.userId });
       } else {
-        // สร้างผู้ใช้ใหม่
-        user = await authService.createUserFromSso(ssoUserData);
-        logger.info('SSO Controller: Created new SSO user', { userId: user.userId });
+        // ไม่พบบัญชีในระบบ — ไม่สร้างใหม่อัตโนมัติ
+        logger.warn('SSO Controller: No matching user found for SSO login', {
+          ssoUsername: ssoUserData.username,
+          ssoEmail: ssoUserData.email,
+          accountType: ssoUserData.accountType
+        });
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/login?error=account_not_found`
+        );
       }
     }
 
