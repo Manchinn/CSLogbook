@@ -206,11 +206,11 @@ export function StudentEligibilityWidget({ enabled }: StudentEligibilityWidgetPr
               <div className={styles.statList}>
                 <div className={styles.statRow}>
                   <span>หน่วยกิตสะสม</span>
-                  <strong>{data.student.totalCredits.toLocaleString()}</strong>
+                  <strong>{(data.student.totalCredits ?? 0).toLocaleString()}</strong>
                 </div>
                 <div className={styles.statRow}>
                   <span>หน่วยกิตภาควิชา</span>
-                  <strong>{data.student.majorCredits.toLocaleString()}</strong>
+                  <strong>{(data.student.majorCredits ?? 0).toLocaleString()}</strong>
                 </div>
               </div>
               <div className={styles.requirements}>

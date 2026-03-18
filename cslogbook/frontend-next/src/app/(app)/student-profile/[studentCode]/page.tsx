@@ -563,6 +563,12 @@ export default function StudentProfilePage() {
                   )}
                 </div>
               </div>
+              {isEditingCredits && (
+                <div className={styles.policyNote}>
+                  <strong>กรุณากรอกหน่วยกิตตามข้อมูลจริงจากระบบลงทะเบียน</strong>
+                  <p>การกรอกข้อมูลไม่ตรงกับความเป็นจริงอาจส่งผลต่อสิทธิ์การลงทะเบียนฝึกงาน/โครงงานของนักศึกษาเอง ระบบจะบันทึกประวัติการแก้ไขทุกครั้ง</p>
+                </div>
+              )}
               {creditsError ? <p className={styles.error}>{creditsError}</p> : null}
             </article>
             ) : null}

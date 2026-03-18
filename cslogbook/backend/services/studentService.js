@@ -363,12 +363,18 @@ class StudentService {
       // ดึงปีการศึกษาและภาคเรียนปัจจุบันจาก Academic
       const currentAcademic = await Academic.findOne({ where: { isCurrent: true }, transaction });
       if (currentAcademic) {
+        const oldTotal = student.totalCredits ?? 0;
+        const oldMajor = student.majorCredits ?? 0;
+        const creditChangeNote = (oldTotal !== parsedTotalCredits || oldMajor !== parsedMajorCredits)
+          ? `แก้ไขหน่วยกิต: รวม ${oldTotal}→${parsedTotalCredits}, ภาควิชา ${oldMajor}→${parsedMajorCredits}`
+          : 'อัปเดตข้อมูลนักศึกษา';
+
         await StudentAcademicHistory.create({
           studentId: student.studentId,
           academicYear: currentAcademic.academicYear,
           semester: currentAcademic.currentSemester,
           status: status || 'updated',
-          note: note || 'อัปเดตข้อมูลนักศึกษา'
+          note: note || creditChangeNote
         }, { transaction });
       }
 
