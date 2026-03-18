@@ -872,7 +872,7 @@ class MeetingService {
         {
           model: Meeting,
           as: 'meeting',
-          attributes: ['meetingId', 'meetingTitle', 'meetingDate', 'meetingMethod', 'meetingLocation', 'meetingLink', 'projectId'],
+          attributes: ['meetingId', 'meetingTitle', 'meetingDate', 'meetingMethod', 'meetingLocation', 'meetingLink', 'projectId', 'phase'],
           required: true,
           include: [
             {
@@ -989,7 +989,8 @@ class MeetingService {
           meetingMethod: meeting.meetingMethod,
           meetingLocation: meeting.meetingLocation,
           meetingLink: meeting.meetingLink,
-          projectId: meeting.projectId
+          projectId: meeting.projectId,
+          phase: meeting.phase || 'phase1'
         } : null,
         project: project ? {
           projectId: project.projectId,

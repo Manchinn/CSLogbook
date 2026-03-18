@@ -130,6 +130,10 @@ export type MeetingLogApproval = {
   studentName: string;
   projectTitle: string;
   topic: string;
+  currentProgress?: string;
+  problemsIssues?: string;
+  nextActionItems?: string;
+  phase: "phase1" | "phase2";
   meetingDate: string;
   submittedAt?: string;
   status: "pending" | "approved" | "rejected";
@@ -150,9 +154,15 @@ export type QueueSummary = {
   total: number;
 };
 
+export type MeetingApprovalsMeta = {
+  availableAcademicYears: number[];
+  availableSemestersByYear: Record<string, number[]>;
+};
+
 export type MeetingApprovalsResponse = {
   items: MeetingLogApproval[];
   summary: QueueSummary;
+  meta?: MeetingApprovalsMeta;
 };
 
 /**
@@ -172,7 +182,7 @@ export async function getTeacherMeetingApprovals(
   const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
+  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary; meta?: any }>(url, {
     method: "GET",
     token,
   });
@@ -190,6 +200,10 @@ export async function getTeacherMeetingApprovals(
       studentName: firstStudent?.fullName ?? "",
       projectTitle: item.project?.projectNameTh ?? "",
       topic: item.discussionTopic ?? "",
+      currentProgress: item.currentProgress ?? "",
+      problemsIssues: item.problemsIssues ?? "",
+      nextActionItems: item.nextActionItems ?? "",
+      phase: item.meeting?.phase ?? "phase1",
       meetingDate: item.meeting?.meetingDate ?? "",
       submittedAt: item.createdAt,
       status: item.approvalStatus ?? "pending",
@@ -197,9 +211,17 @@ export async function getTeacherMeetingApprovals(
     };
   });
 
+  const meta: MeetingApprovalsMeta | undefined = data?.meta
+    ? {
+        availableAcademicYears: data.meta.availableAcademicYears ?? [],
+        availableSemestersByYear: data.meta.availableSemestersByYear ?? {},
+      }
+    : undefined;
+
   return {
     items,
     summary: data?.summary || { pending: 0, approved: 0, rejected: 0, total: 0 },
+    meta,
   };
 }
 
