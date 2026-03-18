@@ -52,7 +52,6 @@ export default function InternshipRequirementsContent() {
   const { data } = useStudentEligibility(token, true);
 
   const minCredits = data?.requirements?.internship?.totalCredits ?? null;
-  const currentCredits = data?.student?.totalCredits ?? null;
 
   // สร้าง qualification requirements แบบ dynamic
   const qualificationRequirements = [

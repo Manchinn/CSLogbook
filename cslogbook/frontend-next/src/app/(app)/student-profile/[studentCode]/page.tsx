@@ -4,9 +4,7 @@ import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
-import { useStudentInternshipStatus } from "@/hooks/useStudentInternshipStatus";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { useStudentProjectStatus } from "@/hooks/useStudentProjectStatus";
 import { useStudentDocumentsOverview } from "@/hooks/useStudentDocuments";
 import { useWorkflowTimeline } from "@/hooks/useWorkflowTimeline";
 import { WorkflowTimeline } from "@/components/workflow/WorkflowTimeline";
@@ -55,35 +53,6 @@ function normalizeEmail(email?: string | null) {
   if (!value.includes("@")) return null;
 
   return value;
-}
-
-function formatStatusThai(status?: string | null) {
-  if (!status) return "ยังไม่มีสถานะ";
-
-  const key = status.trim().toLowerCase();
-  const statusMap: Record<string, string> = {
-    not_started: "ยังไม่เริ่ม",
-    in_progress: "กำลังดำเนินการ",
-    completed: "เสร็จสิ้น",
-    pending: "รอดำเนินการ",
-    pending_approval: "รออนุมัติ",
-    approved: "อนุมัติแล้ว",
-    rejected: "ไม่ผ่าน",
-    failed: "ไม่ผ่าน",
-    passed: "ผ่าน",
-    draft: "ฉบับร่าง",
-    archived: "จัดเก็บแล้ว",
-    advisor_assigned: "มอบหมายอาจารย์ที่ปรึกษาแล้ว",
-    advisor_in_review: "อาจารย์กำลังพิจารณา",
-    advisor_approved: "อาจารย์อนุมัติแล้ว",
-    staff_verified: "เจ้าหน้าที่ตรวจสอบแล้ว",
-    phase1: "โครงงานพิเศษ 1",
-    phase2: "ปริญญานิพนธ์",
-    thesis: "ปริญญานิพนธ์",
-  };
-
-  if (statusMap[key]) return statusMap[key];
-  return status.replace(/_/g, " ");
 }
 
 function statusToneClass(status: string) {
@@ -182,8 +151,6 @@ export default function StudentProfilePage() {
   const canUseStudentEndpoints = user?.role === "student";
 
   const profileQuery = useStudentProfile(resolvedStudentCode || null, token, hydrated);
-  const internshipQuery = useStudentInternshipStatus(token, hydrated && canUseStudentEndpoints);
-  const projectQuery = useStudentProjectStatus(token, hydrated && canUseStudentEndpoints);
   const documentsQuery = useStudentDocumentsOverview(token, hydrated && canUseStudentEndpoints);
   // Timeline ต้องใช้ studentId (number PK) ไม่ใช่ studentCode (string)
   const timelineStudentId = user?.studentId ?? user?.id ?? null;
@@ -329,12 +296,6 @@ export default function StudentProfilePage() {
     profile.eligibility?.project?.eligible ?? profile.isEligibleProject
   );
 
-  const internshipStatusThai = formatStatusThai(
-    profile.internshipStatus || internshipQuery.data?.summary?.status || (profile.isEnrolledInternship ? "in_progress" : "")
-  );
-  const projectStatusThai = formatStatusThai(
-    profile.projectStatus || projectQuery.data?.workflow?.projectStatus || projectQuery.data?.workflow?.currentPhase
-  );
   const displayEmail = normalizeEmail(profile.email) ?? normalizeEmail(user?.email) ?? "ไม่ระบุ";
   const initials = name
     .split(" ")

@@ -17,7 +17,7 @@ import { NOTIFICATION_KEYS } from '@/hooks/useNotifications';
  * เมื่อ socket ได้รับ notification:new → invalidate queries → React Query refetch อัตโนมัติ
  */
 interface NotificationContextType {
-  /** Socket connected? */
+  /** Socket connected? (derived from auth state) */
   isConnected: boolean;
 }
 
@@ -40,14 +40,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const socket = connectSocket(token);
 
-    // เมื่อได้รับ notification ใหม่ → invalidate React Query cache
-    // React Query จะ refetch notification list + unread count อัตโนมัติ
-    socket.on('notification:new', () => {
+    socket.on('connect', () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.all });
     });
 
-    // Re-fetch เมื่อ reconnect (กรณีพลาด notification ระหว่าง disconnect)
-    socket.on('connect', () => {
+    // เมื่อได้รับ notification ใหม่ → invalidate React Query cache
+    socket.on('notification:new', () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.all });
     });
 
@@ -60,7 +58,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [isAuthenticated, token, queryClient]);
 
   return (
-    <NotificationContext.Provider value={{ isConnected: socketInitialized.current }}>
+    <NotificationContext.Provider value={{ isConnected: !!isAuthenticated }}>
       {children}
     </NotificationContext.Provider>
   );
