@@ -217,13 +217,19 @@ export async function getAdminInternshipDocumentDetail(documentId: number): Prom
   };
 }
 
-export async function reviewInternshipDocumentByStaff(documentId: number, documentName?: string, comment?: string) {
+export async function reviewInternshipDocumentByStaff(
+  documentId: number,
+  documentName?: string,
+  comment?: string,
+  officialNumber?: string,
+) {
   const normalizedName = (documentName ?? "").toUpperCase();
+  const body = { comment: comment ?? null, officialNumber: officialNumber ?? null };
 
   if (normalizedName === "CS05") {
     return apiFetch(`/internship/cs-05/${documentId}/review`, {
       method: "POST",
-      body: JSON.stringify({ comment: comment ?? null }),
+      body: JSON.stringify(body),
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -231,7 +237,7 @@ export async function reviewInternshipDocumentByStaff(documentId: number, docume
   if (normalizedName === "ACCEPTANCE_LETTER") {
     return apiFetch(`/internship/acceptance/${documentId}/review`, {
       method: "POST",
-      body: JSON.stringify({ comment: comment ?? null }),
+      body: JSON.stringify(body),
       headers: { "Content-Type": "application/json" },
     });
   }
