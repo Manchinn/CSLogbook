@@ -147,7 +147,16 @@ exports.listForHead = async (req, res) => {
 exports.reviewByStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { comment } = req.body || {};
+    const { comment, officialNumber } = req.body || {};
+
+    // Validate officialNumber
+    if (!officialNumber || !/^\d{1,3}$/.test(String(officialNumber))) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุเลขที่เอกสาร (ตัวเลข 1-3 หลัก)',
+      });
+    }
+
     const doc = await loadAcceptance(id);
 
     const prevStatus = doc.status;
@@ -160,6 +169,7 @@ exports.reviewByStaff = async (req, res) => {
       reviewerId: req.user.userId,
       reviewDate: new Date(),
       reviewComment: comment || null,
+      officialNumber: officialNumber
     });
 
     await DocumentLog.create({
