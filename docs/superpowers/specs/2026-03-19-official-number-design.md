@@ -9,6 +9,7 @@
 - เจ้าหน้าที่กำหนดเลข 3 ตัวท้ายตอน reviewByStaff
 - ใช้กับเอกสาร 2 ประเภท: CS05 (หนังสือขอความอนุเคราะห์) และ ACCEPTANCE_LETTER (หนังสือส่งตัว)
 - เลขที่นี้ใช้ใน PDF ที่ generate ออกมา
+- **เลขแต่ละเอกสารเป็นคนละเลข**: CS05.official_number → ใช้ในหนังสือขอความอนุเคราะห์, ACCEPTANCE_LETTER.official_number → ใช้ในหนังสือส่งตัว
 
 ## Design
 
@@ -50,30 +51,38 @@ await doc.update({
 
 #### acceptanceApprovalController.js — reviewByStaff
 
-เหมือนกัน — รับ `officialNumber`, validate, save ลง `official_number`
+เหมือนกัน — รับ `officialNumber`, validate (ตัวเลข 1-3 หลัก, required), save ลง `official_number`
+เลขนี้ใช้สำหรับหนังสือส่งตัว (referral letter) ซึ่งเป็นคนละเลขกับ CS05
 
 ### 3. Backend — PDF Services
 
 #### referralLetter.service.js (หนังสือส่งตัว)
 
-บรรทัด 234 & 303 — เปลี่ยนจาก `documentId` เป็น `official_number`:
+เลขที่อว. ของหนังสือส่งตัวมาจาก **ACCEPTANCE_LETTER** document (ไม่ใช่ CS05)
+เพราะเจ้าหน้าที่กรอกเลขตอน review ACCEPTANCE_LETTER
+
+แก้ `data` object (บรรทัด ~234) ให้ใช้ `official_number` จาก acceptanceLetter:
 
 ```js
-// เตรียมข้อมูล
-const docNumber = cs05Document.official_number || `${documentId}`;
+// บรรทัด 234 — แก้ docNumber ใน data object
+const data = {
+  docNumber: acceptanceLetter.official_number || `${documentId}`,  // แก้จาก documentId
+  // ... ที่เหลือเหมือนเดิม
+};
 
-// ใน PDF
-pdf.text(`ที่ อว 7105(05)/${docNumber}`, ML, y, { lineBreak: false });
+// บรรทัด 303 — ไม่ต้องแก้ เพราะใช้ data.docNumber อยู่แล้ว
+pdf.text(`ที่ อว 7105(05)/${data.docNumber}`, ML, y, { lineBreak: false });
 ```
-
-หมายเหตุ: หนังสือส่งตัว generate จาก CS05 document → ต้องดึง `official_number` จาก CS05 ที่ linked
 
 #### cooperationLetter.service.js (หนังสือขอความอนุเคราะห์)
 
-บรรทัด 100 — เปลี่ยนเหมือนกัน:
+เลขที่อว. ของหนังสือขอความอนุเคราะห์มาจาก **CS05** document
+ตัวแปรในไฟล์นี้ชื่อ `cs05Document` (ไม่ใช่ `doc`)
+
+บรรทัด ~100 — เปลี่ยน:
 
 ```js
-documentNumber: doc.official_number || `CS05/${buddhistYear}/${documentId}`,
+documentNumber: cs05Document.official_number || `CS05/${buddhistYear}/${documentId}`,
 ```
 
 ### 4. Frontend
@@ -126,7 +135,9 @@ const reviewMutation = useMutation({
 
 **Bulk review:**
 - สำหรับ bulk เลือกหลายรายการ เจ้าหน้าที่ต้องกรอกเลขที่ทีละรายการ (เพราะแต่ละเอกสารมีเลขที่ต่างกัน)
-- แสดง list ในModal ให้กรอก เลขที่ข้างๆ ชื่อนักศึกษาแต่ละคน
+- แสดง list ใน Modal ให้กรอกเลขที่ข้างๆ ชื่อนักศึกษาแต่ละคน
+- **Client-side validation ทุกรายการก่อน submit** — ถ้ามีรายการไหนไม่ผ่าน (เลขไม่ครบ/ไม่ใช่ตัวเลข) จะไม่ส่งทั้ง batch
+- หลัง submit แต่ละรายการเรียก API แยก ถ้ามี error ระหว่างทาง แสดง feedback ว่ารายการไหนสำเร็จ/ล้มเหลว
 
 ### 5. Document Model
 
@@ -143,11 +154,19 @@ official_number: {
 ## Data Flow
 
 ```
-เจ้าหน้าที่กด "ตรวจและส่งต่อ"
+Flow 1: หนังสือขอความอนุเคราะห์
+เจ้าหน้าที่กด "ตรวจและส่งต่อ" CS05
 → Modal เปิด: กรอกเลขที่อว. 3 ตัวท้าย (เช่น "047")
 → POST /internship/cs-05/:id/review { officialNumber: "047" }
-→ Document.official_number = "047"
-→ ตอน generate PDF: "ที่ อว 7105(05)/047"
+→ CS05 Document.official_number = "047"
+→ ตอน generate cooperation letter PDF: "อว 7105(05)/047"
+
+Flow 2: หนังสือส่งตัว
+เจ้าหน้าที่กด "ตรวจและส่งต่อ" ACCEPTANCE_LETTER
+→ Modal เปิด: กรอกเลขที่อว. 3 ตัวท้าย (เช่น "052")
+→ POST /internship/acceptance/:id/review { officialNumber: "052" }
+→ ACCEPTANCE_LETTER Document.official_number = "052"
+→ ตอน generate referral letter PDF: "ที่ อว 7105(05)/052"
 ```
 
 ## Backward Compatibility
