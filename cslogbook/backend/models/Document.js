@@ -79,6 +79,11 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'review_comment'
         },
+        officialNumber: {
+            type: DataTypes.STRING(10),
+            allowNull: true,
+            field: 'official_number'
+        },
         category: {
             type: DataTypes.ENUM('proposal', 'progress', 'final', 'acceptance'),
             allowNull: false,
