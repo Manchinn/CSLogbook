@@ -97,7 +97,9 @@ class InternshipCooperationLetterService {
 
       const pdfData = {
         // ข้อมูลเอกสาร
-        documentNumber: `CS05/${buddhistYear}/${documentId}`,
+        documentNumber: cs05Document.officialNumber
+          ? `อว 7105(05)/${cs05Document.officialNumber}`
+          : `CS05/${buddhistYear}/${documentId}`,
         documentDate: new Date(),
 
         // ข้อมูลนักศึกษา

@@ -59,11 +59,13 @@ export function useAdminInternshipDocumentMutations() {
       documentId,
       documentName,
       comment,
+      officialNumber,
     }: {
       documentId: number;
       documentName?: string;
       comment?: string;
-    }) => reviewInternshipDocumentByStaff(documentId, documentName, comment),
+      officialNumber?: string;
+    }) => reviewInternshipDocumentByStaff(documentId, documentName, comment, officialNumber),
     onSuccess: invalidate,
   });
 

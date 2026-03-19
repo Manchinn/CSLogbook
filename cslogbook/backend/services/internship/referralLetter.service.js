@@ -231,7 +231,7 @@ class InternshipReferralLetterService {
       // 5. เตรียมข้อมูล
       const yearInfo = calculateStudentYear(student.studentCode);
       const data = {
-        docNumber: `${documentId}`,
+        docNumber: acceptanceLetter.officialNumber || `${documentId}`,
         docDate: new Date(),
         acceptanceDate:
           acceptanceLetter.updated_at || acceptanceLetter.created_at,

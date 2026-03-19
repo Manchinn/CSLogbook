@@ -74,6 +74,9 @@ export default function AdminInternshipDocumentsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectIds, setRejectIds] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewIds, setReviewIds] = useState<number[]>([]);
+  const [officialNumbers, setOfficialNumbers] = useState<Record<number, string>>({});
 
   const filters = useMemo(
     () => ({
@@ -157,26 +160,13 @@ export default function AdminInternshipDocumentsPage() {
     setSelectedIds(allIds);
   };
 
-  const handleBulkReview = async () => {
+  const handleBulkReview = () => {
     if (!selectedIds.length) return;
-    try {
-      await Promise.all(
-        selectedIds.map((documentId) => {
-          const row = rows.find((item) => item.id === documentId);
-          return reviewDocument.mutateAsync({
-            documentId,
-            documentName: row?.documentName,
-          });
-        }),
-      );
-      setSelectedIds([]);
-      setFeedback({ tone: "success", message: "ตรวจและส่งต่อเอกสารที่เลือกเรียบร้อยแล้ว" });
-    } catch (error) {
-      setFeedback({
-        tone: "warning",
-        message: error instanceof Error ? error.message : "ไม่สามารถตรวจและส่งต่อเอกสารได้",
-      });
-    }
+    const initial: Record<number, string> = {};
+    selectedIds.forEach((id) => { initial[id] = ""; });
+    setOfficialNumbers(initial);
+    setReviewIds(selectedIds);
+    setReviewModalOpen(true);
   };
 
   const handleBulkReject = async () => {
@@ -220,10 +210,44 @@ export default function AdminInternshipDocumentsPage() {
     }
   };
 
-  const handleSingleReview = async (document: AdminInternshipDocument) => {
+  const handleSingleReview = (document: AdminInternshipDocument) => {
+    setOfficialNumbers({ [document.id]: "" });
+    setReviewIds([document.id]);
+    setReviewModalOpen(true);
+  };
+
+  const submitReview = async () => {
+    const allValid = reviewIds.every((id) => /^\d{1,3}$/.test(officialNumbers[id] ?? ""));
+    if (!allValid) {
+      setFeedback({ tone: "warning", message: "กรุณากรอกเลขที่เอกสาร (ตัวเลข 1-3 หลัก) ให้ครบทุกรายการ" });
+      return;
+    }
+
     try {
-      await reviewDocument.mutateAsync({ documentId: document.id, documentName: document.documentName });
-      setFeedback({ tone: "success", message: "ตรวจและส่งต่อเอกสารเรียบร้อยแล้ว" });
+      const results = await Promise.allSettled(
+        reviewIds.map((documentId) => {
+          const row = rows.find((item) => item.id === documentId);
+          return reviewDocument.mutateAsync({
+            documentId,
+            documentName: row?.documentName,
+            officialNumber: officialNumbers[documentId],
+          });
+        }),
+      );
+
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const succeeded = results.length - failed;
+
+      setSelectedIds((prev) => prev.filter((id) => !reviewIds.includes(id)));
+      setReviewModalOpen(false);
+      setReviewIds([]);
+      setOfficialNumbers({});
+
+      if (failed > 0) {
+        setFeedback({ tone: "warning", message: `สำเร็จ ${succeeded} รายการ, ล้มเหลว ${failed} รายการ` });
+      } else {
+        setFeedback({ tone: "success", message: "ตรวจและส่งต่อเอกสารเรียบร้อยแล้ว" });
+      }
     } catch (error) {
       setFeedback({
         tone: "warning",
@@ -677,6 +701,58 @@ export default function AdminInternshipDocumentsPage() {
                   disabled={isBulkBusy}
                 >
                   ยืนยันปฏิเสธ
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {reviewModalOpen ? (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modal}>
+              <h3 className={styles.modalTitle}>ระบุเลขที่เอกสาร (อว.)</h3>
+              <p className={styles.subText}>
+                กรอกเลข 3 ตัวท้ายของเลขที่ อว 7105(05)/XXX สำหรับเอกสาร {reviewIds.length} รายการ
+              </p>
+              <div className={styles.reviewItemList}>
+                {reviewIds.map((id) => {
+                  const row = rows.find((item) => item.id === id);
+                  return (
+                    <div key={id} className={styles.reviewItem}>
+                      <span className={styles.reviewItemLabel}>
+                        {row?.studentName || "-"} ({documentNameLabel(row?.documentName)})
+                      </span>
+                      <input
+                        className={`${styles.input} ${styles.reviewItemInput}`}
+                        placeholder="เลข 3 หลัก"
+                        maxLength={3}
+                        value={officialNumbers[id] ?? ""}
+                        onChange={(e) =>
+                          setOfficialNumbers((prev) => ({ ...prev, [id]: e.target.value.replace(/\D/g, "").slice(0, 3) }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className={`${btn.buttonRow} ${styles.reviewModalActions}`}>
+                <button
+                  type="button"
+                  className={btn.button}
+                  onClick={() => {
+                    if (isBulkBusy) return;
+                    setReviewModalOpen(false);
+                  }}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className={`${btn.button} ${btn.buttonPrimary}`}
+                  onClick={submitReview}
+                  disabled={isBulkBusy}
+                >
+                  ยืนยันส่งต่อ
                 </button>
               </div>
             </div>
