@@ -52,6 +52,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design pattern |
 | 45 | 03-16 | Report/stats features: Document Pipeline, Internship Supervisor (สถานประกอบการ), CSV export utility, improve internship+project reports with visual bars/rings, fix source-of-truth (advisor→supervisor) |
 | 46 | 03-18 | Redesign approve-documents (drawer+stats+skeleton), fix workflow step order (migration), normalize Thai status labels, remove redundant sections from internship flow page, move full timeline to student-profile, fix auto-create workflow activity bugs, add logbook date validation |
+| 47 | 03-19 | PDF template overhaul: หนังสือส่งตัว — pdfkit + TH Sarabun New + ตราครุฑ + layout ราชการ (absolute positioning ตรง template ต้นฉบับ) |
 
 ### Pending
 
@@ -1090,3 +1091,48 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `examSubmit.module.css` | **DELETED** |
 | `thesisDefense.module.css` | **DELETED** |
 | `systemTest.module.css` | **DELETED** |
+
+## Session 47 (claude, 2026-03-19) — PDF Template Overhaul: หนังสือส่งตัว
+
+### บริบท
+
+เปลี่ยนระบบ generate PDF หนังสือส่งตัวนักศึกษาให้ตรง template ต้นฉบับ — เพิ่มตราครุฑ, ใช้ font TH Sarabun New (ราชการ), absolute positioning ตาม layout จดหมายราชการ
+
+### สิ่งที่ทำ
+
+1. **สกัดตราครุฑ** จาก PDF ตัวอย่างโดยอ่าน XObject image → แปลงเป็น PNG (1229x1024, transparency)
+2. **ทดสอบ font** หลายตัว — Google Sarabun (81KB subset, ไม่มี Thai marks), TH Sarabun New จาก SIPA (480KB, ใช้ได้สมบูรณ์กับ pdfkit)
+3. **ทดสอบ pdf-lib** — ใช้ได้กับ Loma แต่ไม่รองรับ Thai combining marks ของ Sarabun (limitation ของ pdf-lib)
+4. **Rewrite referralLetter.service.js** — pdfkit + TH Sarabun New + ตราครุฑ + absolute positioning
+5. **ปรับ layout** ให้ตรง template: ลำดับ ที่อยู่→วันที่→เรื่อง→เรียน, bold labels, indent ย่อหน้า
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `backend/services/internship/referralLetter.service.js` | **REWRITE** — pdfkit + TH Sarabun New + ตราครุฑ + layout ราชการ |
+| `backend/fonts/THSarabunNew.ttf` | **NEW** — TH Sarabun New Regular (480KB, SIPA) |
+| `backend/fonts/THSarabunNew-Bold.ttf` | **NEW** — TH Sarabun New Bold (366KB) |
+| `backend/assets/garuda.png` | **NEW** — ตราครุฑ (227KB, สกัดจาก PDF ตัวอย่าง) |
+| `backend/test-gen-referral.js` | **NEW** — test script สำหรับ generate PDF ตัวอย่าง |
+| `backend/fonts/Sarabun-Regular.ttf` | **NEW** — Google Sarabun (ไม่ได้ใช้ — pdf-lib ไม่รองรับ Thai marks) |
+| `backend/fonts/Sarabun-Bold.ttf` | **NEW** — Google Sarabun Bold (ไม่ได้ใช้) |
+| `backend/package.json` | **EDIT** — เพิ่ม `pdf-lib`, `@pdf-lib/fontkit` (ยังเก็บไว้สำหรับ PDF อื่นในอนาคต) |
+
+### Clean up
+
+- ลบ `test-gen-referral.js`, `test-referral-letter.pdf`
+- ลบ `fonts/Sarabun-Regular.ttf`, `fonts/Sarabun-Bold.ttf` (Google Fonts version, ไม่ได้ใช้)
+- ลบ `pdf-lib`, `@pdf-lib/fontkit` จาก dependencies (ใช้ pdfkit แทน)
+
+### Lessons Learned
+
+- **pdf-lib ไม่รองรับ Thai combining marks** — สระบน/ล่าง, วรรณยุกต์ ใน TH Sarabun render ผิด เพราะไม่มี OpenType GSUB/GPOS shaping
+- **pdfkit + TH Sarabun New (SIPA)** ใช้ได้สมบูรณ์ — font ตัวจริงจาก SIPA (480KB) มี glyph ครบ ต่างจาก Google Fonts Sarabun (90KB subset)
+- **pdfkit `underline: true` crash** กับ TH Sarabun — ต้องวาดเส้นเองด้วย `moveTo/lineTo` (ถอดออกตามที่ user ต้องการ)
+- **Intl.Segmenter** ตัดคำไทยได้สมบูรณ์ — ใช้ `new Intl.Segmenter('th', { granularity: 'word' })` สำหรับ word wrap
+
+### Pending (จาก session นี้)
+
+- เลขที่ อว. 3 ตัวท้าย — ให้เจ้าหน้าที่กำหนดได้ตอนอนุมัติที่ /admin/documents/internship
+- เอกสารที่ต้องมีลายเซ็น — ยังไม่ได้ implement

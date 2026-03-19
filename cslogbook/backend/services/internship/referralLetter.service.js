@@ -10,16 +10,15 @@ const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
 const { sanitizeFilename } = require("../../utils/sanitizeFilename");
 const { calculateStudentYear } = require("../../utils/studentUtils");
-const { formatThaiDate } = require("../../utils/dateUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
 
-// Thai font paths
-const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
-const FONT_BOLD = path.join(__dirname, "../../fonts/Loma-Bold.otf");
+// Font paths (TH Sarabun New — font ราชการ)
+const FONT_REGULAR = path.join(__dirname, "../../fonts/THSarabunNew.ttf");
+const FONT_BOLD = path.join(__dirname, "../../fonts/THSarabunNew-Bold.ttf");
+const GARUDA_IMAGE = path.join(__dirname, "../../assets/garuda.png");
 
 /**
  * Status ของ CS05 ที่ถือว่า "ได้รับการอนุมัติแล้ว" (ผ่าน approved ไปแล้ว)
- * ต้องตรงกับ STATUSES_WITH_DOWNLOADS ใน frontend/InternshipFlowContent.tsx
  */
 const CS05_POST_APPROVAL_STATUSES = new Set([
   "approved",
@@ -33,12 +32,27 @@ const CS05_POST_APPROVAL_STATUSES = new Set([
   "supervisor_evaluated",
 ]);
 
+// ===== PDF Layout Helpers =====
+
+const THAI_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+
+/** วันที่ไทยแบบราชการ ไม่มี "พ.ศ." เช่น "5 พฤศจิกายน 2568" */
+function formatThaiDateGov(date) {
+  if (!date) return "-";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "-";
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
 /**
  * Service สำหรับจัดการหนังสือส่งตัวนักศึกษา
  */
 class InternshipReferralLetterService {
   /**
-   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา (แก้ไขให้ CS05 เป็น approved ตลอด)
+   * ตรวจสอบสถานะหนังสือส่งตัวนักศึกษา
    */
   async getReferralLetterStatus(userId, cs05DocumentId) {
     try {
@@ -47,7 +61,6 @@ class InternshipReferralLetterService {
         cs05DocumentId,
       });
 
-      // 1. ค้นหาเอกสาร CS05
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
@@ -67,7 +80,6 @@ class InternshipReferralLetterService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      // 2. ค้นหาหนังสือตอบรับที่ได้รับการอนุมัติ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -78,14 +90,10 @@ class InternshipReferralLetterService {
         },
       });
 
-      // 3. ✅ กำหนดสถานะ (ไม่เปลี่ยน CS05 status)
-      let status = cs05Document.status; // ✅ ใช้สถานะเดิมของ CS05
+      let status = cs05Document.status;
       let isReady = false;
       let isDownloaded = false;
 
-      // 4. ✅ ตรวจสอบเงื่อนไขการพร้อมใช้งาน
-      // ใช้ CS05_POST_APPROVAL_STATUSES แทน strict "approved"
-      // เพราะ CS05 อาจเปลี่ยน status เป็น active/completed หลังจาก acceptance approved แล้ว
       if (
         CS05_POST_APPROVAL_STATUSES.has(cs05Document.status) &&
         acceptanceLetter &&
@@ -94,7 +102,6 @@ class InternshipReferralLetterService {
         isReady = true;
       }
 
-      // 5. ✅ ตรวจสอบการดาวน์โหลดจาก acceptanceLetter
       if (
         acceptanceLetter?.downloadStatus === "downloaded" ||
         acceptanceLetter?.downloadedAt
@@ -103,23 +110,18 @@ class InternshipReferralLetterService {
       }
 
       logger.debug("[DEBUG] Status calculation result:", {
-        cs05Status: status, // ✅ ควรเป็น "approved" ตลอด
+        cs05Status: status,
         hasAcceptanceLetter: !!acceptanceLetter,
-        acceptanceDownloaded: isDownloaded,
         isReady,
         isDownloaded,
-        downloadedAt: acceptanceLetter?.downloadedAt,
-        downloadCount: acceptanceLetter?.downloadCount,
       });
 
       return {
         hasReferralLetter: isReady || isDownloaded,
-        status: status, // ✅ ส่งสถานะ CS05 ตรงๆ (approved)
-        cs05Status: status, // ✅ CS05 ยังคงเป็น "approved"
+        status: status,
+        cs05Status: status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceLetterStatus: acceptanceLetter?.status,
-
-        // ข้อมูลผู้ควบคุมงาน
         hasSupervisorInfo: !!(
           cs05Document.internshipDocument?.supervisorName &&
           cs05Document.internshipDocument?.supervisorEmail
@@ -134,19 +136,14 @@ class InternshipReferralLetterService {
           supervisorPosition:
             cs05Document.internshipDocument?.supervisorPosition || null,
         },
-
         isReady: isReady,
         isDownloaded: isDownloaded,
         createdDate: cs05Document.created_at,
         readyDate: acceptanceLetter?.updated_at || null,
-
-        // ✅ ข้อมูลการดาวน์โหลดจาก acceptanceLetter
         downloadedAt: acceptanceLetter?.downloadedAt,
         downloadCount: acceptanceLetter?.downloadCount || 0,
-
-        // ✅ mapping info
         mappingInfo: {
-          backendStatus: status, // "approved"
+          backendStatus: status,
           shouldMapTo: isDownloaded
             ? "downloaded"
             : isReady
@@ -154,7 +151,7 @@ class InternshipReferralLetterService {
             : "not_ready",
           requiresSupervisorInfo: false,
           supervisorInfoOptional: true,
-          cs05AlwaysApproved: true, // ✅ CS05 เป็น approved ตลอด
+          cs05AlwaysApproved: true,
         },
       };
     } catch (error) {
@@ -165,9 +162,7 @@ class InternshipReferralLetterService {
 
   /**
    * สร้าง PDF หนังสือส่งตัวนักศึกษา
-   * @param {number} userId - ID ของผู้ใช้
-   * @param {number} documentId - ID ของเอกสาร CS05
-   * @returns {Promise<Object>} ข้อมูล PDF buffer และ metadata
+   * pdfkit + TH Sarabun New + ตราครุฑ + layout ราชการ
    */
   async generateReferralLetterPDF(userId, documentId) {
     try {
@@ -233,164 +228,215 @@ class InternshipReferralLetterService {
         throw new Error("ไม่พบข้อมูลนักศึกษา");
       }
 
-      // 5. เตรียมข้อมูลสำหรับ PDF
+      // 5. เตรียมข้อมูล
       const yearInfo = calculateStudentYear(student.studentCode);
-      const pdfData = {
-        // ข้อมูลเอกสาร
-        documentNumber: `CS05/${new Date().getFullYear() + 543}/${documentId}`,
-        documentDate: new Date(),
-
-        // ข้อมูลนักศึกษา
-        studentData: [
-          {
-            fullName: `${student.user.firstName} ${student.user.lastName}`,
-            studentId: student.studentCode,
-            yearLevel: yearInfo?.error ? 3 : yearInfo.year,
-            classroom: student.classroom || "",
-            phoneNumber: student.phoneNumber || "",
-            email: student.user.email,
-            totalCredits: student.totalCredits || 0,
-          },
-        ],
-
-        // ข้อมูลบริษัท
-        companyName: internshipDoc.companyName,
+      const data = {
+        docNumber: `${documentId}`,
+        docDate: new Date(),
+        acceptanceDate:
+          acceptanceLetter.updated_at || acceptanceLetter.created_at,
+        student: {
+          fullName: `${student.user.firstName} ${student.user.lastName}`,
+          studentCode: student.studentCode,
+          year: yearInfo?.error ? 3 : yearInfo.year,
+        },
+        company: internshipDoc.companyName,
         companyAddress: internshipDoc.companyAddress,
-        contactPersonName: internshipDoc.contactPersonName,
-        contactPersonPosition: internshipDoc.contactPersonPosition,
-        internshipPosition: internshipDoc.internshipPosition,
-
-        // ข้อมูลผู้ควบคุมงาน
-        supervisorName: internshipDoc.supervisorName,
-        supervisorPosition: internshipDoc.supervisorPosition,
-        supervisorPhone: internshipDoc.supervisorPhone,
-        supervisorEmail: internshipDoc.supervisorEmail,
-
-        // ข้อมูลระยะเวลา
+        contactName: internshipDoc.contactPersonName,
+        contactPosition: internshipDoc.contactPersonPosition,
+        position: internshipDoc.internshipPosition,
         startDate: internshipDoc.startDate,
         endDate: internshipDoc.endDate,
-        internshipDuration: internshipDoc.internshipDuration,
-
-        // ข้อมูลหัวหน้าภาควิชา (จาก config กลาง)
-        advisorName: DEPARTMENT_INFO.departmentHead.name,
-        advisorTitle: DEPARTMENT_INFO.departmentHead.title,
+        duration: internshipDoc.internshipDuration,
       };
 
+      // ===== 6. สร้าง PDF ด้วย pdfkit =====
       const PDFDocument = require("pdfkit");
 
       const pdf = new PDFDocument({
-        margin: 50,
         size: "A4",
+        margins: { top: 38, bottom: 40, left: 72, right: 55 },
         info: {
           Title: "หนังสือส่งตัวนักศึกษาฝึกงาน",
-          Subject: `หนังสือส่งตัวนักศึกษา ${pdfData.studentData[0].fullName}`,
-          Author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+          Subject: `หนังสือส่งตัวนักศึกษา ${data.student.fullName}`,
+          Author: DEPARTMENT_INFO.departmentName,
         },
       });
 
-      // สร้าง buffer สำหรับเก็บ PDF
       const buffers = [];
-      pdf.on("data", (chunk) => {
-        buffers.push(chunk);
-      });
+      pdf.on("data", (chunk) => buffers.push(chunk));
 
-      // 7. ลงทะเบียน Thai font
+      // Register fonts
       pdf.registerFont("Thai", FONT_REGULAR);
       pdf.registerFont("Thai-Bold", FONT_BOLD);
-      pdf.font("Thai");
 
-      // หัวข้อเอกสาร
-      pdf.font("Thai-Bold").fontSize(18).text("หนังสือส่งตัวนักศึกษาเข้าฝึกงาน", {
-        align: "center",
+      const ML = 72; // margin left
+      const pageWidth = 595.28;
+      const rightEdge = pageWidth - 55;
+      const contentWidth = rightEdge - ML;
+      const sz = 16;
+      const lineH = 20;
+      const indent = 55;
+
+      // Helper: วาดข้อความ right-aligned
+      const textRight = (text, y) => {
+        pdf.text(text, ML, y, { width: contentWidth, align: "right" });
+      };
+
+      // Helper: วาดข้อความ center-aligned
+      const textCenter = (text, y) => {
+        pdf.text(text, ML, y, { width: contentWidth, align: "center" });
+      };
+
+      // ===== ตราครุฑ (centered, top) =====
+      const garudaW = 53;
+      const garudaRatio = 1024 / 1229; // จาก garuda.png aspect ratio
+      const garudaH = garudaW * garudaRatio;
+      const garudaX = (pageWidth - garudaW) / 2;
+      const garudaY = 38;
+      pdf.image(GARUDA_IMAGE, garudaX, garudaY, { width: garudaW });
+
+      // ===== เลขที่ + ที่อยู่ =====
+      let y = garudaY + garudaH + 10;
+
+      pdf.font("Thai").fontSize(sz);
+      pdf.text(`ที่ อว 7105(05)/${data.docNumber}`, ML, y, {
+        lineBreak: false,
       });
 
-      pdf.moveDown();
+      // ที่อยู่ (right-aligned block)
+      const addressLines = [
+        DEPARTMENT_INFO.departmentName,
+        DEPARTMENT_INFO.facultyName,
+        DEPARTMENT_INFO.universityName,
+        "1518 ถ.ประชาราษฎร์ 1 เขตบางซื่อ กทม.10800",
+      ];
+      let addrY = y;
+      for (const line of addressLines) {
+        textRight(line, addrY);
+        addrY += lineH;
+      }
 
-      // เลขที่เอกสารและวันที่
-      pdf.font("Thai").fontSize(12);
-      pdf.text(`เลขที่: ${pdfData.documentNumber}`, { align: "left" });
-      pdf.text(`วันที่: ${formatThaiDate(pdfData.documentDate)}`, {
-        align: "right",
+      // วันที่ (right-aligned, ใต้ที่อยู่)
+      y = addrY + 4;
+      pdf.font("Thai").fontSize(sz);
+      textRight(formatThaiDateGov(data.docDate), y);
+
+      // ===== เรื่อง (bold) =====
+      y += lineH + 2;
+      pdf.font("Thai-Bold").fontSize(sz);
+      pdf.text("เรื่อง", ML, y, { lineBreak: false });
+      const subjectX = ML + pdf.widthOfString("เรื่อง") + 16;
+      pdf.text("ส่งตัวนักศึกษาเข้าฝึกงาน", subjectX, y, { lineBreak: false });
+
+      // ===== เรียน =====
+      y += lineH + 4;
+      pdf.font("Thai-Bold").fontSize(sz);
+      pdf.text("เรียน", ML, y, { lineBreak: false });
+      const labelX = ML + pdf.widthOfString("เรียน") + 16;
+      pdf.font("Thai").fontSize(sz);
+      const recipientText = `คุณ ${data.contactName || "ผู้จัดการฝ่ายบุคคล"} ตำแหน่ง ${data.contactPosition || ""}`.trim();
+      pdf.text(recipientText, labelX, y, { lineBreak: false });
+
+      y += lineH;
+      pdf.text(data.companyAddress || data.company || "", labelX, y, {
+        lineBreak: false,
       });
 
-      pdf.moveDown();
-
-      // เรียน
-      pdf.text(`เรียน ${pdfData.contactPersonName || "ผู้จัดการฝ่ายบุคคล"}`);
-      pdf.text(`${pdfData.companyName}`);
-
-      pdf.moveDown();
-
-      // เนื้อหา
+      // ===== อ้างถึง =====
+      y += lineH;
       pdf.text(
-        `ด้วย ${DEPARTMENT_INFO.departmentName} ${DEPARTMENT_INFO.facultyName} ${DEPARTMENT_INFO.universityName}`,
-        {
-          align: "justify",
-        }
+        `อ้างถึงหนังสือของท่าน ลงวันที่ ${formatThaiDateGov(data.acceptanceDate)} เรื่อง การตอบรับนักศึกษาเข้าฝึกงาน`,
+        ML + indent,
+        y,
+        { width: contentWidth - indent }
       );
+      y = pdf.y;
 
+      // ===== เนื้อหา =====
+      // ขอขอบพระคุณ
       pdf.text(
-        `ขอส่งนักศึกษา ${pdfData.studentData[0].fullName} รหัสนักศึกษา ${pdfData.studentData[0].studentId}`,
-        {
-          align: "justify",
-        }
+        `${DEPARTMENT_INFO.departmentName} ขอขอบพระคุณที่ท่านให้ความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน`,
+        ML,
+        y,
+        { width: contentWidth }
       );
+      y = pdf.y;
 
+      // ขอส่งตัว
       pdf.text(
-        `เข้าฝึกงานในตำแหน่ง ${pdfData.internshipPosition} ณ บริษัทของท่าน`,
-        {
-          align: "justify",
-        }
+        `บัดนี้${DEPARTMENT_INFO.departmentName} ขอส่งตัวนักศึกษา จำนวน 1 คน เพื่อเข้าฝึกงาน ในตำแหน่ง ${data.position || "-"} ตามรายชื่อดังต่อไปนี้`,
+        ML + indent,
+        y,
+        { width: contentWidth - indent }
       );
+      y = pdf.y;
 
-      pdf.text(
-        `ตั้งแต่วันที่ ${formatThaiDate(pdfData.startDate)} ถึงวันที่ ${formatThaiDate(pdfData.endDate)}`,
-        {
-          align: "justify",
-        }
-      );
-
-      pdf.moveDown();
-
-      // ข้อมูลผู้ควบคุมงาน
-      pdf.text("ขอแจ้งให้ทราบว่า ผู้ควบคุมงานของนักศึกษาคือ:", {
-        align: "justify",
+      // รายชื่อนักศึกษา
+      pdf.text(`1. ${data.student.fullName}`, ML + indent + 40, y, {
+        lineBreak: false,
       });
-      pdf.text(
-        `${pdfData.supervisorName} ตำแหน่ง ${
-          pdfData.supervisorPosition || "ไม่ระบุ"
-        }`
-      );
-      pdf.text(
-        `โทรศัพท์: ${pdfData.supervisorPhone || "ไม่ระบุ"} อีเมล: ${
-          pdfData.supervisorEmail
-        }`
-      );
+      textRight(data.student.studentCode, y);
+      y += lineH;
 
-      pdf.moveDown();
+      // ระยะเวลา
+      pdf.text(
+        `ทั้งนี้ นักศึกษาจะเริ่มเข้าฝึกงานตั้งแต่วันที่ ${formatThaiDateGov(data.startDate)} ถึง ${formatThaiDateGov(data.endDate)} รวมระยะเวลา ${data.duration || "-"} วัน (ไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง) ตามที่ได้แจ้งไว้แล้ว`,
+        ML + indent,
+        y,
+        { width: contentWidth - indent }
+      );
+      y = pdf.y;
 
-      // ปิดท้าย
-      pdf.text("จึงเรียนมาเพื่อโปรดพิจารณา และขอขอบคุณมา ณ โอกาสนี้", {
-        align: "justify",
+      // ขอความกรุณา
+      pdf.text(
+        `${DEPARTMENT_INFO.departmentName} ขอความกรุณาจากท่านโปรดให้คำแนะนำและดูแลนักศึกษาในระหว่างการฝึกงาน และหากมีปัญหาใดๆ โปรดติดต่อภาควิชาฯ ตามหมายเลขโทรศัพท์ด้านล่าง`,
+        ML + indent,
+        y,
+        { width: contentWidth - indent }
+      );
+      y = pdf.y;
+
+      // จึงเรียนมา
+      pdf.text("จึงเรียนมาเพื่อโปรดทราบและดำเนินการต่อไป", ML + indent, y, {
+        lineBreak: false,
       });
+      y = pdf.y;
 
-      pdf.moveDown(2);
+      // ===== ลายเซ็น =====
+      y += lineH * 1.5;
+      textCenter("ขอแสดงความนับถือ", y);
 
-      // ลายเซ็น
-      pdf.text("ขอแสดงความนับถือ", { align: "center" });
-      pdf.moveDown(3);
-      pdf.font("Thai-Bold").text(pdfData.advisorName, { align: "center" });
-      pdf.font("Thai").text(pdfData.advisorTitle, { align: "center" });
+      y += lineH * 2.5;
+      textCenter(
+        `(${DEPARTMENT_INFO.departmentHead.name})`,
+        y
+      );
+      y += lineH;
+      textCenter(DEPARTMENT_INFO.departmentHead.title, y);
 
-      // ปิด PDF
+      // ===== Footer =====
+      let fy = 750;
+      pdf.text(DEPARTMENT_INFO.departmentName, ML, fy, { lineBreak: false });
+      fy += 18;
+      pdf.text("เจ้าหน้าที่ภาควิชา: นายนที ปัญญาประสิทธิ์", ML, fy, {
+        lineBreak: false,
+      });
+      fy += 18;
+      pdf.text("อีเมล: natee.p@sci.kmutnb.ac.th", ML, fy, {
+        lineBreak: false,
+      });
+      fy += 18;
+      pdf.text("โทร. 02-555-2000 ต่อ 4601", ML, fy, { lineBreak: false });
+
+      // ===== 7. Export =====
       pdf.end();
 
-      // 8. รอให้ PDF เสร็จสิ้น
       const pdfBuffer = await new Promise((resolve) => {
         pdf.on("end", () => resolve(Buffer.concat(buffers)));
       });
 
-      const fileName = `หนังสือส่งตัว-${sanitizeFilename(pdfData.studentData[0].fullName)}-${documentId}.pdf`;
+      const fileName = `หนังสือส่งตัว-${sanitizeFilename(data.student.fullName)}-${documentId}.pdf`;
 
       logger.debug("[DEBUG] PDF generated successfully:", {
         documentId,
@@ -404,8 +450,8 @@ class InternshipReferralLetterService {
         contentType: "application/pdf",
         metadata: {
           documentId,
-          studentName: pdfData.studentData[0].fullName,
-          companyName: pdfData.companyName,
+          studentName: data.student.fullName,
+          companyName: data.company,
           generateDate: new Date(),
         },
       };
@@ -416,7 +462,7 @@ class InternshipReferralLetterService {
   }
 
   /**
-   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว (แก้ไขให้อัปเดต acceptanceLetter แทน)
+   * อัปเดตสถานะการดาวน์โหลดหนังสือส่งตัว
    */
   async markReferralLetterDownloaded(userId, cs05DocumentId) {
     const transaction = await sequelize.transaction();
@@ -427,7 +473,6 @@ class InternshipReferralLetterService {
         cs05DocumentId,
       });
 
-      // 1. ค้นหาเอกสาร CS05 (เพื่อตรวจสอบสิทธิ์เท่านั้น)
       const cs05Document = await Document.findOne({
         where: {
           documentId: parseInt(cs05DocumentId),
@@ -449,7 +494,6 @@ class InternshipReferralLetterService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05 หรือไม่มีสิทธิ์เข้าถึง");
       }
 
-      // 2. ✅ ค้นหาหนังสือตอบรับที่ได้รับการอนุมัติ
       const acceptanceLetter = await Document.findOne({
         where: {
           userId: userId,
@@ -467,75 +511,41 @@ class InternshipReferralLetterService {
         );
       }
 
-      // 3. ตรวจสอบสถานะ CS05 (ต้องผ่าน approved แล้ว)
-      // รองรับ status ที่เกิดหลัง approved เช่น active, completed ฯลฯ
       if (!CS05_POST_APPROVAL_STATUSES.has(cs05Document.status)) {
         throw new Error(
           "เอกสาร CS05 ต้องได้รับการอนุมัติก่อนจึงจะดาวน์โหลดหนังสือส่งตัวได้"
         );
       }
 
-      logger.debug("[DEBUG] Found documents BEFORE update:", {
-        cs05DocumentId: cs05Document.documentId,
-        cs05Status: cs05Document.status, // ควรเป็น "approved"
-        acceptanceDocumentId: acceptanceLetter.documentId,
-        acceptanceStatus: acceptanceLetter.status, // ควรเป็น "approved"
-        acceptanceDownloadedAt: acceptanceLetter.downloadedAt,
-        acceptanceDownloadCount: acceptanceLetter.downloadCount,
-      });
-
-      // 4. ✅ อัปเดตสถานะการดาวน์โหลดใน acceptanceLetter (ไม่ใช่ cs05Document)
       const downloadTimestamp = new Date();
       const currentDownloadCount = acceptanceLetter.downloadCount || 0;
 
       await acceptanceLetter.update(
         {
-          // ✅ เพิ่ม field สำหรับเก็บสถานะการดาวน์โหลด
-          status: "approved", // ✅ คงสถานะเป็น approved
-          downloadedAt: downloadTimestamp, // ✅ วันที่ดาวน์โหลด
-          downloadCount: currentDownloadCount + 1, // ✅ จำนวนครั้งที่ดาวน์โหลด
-          downloadStatus: "downloaded", // ✅ เพิ่ม field ใหม่ (ถ้ามี)
+          status: "approved",
+          downloadedAt: downloadTimestamp,
+          downloadCount: currentDownloadCount + 1,
+          downloadStatus: "downloaded",
           updated_at: downloadTimestamp,
         },
         { transaction }
       );
 
-      // 5. ✅ CS05 ยังคงเป็น "approved" (ไม่เปลี่ยนแปลง)
-      logger.debug("[DEBUG] CS05 status remains:", cs05Document.status);
-
-      logger.debug("[DEBUG] Update completed successfully");
-
-      // 6. ตรวจสอบผลลัพธ์หลัง update
       await acceptanceLetter.reload({ transaction });
-
-      logger.debug("[DEBUG] Documents AFTER update:", {
-        cs05DocumentId: cs05Document.documentId,
-        cs05Status: cs05Document.status, // ยังคงเป็น "approved"
-        acceptanceDocumentId: acceptanceLetter.documentId,
-        acceptanceStatus: acceptanceLetter.status, // ยังคงเป็น "approved"
-        acceptanceDownloadedAt: acceptanceLetter.downloadedAt,
-        acceptanceDownloadCount: acceptanceLetter.downloadCount,
-      });
-
       await transaction.commit();
 
       return {
-        // ✅ ข้อมูลที่ส่งกลับ
         documentId: cs05Document.documentId,
         cs05DocumentId: cs05Document.documentId,
-        cs05Status: cs05Document.status, // "approved"
-
+        cs05Status: cs05Document.status,
         acceptanceDocumentId: acceptanceLetter.documentId,
-        acceptanceStatus: acceptanceLetter.status, // "approved"
-
-        status: "referral_downloaded", // สถานะสำหรับ frontend
+        acceptanceStatus: acceptanceLetter.status,
+        status: "referral_downloaded",
         downloadDate: downloadTimestamp,
         downloadCount: currentDownloadCount + 1,
         completedProcess: true,
-
-        // ✅ ข้อมูลเพิ่มเติม
         referralLetterDownloaded: true,
-        shouldUpdateCS05Status: false, // ✅ ไม่ต้องอัปเดต CS05
+        shouldUpdateCS05Status: false,
         finalStatus: "referral_downloaded",
       };
     } catch (error) {
