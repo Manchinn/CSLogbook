@@ -216,9 +216,7 @@ class InternshipCooperationLetterService {
       pdf.text(recipientText, labelX, y, { lineBreak: false });
 
       y += lineH;
-      pdf.text(data.companyAddress || data.company || "", labelX, y, {
-        lineBreak: false,
-      });
+      pdf.text(data.company || "", labelX, y, { lineBreak: false });
 
       // ===== สิ่งที่ส่งมาด้วย =====
       y += lineH;
@@ -293,7 +291,7 @@ class InternshipCooperationLetterService {
         lineBreak: false,
       });
       fy += 18;
-      pdf.text("โทร. 02-555-2000 ต่อ 4602", ML, fy, { lineBreak: false });
+      pdf.text("โทร. 02-555-2000 ต่อ 4601", ML, fy, { lineBreak: false });
 
       // ===== 5. Export =====
       pdf.end();

@@ -333,9 +333,7 @@ class InternshipReferralLetterService {
       pdf.text(recipientText, labelX, y, { lineBreak: false });
 
       y += lineH;
-      pdf.text(data.companyAddress || data.company || "", labelX, y, {
-        lineBreak: false,
-      });
+      pdf.text(data.company || "", labelX, y, { lineBreak: false });
 
       // ===== เนื้อหา =====
       y += lineH;
@@ -374,10 +372,9 @@ class InternshipReferralLetterService {
       // ขอขอบคุณ
       y += 4;
       pdf.text("ขอขอบคุณมา ณ โอกาสนี้", ML + indent, y, { lineBreak: false });
-      y = pdf.y;
+      y += lineH;
 
       // หมายเหตุ
-      y += 4;
       pdf.text("(โดยแบบฟอร์มทั้ง 3 ข้อ นักศึกษาจะนำไปให้หน่วยงานของท่านด้วยตนเอง)", ML + indent, y, { width: contentWidth - indent });
       y = pdf.y;
 
