@@ -322,7 +322,7 @@ class DocumentService {
             }
 
             if (type && type !== 'all') {
-                whereCondition.documentType = type.toLowerCase();
+                whereCondition.documentType = type.toUpperCase();
             }
 
             if (status && status !== 'all') {
@@ -406,8 +406,48 @@ class DocumentService {
                 distinct: true // สำคัญ: ใช้ distinct เพื่อนับแถวที่ถูกต้องเมื่อมี join
             });
 
-            // นับสถิติ
-            const statistics = await this.getDocumentStatistics();
+            // นับสถิติ — ใช้ filter เดียวกับ query หลัก (type, academicYear, semester)
+            // แต่ไม่รวม status เพื่อให้เห็นภาพรวมทุกสถานะ
+            const statsWhere = {};
+            if (type && type !== 'all') {
+                statsWhere.documentType = type.toUpperCase();
+            }
+            if (userId && !staffRoles.includes(userRole)) {
+                statsWhere.userId = userId;
+            }
+
+            const statsInclude = [];
+            if ((academicYear || semester) && type === 'internship') {
+                const internshipDocWhere = {};
+                if (academicYear) internshipDocWhere.academicYear = academicYear;
+                if (semester) internshipDocWhere.semester = semester;
+                statsInclude.push({
+                    model: InternshipDocument,
+                    as: 'internshipDocument',
+                    attributes: [],
+                    where: internshipDocWhere,
+                    required: true,
+                });
+            } else if ((academicYear || semester) && type === 'project') {
+                const projectDocWhere = {};
+                if (academicYear) projectDocWhere.academicYear = academicYear;
+                if (semester) projectDocWhere.semester = semester;
+                statsInclude.push({
+                    model: ProjectDocument,
+                    as: 'projectDocument',
+                    attributes: [],
+                    where: projectDocWhere,
+                    required: true,
+                });
+            }
+
+            const [statsTotal, statsPending, statsApproved, statsRejected] = await Promise.all([
+                Document.count({ where: statsWhere, include: statsInclude, distinct: true }),
+                Document.count({ where: { ...statsWhere, status: 'pending' }, include: statsInclude, distinct: true }),
+                Document.count({ where: { ...statsWhere, status: 'approved' }, include: statsInclude, distinct: true }),
+                Document.count({ where: { ...statsWhere, status: 'rejected' }, include: statsInclude, distinct: true }),
+            ]);
+            const statistics = { total: statsTotal, pending: statsPending, approved: statsApproved, rejected: statsRejected };
 
             // จัดรูปแบบข้อมูลก่อนส่งกลับ
             const formattedDocuments = documents.map(doc => {
@@ -461,7 +501,7 @@ class DocumentService {
             const { type, lettersOnly } = options;
             const where = { userId };
             if (type && type !== 'all') {
-                where.documentType = type.toLowerCase();
+                where.documentType = type.toUpperCase();
             }
             const rows = await Document.findAll({
                 where,

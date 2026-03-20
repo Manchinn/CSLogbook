@@ -53,6 +53,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 45 | 03-16 | Report/stats features: Document Pipeline, Internship Supervisor (สถานประกอบการ), CSV export utility, improve internship+project reports with visual bars/rings, fix source-of-truth (advisor→supervisor) |
 | 46 | 03-18 | Redesign approve-documents (drawer+stats+skeleton), fix workflow step order (migration), normalize Thai status labels, remove redundant sections from internship flow page, move full timeline to student-profile, fix auto-create workflow activity bugs, add logbook date validation |
 | 47 | 03-19 | PDF template overhaul: หนังสือส่งตัว — pdfkit + TH Sarabun New + ตราครุฑ + layout ราชการ (absolute positioning ตรง template ต้นฉบับ) |
+| 48 | 03-20 | เลขที่อว. 3 ตัวท้าย: เพิ่ม official_number field, เจ้าหน้าที่กรอกตอน review, ใช้ใน PDF ขอความอนุเคราะห์ + ส่งตัว, review modal (single+bulk) |
 
 ### Pending
 
@@ -1134,5 +1135,34 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 
 ### Pending (จาก session นี้)
 
-- เลขที่ อว. 3 ตัวท้าย — ให้เจ้าหน้าที่กำหนดได้ตอนอนุมัติที่ /admin/documents/internship
+- ~~เลขที่ อว. 3 ตัวท้าย — ให้เจ้าหน้าที่กำหนดได้ตอนอนุมัติที่ /admin/documents/internship~~ ✅ done (Session 48)
 - เอกสารที่ต้องมีลายเซ็น — ยังไม่ได้ implement
+
+---
+
+### Session 48 (claude, 2026-03-20) — เลขที่อว. 3 ตัวท้าย (Official Document Number)
+
+### สิ่งที่ทำ
+
+1. **เพิ่ม `official_number` column** ใน documents table (VARCHAR 10, nullable) + migration
+2. **แก้ reviewByStaff** ทั้ง CS05 + ACCEPTANCE_LETTER controllers — รับ + validate (ตัวเลข 1-3 หลัก) + save
+3. **แก้ PDF services** — หนังสือขอความอนุเคราะห์ใช้ CS05.officialNumber, หนังสือส่งตัวใช้ ACCEPTANCE_LETTER.officialNumber
+4. **เพิ่ม review modal** ในหน้า admin documents — กรอกเลขที่ก่อนส่งต่อ (รองรับ single + bulk)
+5. **Design spec + plan** พร้อม review loop (spec reviewer + code reviewer)
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `backend/migrations/20260319120000-add-official-number-to-documents.js` | **NEW** — migration เพิ่ม official_number |
+| `backend/models/Document.js` | **EDIT** — เพิ่ม officialNumber field |
+| `backend/controllers/documents/cp05ApprovalController.js` | **EDIT** — reviewByStaff รับ officialNumber |
+| `backend/controllers/documents/acceptanceApprovalController.js` | **EDIT** — reviewByStaff รับ officialNumber |
+| `backend/services/internship/cooperationLetter.service.js` | **EDIT** — ใช้ officialNumber ใน PDF |
+| `backend/services/internship/referralLetter.service.js` | **EDIT** — ใช้ officialNumber ใน PDF |
+| `frontend-next/src/lib/services/adminInternshipDocumentsService.ts` | **EDIT** — ส่ง officialNumber |
+| `frontend-next/src/hooks/useAdminInternshipDocuments.ts` | **EDIT** — เพิ่ม officialNumber param |
+| `frontend-next/src/app/(app)/admin/documents/internship/page.tsx` | **EDIT** — review modal + official number input |
+| `frontend-next/src/styles/shared/admin-queue.module.css` | **EDIT** — CSS สำหรับ review modal |
+| `docs/superpowers/specs/2026-03-19-official-number-design.md` | **NEW** — design spec |
+| `docs/superpowers/plans/2026-03-19-official-number.md` | **NEW** — implementation plan |
