@@ -245,11 +245,6 @@ class InternshipCooperationLetterService {
       y += 4;
       pdf.text(`ชื่อ-สกุล: ${data.student.fullName}`, ML + indent + 40, y, { lineBreak: false });
       y += lineH;
-      pdf.text(`รหัสนักศึกษา: ${data.student.studentCode}`, ML + indent + 40, y, { lineBreak: false });
-      y += lineH;
-      const classroomText = data.student.classroom ? `  ห้อง: ${data.student.classroom}` : "";
-      pdf.text(`ชั้นปีที่: ${data.student.year}${classroomText}`, ML + indent + 40, y, { lineBreak: false });
-      y += lineH;
       if (data.internshipPosition) {
         pdf.text(`ตำแหน่งที่ขอฝึกงาน: ${data.internshipPosition}`, ML + indent + 40, y, { lineBreak: false });
         y += lineH;

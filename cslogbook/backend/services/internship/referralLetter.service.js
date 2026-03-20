@@ -233,21 +233,15 @@ class InternshipReferralLetterService {
       const data = {
         docNumber: acceptanceLetter.officialNumber || `${documentId}`,
         docDate: new Date(),
-        acceptanceDate:
-          acceptanceLetter.updated_at || acceptanceLetter.created_at,
         student: {
           fullName: `${student.user.firstName} ${student.user.lastName}`,
-          studentCode: student.studentCode,
-          year: yearInfo?.error ? 3 : yearInfo.year,
         },
         company: internshipDoc.companyName,
         companyAddress: internshipDoc.companyAddress,
         contactName: internshipDoc.contactPersonName,
         contactPosition: internshipDoc.contactPersonPosition,
-        position: internshipDoc.internshipPosition,
         startDate: internshipDoc.startDate,
         endDate: internshipDoc.endDate,
-        duration: internshipDoc.internshipDuration,
       };
 
       // ===== 6. สร้าง PDF ด้วย pdfkit =====
@@ -343,29 +337,10 @@ class InternshipReferralLetterService {
         lineBreak: false,
       });
 
-      // ===== อ้างถึง =====
+      // ===== เนื้อหา =====
       y += lineH;
       pdf.text(
-        `อ้างถึงหนังสือของท่าน ลงวันที่ ${formatThaiDateGov(data.acceptanceDate)} เรื่อง การตอบรับนักศึกษาเข้าฝึกงาน`,
-        ML + indent,
-        y,
-        { width: contentWidth - indent }
-      );
-      y = pdf.y;
-
-      // ===== เนื้อหา =====
-      // ขอขอบพระคุณ
-      pdf.text(
-        `${DEPARTMENT_INFO.departmentName} ขอขอบพระคุณที่ท่านให้ความอนุเคราะห์รับนักศึกษาเข้าฝึกงาน`,
-        ML,
-        y,
-        { width: contentWidth }
-      );
-      y = pdf.y;
-
-      // ขอส่งตัว
-      pdf.text(
-        `บัดนี้${DEPARTMENT_INFO.departmentName} ขอส่งตัวนักศึกษา จำนวน 1 คน เพื่อเข้าฝึกงาน ในตำแหน่ง ${data.position || "-"} ตามรายชื่อดังต่อไปนี้`,
+        `ตามที่${DEPARTMENT_INFO.departmentName} ขอความอนุเคราะห์ให้นักศึกษาของภาควิชาฯ เข้าฝึกงาน โดยเริ่มฝึกงาน ตั้งแต่วันที่ ${formatThaiDateGov(data.startDate)} - ${formatThaiDateGov(data.endDate)} (จนกว่าจะครบ 240 ชั่วโมง) บัดนี้ ภาควิชาฯ ขอส่งนักศึกษาเพื่อเข้าฝึกงานในหน่วยงานของท่าน จำนวน 1 คน ดังนี้`,
         ML + indent,
         y,
         { width: contentWidth - indent }
@@ -373,34 +348,37 @@ class InternshipReferralLetterService {
       y = pdf.y;
 
       // รายชื่อนักศึกษา
+      y += 4;
       pdf.text(`1. ${data.student.fullName}`, ML + indent + 40, y, {
         lineBreak: false,
       });
-      textRight(data.student.studentCode, y);
       y += lineH;
 
-      // ระยะเวลา
+      // จึงเรียนมา + ขอให้ตรวจสอบ
       pdf.text(
-        `ทั้งนี้ นักศึกษาจะเริ่มเข้าฝึกงานตั้งแต่วันที่ ${formatThaiDateGov(data.startDate)} ถึง ${formatThaiDateGov(data.endDate)} รวมระยะเวลา ${data.duration || "-"} วัน (ไม่น้อยกว่า 40 วัน หรือ 240 ชั่วโมง) ตามที่ได้แจ้งไว้แล้ว`,
+        "จึงเรียนมาเพื่อโปรดรับนักศึกษาเข้าฝึกงานที่ได้เรียนไว้แล้ว อนึ่งภาควิชาฯ ใคร่ขอให้ท่านช่วยตรวจสอบการฝึกงานของนักศึกษา โดย",
         ML + indent,
         y,
         { width: contentWidth - indent }
       );
       y = pdf.y;
 
-      // ขอความกรุณา
-      pdf.text(
-        `${DEPARTMENT_INFO.departmentName} ขอความกรุณาจากท่านโปรดให้คำแนะนำและดูแลนักศึกษาในระหว่างการฝึกงาน และหากมีปัญหาใดๆ โปรดติดต่อภาควิชาฯ ตามหมายเลขโทรศัพท์ด้านล่าง`,
-        ML + indent,
-        y,
-        { width: contentWidth - indent }
-      );
+      // Checklist 3 ข้อ
+      pdf.text("1. ให้นักศึกษาลงวันที่และเวลาการฝึกงาน", ML + indent + 40, y, { lineBreak: false });
+      y += lineH;
+      pdf.text("2. ให้นักศึกษากรอกข้อความการปฏิบัติงานของนักศึกษาลงในใบรายการฝึกงาน", ML + indent + 40, y, { width: contentWidth - indent - 40 });
+      y = pdf.y;
+      pdf.text("3. แบบรายงานผลฝึกงานของนักศึกษาโปรดส่งคืนให้กับนักศึกษาเพื่อนำส่งให้ภาควิชาฯ ต่อไป", ML + indent + 40, y, { width: contentWidth - indent - 40 });
       y = pdf.y;
 
-      // จึงเรียนมา
-      pdf.text("จึงเรียนมาเพื่อโปรดทราบและดำเนินการต่อไป", ML + indent, y, {
-        lineBreak: false,
-      });
+      // ขอขอบคุณ
+      y += 4;
+      pdf.text("ขอขอบคุณมา ณ โอกาสนี้", ML + indent, y, { lineBreak: false });
+      y = pdf.y;
+
+      // หมายเหตุ
+      y += 4;
+      pdf.text("(โดยแบบฟอร์มทั้ง 3 ข้อ นักศึกษาจะนำไปให้หน่วยงานของท่านด้วยตนเอง)", ML + indent, y, { width: contentWidth - indent });
       y = pdf.y;
 
       // ===== ลายเซ็น =====
@@ -408,24 +386,23 @@ class InternshipReferralLetterService {
       textCenter("ขอแสดงความนับถือ", y);
 
       y += lineH * 2.5;
+      pdf.font("Thai-Bold").fontSize(sz);
       textCenter(
         `(${DEPARTMENT_INFO.departmentHead.name})`,
         y
       );
       y += lineH;
+      pdf.font("Thai").fontSize(sz);
       textCenter(DEPARTMENT_INFO.departmentHead.title, y);
+      y += lineH;
+      textCenter(`${DEPARTMENT_INFO.facultyName} ${DEPARTMENT_INFO.universityName}`, y);
 
       // ===== Footer =====
       let fy = 750;
-      pdf.text(DEPARTMENT_INFO.departmentName, ML, fy, { lineBreak: false });
+      pdf.font("Thai").fontSize(sz);
+      pdf.text(`${DEPARTMENT_INFO.departmentName} ${DEPARTMENT_INFO.facultyName}`, ML, fy, { lineBreak: false });
       fy += 18;
-      pdf.text("เจ้าหน้าที่ภาควิชา: นายนที ปัญญาประสิทธิ์", ML, fy, {
-        lineBreak: false,
-      });
-      fy += 18;
-      pdf.text("อีเมล: natee.p@sci.kmutnb.ac.th", ML, fy, {
-        lineBreak: false,
-      });
+      pdf.text(DEPARTMENT_INFO.universityName, ML, fy, { lineBreak: false });
       fy += 18;
       pdf.text("โทร. 02-555-2000 ต่อ 4601", ML, fy, { lineBreak: false });
 
