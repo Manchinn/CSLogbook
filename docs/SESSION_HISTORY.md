@@ -54,6 +54,8 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 46 | 03-18 | Redesign approve-documents (drawer+stats+skeleton), fix workflow step order (migration), normalize Thai status labels, remove redundant sections from internship flow page, move full timeline to student-profile, fix auto-create workflow activity bugs, add logbook date validation |
 | 47 | 03-19 | PDF template overhaul: หนังสือส่งตัว — pdfkit + TH Sarabun New + ตราครุฑ + layout ราชการ (absolute positioning ตรง template ต้นฉบับ) |
 | 48 | 03-20 | เลขที่อว. 3 ตัวท้าย: เพิ่ม official_number field, เจ้าหน้าที่กรอกตอน review, ใช้ใน PDF ขอความอนุเคราะห์ + ส่งตัว, review modal (single+bulk) |
+| 49 | 03-20 | Investigation: admin/documents/internship — ตรวจ source of truth, filter, พบ frontend .env ชี้ production (119.59.124.67) ไม่ใช่ localhost, local dev DB เป็นคนละตัวกับ prod |
+| 50 | 03-20 | PDF template overhaul: หนังสือขอความอนุเคราะห์ — rewrite ให้ตรง template ราชการ (TH Sarabun New, ตราครุฑ, header ที่อยู่, เรื่อง/เรียน bold, footer ติดต่อ), fix frontend filename ใช้ Content-Disposition |
 
 ### Pending
 

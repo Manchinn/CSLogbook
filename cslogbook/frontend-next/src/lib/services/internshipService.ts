@@ -293,8 +293,15 @@ export async function downloadCooperationLetter(token: string, documentId: numbe
     throw new Error("ไม่พบไฟล์ PDF จากเซิร์ฟเวอร์");
   }
 
-  // trigger browser download
-  const filename = `หนังสือขอความอนุเคราะห์-${documentId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  // ดึงชื่อไฟล์จาก Content-Disposition header ที่ backend ส่งมา (มีชื่อนักศึกษา)
+  let filename = `หนังสือขอความอนุเคราะห์-${documentId}.pdf`;
+  const disposition = response.headers.get("Content-Disposition");
+  if (disposition) {
+    const match = disposition.match(/filename\*?=(?:UTF-8''|"?)([^";]+)/i);
+    if (match?.[1]) {
+      filename = decodeURIComponent(match[1].replace(/"/g, ""));
+    }
+  }
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
