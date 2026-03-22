@@ -51,7 +51,7 @@ export default function ThesisDefenseRequestContent() {
   const systemTestReady = useMemo(() => {
     const summary = project?.systemTestRequest;
     if (!summary) return false;
-    if (!["staff_approved", "evidence_submitted"].includes(summary.status)) return false;
+    if (!summary.status || !["staff_approved", "evidence_submitted"].includes(summary.status)) return false;
     if (!summary.evidenceSubmittedAt) return false;
     if (!summary.testDueDate) return false;
     const due = new Date(summary.testDueDate);
