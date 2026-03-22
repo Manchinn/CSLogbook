@@ -274,20 +274,6 @@ class InternshipAcceptanceLetterService {
             break;
           case "approved":
             statusMessage = "หนังสือตอบรับได้รับการอนุมัติแล้ว";
-
-            // ✅ อัปเดต CS05 status เป็น acceptance_approved ถ้าจำเป็น
-            if (cs05Document.status !== "acceptance_approved") {
-              logger.debug(
-                "[DEBUG] 🔄 อัปเดต CS05 status เป็น acceptance_approved"
-              );
-
-              await cs05Document.update({
-                status: "acceptance_approved",
-                updated_at: new Date(),
-              });
-
-              logger.debug("[DEBUG] ✅ อัปเดต CS05 status เรียบร้อย");
-            }
             break;
           case "rejected":
             statusMessage = "หนังสือตอบรับไม่ได้รับการอนุมัติ กรุณาอัปโหลดใหม่";

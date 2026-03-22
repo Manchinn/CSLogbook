@@ -247,7 +247,25 @@ export async function reviewInternshipDocumentByStaff(
   });
 }
 
-export async function rejectInternshipDocument(documentId: number, reason: string) {
+export async function rejectInternshipDocument(documentId: number, reason: string, documentName?: string) {
+  const normalizedName = (documentName ?? "").toUpperCase();
+
+  if (normalizedName === "CS05") {
+    return apiFetch(`/internship/cs-05/${documentId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (normalizedName === "ACCEPTANCE_LETTER") {
+    return apiFetch(`/internship/acceptance/${documentId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   return apiFetch(`/admin/documents/${documentId}/reject`, {
     method: "POST",
     body: JSON.stringify({ reason }),

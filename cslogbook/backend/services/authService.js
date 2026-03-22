@@ -367,12 +367,9 @@ class AuthService {
         };
       }
 
-      const token = jwt.sign({
-        userId: user.userId,
-        role: user.role
-      }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN
-      });
+      // ดึงข้อมูลตาม role เพื่อใส่ claims ครบเหมือน login
+      const roleData = await this.getRoleSpecificData(user);
+      const token = this.generateToken(user, roleData);
 
       logger.info(`AuthService: Token refreshed successfully for user ID: ${userId}`);
 

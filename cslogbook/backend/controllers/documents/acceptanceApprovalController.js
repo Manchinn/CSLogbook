@@ -214,11 +214,17 @@ exports.approveByHead = async (req, res) => {
       comment: comment || 'อนุมัติหนังสือตอบรับการฝึกงาน',
     });
 
-    // ซิงค์สถานะ CS05 ให้สอดคล้อง (อาศัย service ที่คำนวณและอัปเดตสถานะ)
+    // อัปเดต CS05 status เป็น acceptance_approved โดยตรง (ไม่ใช้ side-effect ใน getter)
     try {
-      await internshipManagementService.getAcceptanceLetterStatus(doc.userId, null);
+      const cs05ForSync = await Document.findOne({
+        where: { userId: doc.userId, documentName: 'CS05', status: 'approved' },
+        order: [['created_at', 'DESC']]
+      });
+      if (cs05ForSync) {
+        await cs05ForSync.update({ status: 'acceptance_approved', updated_at: new Date() });
+      }
     } catch (e) {
-      console.warn('Acceptance approve sync warning:', e.message);
+      console.warn('Acceptance approve CS05 sync warning:', e.message);
     }
 
     // ✅ อัพเดทสถานะการฝึกงานของนักศึกษาตาม startDate

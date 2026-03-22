@@ -70,7 +70,7 @@ export function useAdminInternshipDocumentMutations() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ documentId, reason }: { documentId: number; reason: string }) => rejectInternshipDocument(documentId, reason),
+    mutationFn: ({ documentId, reason, documentName }: { documentId: number; reason: string; documentName?: string }) => rejectInternshipDocument(documentId, reason, documentName),
     onSuccess: invalidate,
   });
 

@@ -363,7 +363,7 @@ class ProjectDeadlineMonitor {
           }
 
           // นับสถิติ (skip if already counted in state transition)
-          if (result.isOverdue && !wasOverdue && !state.workflow_step_id.toString().includes('OVERDUE')) {
+          if (result.isOverdue && !wasOverdue && !state.isOverdue) {
             this.statistics.newlyOverdue++;
             await this.notifyOverdue(state, result.overdueDeadlines);
           } else if (result.isOverdue && wasOverdue) {

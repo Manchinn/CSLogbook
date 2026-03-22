@@ -142,14 +142,15 @@ exports.addTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, contactExtension, position, canAccessTopicExam, canExportProject1 } = req.body;
+    const { firstName, lastName, email, contactExtension, position, teacherType, canAccessTopicExam, canExportProject1 } = req.body;
 
     const result = await teacherService.updateTeacher(id, {
       firstName,
       lastName,
       email,
       contactExtension,
-      position, // ส่งตำแหน่งไป service
+      position,
+      teacherType,
       canAccessTopicExam,
       canExportProject1
     });
