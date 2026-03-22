@@ -33,6 +33,8 @@ import {
   type ImportantDeadline,
 } from "@/lib/services/importantDeadlineService";
 import { useAcademicYears } from "@/hooks/useAcademicYears";
+import { DeadlineTimeline } from "@/components/admin/DeadlineTimeline";
+import { downloadCSV } from "@/lib/utils/csvExport";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
@@ -176,6 +178,7 @@ export default function AcademicSettingsPage() {
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<"schedule" | "deadline">("schedule");
+  const [deadlineView, setDeadlineView] = useState<"table" | "calendar">("table");
   const [deadlineYearFilter, setDeadlineYearFilter] = useState<string>("");
   const [deadlineSemesterFilter, setDeadlineSemesterFilter] = useState<string>("");
   const { data: academicYears = [] } = useAcademicYears();
@@ -621,6 +624,25 @@ export default function AcademicSettingsPage() {
     } catch {
       setDeadlineStats(null);
     }
+  };
+
+  const handleExportCSV = () => {
+    const yearLabel = deadlineYearFilter || "ทุกปี";
+    const semLabel = deadlineSemesterFilter || "ทุกเทอม";
+    downloadCSV(
+      deadlines as unknown as Record<string, unknown>[],
+      [
+        { key: "name" as never, header: "ชื่อกำหนดการ" },
+        { key: "relatedTo" as never, header: "หมวด", format: (v: unknown) => relatedToLabel(v as string) },
+        { key: "academicYear" as never, header: "ปีการศึกษา", format: (v: unknown) => String(v ?? "") },
+        { key: "semester" as never, header: "ภาคเรียน", format: (v: unknown) => String(v ?? "") },
+        { key: "deadlineType" as never, header: "ประเภท", format: (v: unknown) => v === "SUBMISSION" ? "ส่งเอกสาร" : v === "ANNOUNCEMENT" ? "ประกาศ" : v === "MILESTONE" ? "เหตุการณ์สำคัญ" : String(v ?? "") },
+        { key: "deadlineDate" as never, header: "วันครบกำหนด" },
+        { key: "deadlineTime" as never, header: "เวลา", format: (v: unknown) => v ? String(v) : "" },
+        { key: "isCritical" as never, header: "สำคัญ", format: (v: unknown) => v ? "ใช่" : "ไม่" },
+      ],
+      `กำหนดการสำคัญ-${yearLabel}-${semLabel}`
+    );
   };
 
   const currentScheduleLabel = useMemo(() => {
@@ -1204,6 +1226,20 @@ export default function AcademicSettingsPage() {
             </div>
           </div>
 
+          {/* ━━ View toggle ━━ */}
+          <div className={styles.subTabBar}>
+            <button type="button"
+              className={`${styles.subTab} ${deadlineView === "table" ? styles.subTabActive : ""}`}
+              onClick={() => setDeadlineView("table")}>
+              ตาราง
+            </button>
+            <button type="button"
+              className={`${styles.subTab} ${deadlineView === "calendar" ? styles.subTabActive : ""}`}
+              onClick={() => setDeadlineView("calendar")}>
+              ปฏิทิน
+            </button>
+          </div>
+
           {/* ━━ Filter bar ━━ */}
           <div className={styles.formGroup}>
             <div className={styles.formGroupLabel}>กรองรายการ</div>
@@ -1238,14 +1274,25 @@ export default function AcademicSettingsPage() {
               </label>
               <label className={styles.field}>
                 &nbsp;
-                <button type="button" className={btn.button}
-                  onClick={() => { setDeadlineYearFilter(""); setDeadlineSemesterFilter(""); loadDeadlines(); }}>
-                  ล้าง filter
-                </button>
+                <div className={styles.actions}>
+                  <button type="button" className={btn.button}
+                    onClick={() => { setDeadlineYearFilter(""); setDeadlineSemesterFilter(""); loadDeadlines(); }}>
+                    ล้าง filter
+                  </button>
+                  <button type="button" className={btn.button} onClick={handleExportCSV}
+                    disabled={deadlines.length === 0}>
+                    ส่งออก CSV
+                  </button>
+                </div>
               </label>
             </div>
           </div>
 
+          {deadlineView === "calendar" && (
+            <DeadlineTimeline deadlines={deadlines} />
+          )}
+
+          {deadlineView === "table" && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -1295,6 +1342,7 @@ export default function AcademicSettingsPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           {deadlineStats ? (
             <div className={styles.card}>
