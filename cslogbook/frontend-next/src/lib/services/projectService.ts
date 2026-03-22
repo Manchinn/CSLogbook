@@ -225,7 +225,7 @@ export async function submitSystemTestRequest(
 
 export async function uploadSystemTestEvidence(token: string, projectId: number, file: File) {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("evidenceFile", file);
 
   return apiFetch<{ success: boolean; data?: SystemTestRequest; message?: string }>(
     `/projects/${projectId}/system-test/request/evidence`,

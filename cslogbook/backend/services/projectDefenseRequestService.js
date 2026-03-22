@@ -988,7 +988,10 @@ class ProjectDefenseRequestService {
   }
 
   async submitAdvisorDecision(projectId, teacherId, { decision, note } = {}, { defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
-    const normalizedDecision = String(decision || '').toLowerCase();
+    let normalizedDecision = String(decision || '').toLowerCase();
+    // รองรับทั้ง "approve"/"reject" (frontend) และ "approved"/"rejected"
+    if (normalizedDecision === 'approve') normalizedDecision = 'approved';
+    if (normalizedDecision === 'reject') normalizedDecision = 'rejected';
     if (!['approved', 'rejected'].includes(normalizedDecision)) {
       throw new Error('รูปแบบการตัดสินใจไม่ถูกต้อง');
     }

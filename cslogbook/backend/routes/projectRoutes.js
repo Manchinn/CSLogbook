@@ -101,7 +101,6 @@ router.get('/:id/tracks', checkProjectEligibility, projectTracksController.list)
 router.post('/:id/tracks', authorize('project', 'trackManage'), checkProjectEligibility, projectTracksController.replace); // replace ทั้งชุด
 
 // อัปเดต metadata (leader) - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
-router.patch('/:id', checkProjectEligibility, validateUpdateProject, controller.updateProject);
 router.patch('/:id', authorize('project', 'updateOwn'), checkProjectEligibility, validateUpdateProject, controller.updateProject);
 
 // เพิ่มสมาชิกคนที่สอง - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ

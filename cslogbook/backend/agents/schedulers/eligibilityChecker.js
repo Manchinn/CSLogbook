@@ -194,17 +194,20 @@ class EligibilityChecker {
       // ในระบบจริง ข้อมูลนี้อาจต้องดึงจากระบบทะเบียนหรือจากฐานข้อมูลที่เก็บประวัติการเรียน
       // แต่สำหรับตัวอย่างนี้ จะจำลองข้อมูลแบบง่ายๆ
       
-      // หมายเหตุ: ไม่มี AcademicRecord Model ในระบบ จึงใช้ข้อมูลจำลองแทน
-      // ในอนาคตอาจต้องสร้าง model หรือใช้ข้อมูลจาก StudentAcademicHistory
-      
       if (!studentId) {
         return null;
       }
-      
-      // สร้างข้อมูลจำลองสำหรับการทดสอบ
+
+      // ใช้ข้อมูลจริงจาก Student model (totalCredits, majorCredits อัปเดตผ่าน CSV upload)
+      const student = await Student.findByPk(studentId);
+      if (!student) {
+        return null;
+      }
+
       return {
-        totalCredits: Math.floor(Math.random() * 50) + 90, // สุ่มหน่วยกิตระหว่าง 90-140
-        passedCourses: ['261103', '261200', '261208', '261207', '261216'] // รายวิชาที่ผ่านแล้ว
+        totalCredits: student.totalCredits || 0,
+        majorCredits: student.majorCredits || 0,
+        gpa: student.gpa || 0
       };
       
     } catch (error) {
@@ -220,27 +223,15 @@ class EligibilityChecker {
    * @returns {boolean} มีคุณสมบัติหรือไม่
    */
   checkInternshipEligibility(student, academicData) {
-    // ตรวจสอบหน่วยกิต
-    const minCredits = student.studentCurriculum && student.studentCurriculum.internship_min_credits ? 
-                      student.studentCurriculum.internship_min_credits : 
+    // ตรวจสอบหน่วยกิตรวม — ใช้ค่าจาก Curriculum หรือ default
+    const minCredits = student.studentCurriculum && student.studentCurriculum.internship_min_credits ?
+                      student.studentCurriculum.internship_min_credits :
                       this.eligibilityCriteria.internship.minCredits;
-                      
+
     if (academicData.totalCredits < minCredits) {
       return false;
     }
-    
-    // ตรวจสอบรายวิชาที่ต้องผ่าน
-    const requiredCourses = student.studentCurriculum && student.studentCurriculum.internship_required_courses ?
-                           JSON.parse(student.studentCurriculum.internship_required_courses) :
-                           this.eligibilityCriteria.internship.requiredCourses;
-    
-    for (const course of requiredCourses) {
-      if (!academicData.passedCourses.includes(course)) {
-        return false;
-      }
-    }
-    
-    // ผ่านเกณฑ์ทั้งหมด = มีคุณสมบัติ
+
     return true;
   }
 
@@ -251,27 +242,15 @@ class EligibilityChecker {
    * @returns {boolean} มีคุณสมบัติหรือไม่
    */
   checkProjectEligibility(student, academicData) {
-    // ตรวจสอบหน่วยกิต
-    const minCredits = student.studentCurriculum && student.studentCurriculum.project_min_credits ? 
-                      student.studentCurriculum.project_min_credits : 
+    // ตรวจสอบหน่วยกิตรวม — ใช้ค่าจาก Curriculum หรือ default
+    const minCredits = student.studentCurriculum && student.studentCurriculum.project_min_credits ?
+                      student.studentCurriculum.project_min_credits :
                       this.eligibilityCriteria.project.minCredits;
-                      
+
     if (academicData.totalCredits < minCredits) {
       return false;
     }
-    
-    // ตรวจสอบรายวิชาที่ต้องผ่าน
-    const requiredCourses = student.studentCurriculum && student.studentCurriculum.project_required_courses ?
-                           JSON.parse(student.studentCurriculum.project_required_courses) :
-                           this.eligibilityCriteria.project.requiredCourses;
-    
-    for (const course of requiredCourses) {
-      if (!academicData.passedCourses.includes(course)) {
-        return false;
-      }
-    }
-    
-    // ผ่านเกณฑ์ทั้งหมด = มีคุณสมบัติ
+
     return true;
   }
 
