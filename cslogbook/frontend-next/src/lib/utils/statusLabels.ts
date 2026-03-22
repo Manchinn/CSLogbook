@@ -65,7 +65,6 @@ export const STATUS_LABELS: Record<string, string> = {
 
   // Project workflow phases (uppercase จาก backend)
   topic_exam_pending:    "รอยื่นสอบหัวข้อ",
-  topic_exam_scheduled:  "นัดสอบหัวข้อแล้ว",
   topic_failed:          "สอบหัวข้อไม่ผ่าน",
   thesis_in_progress:    "กำลังทำปริญญานิพนธ์",
   thesis_exam_pending:   "รอยื่นสอบปริญญานิพนธ์",

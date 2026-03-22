@@ -195,6 +195,8 @@ export type ReferralLetterStatus = {
   status: string;
   statusMessage?: string | null;
   referralLetterPath?: string | null;
+  hasSupervisorInfo?: boolean;
+  missingRequirements?: string[];
 };
 
 /**

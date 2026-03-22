@@ -310,7 +310,7 @@ class InternshipEvaluationService {
         where: {
           documentId: approvalToken.documentId,
           documentName: "CS05",
-          status: ["approved"],
+          status: ["approved", "supervisor_approved"],
         },
         attributes: ["documentId", "status", "documentName", "userId"],
         include: [

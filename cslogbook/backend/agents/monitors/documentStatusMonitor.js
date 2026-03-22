@@ -118,17 +118,14 @@ class DocumentStatusMonitor {
         message += `คุณสามารถเข้าไปตรวจสอบรายการเอกสารได้ที่หน้าตรวจสอบเอกสารในระบบ CSLogbook`;
         
         // ส่งการแจ้งเตือนไปยังผู้ตรวจ
-        await notificationService.sendNotification({
-          userId: teacherId,
-          userType: 'teacher',
+        await notificationService.createAndNotify(teacherId, {
+          type: 'DOCUMENT',
           title,
           message,
-          priority: 'high',
-          relatedTo: {
-            type: 'documents',
-            count: documents.length
-          },
-          sendEmail: true
+          metadata: {
+            documentCount: documents.length,
+            stuckDays: this.config.documentsStuckInReviewDays
+          }
         });
         
         logger.info(`DocumentStatusMonitor: Notified teacher #${teacherId} about ${documents.length} stuck documents`);

@@ -148,17 +148,14 @@ class DeadlineReminderAgent {
           continue;
         }
 
-        await notificationService.sendNotification({
-          userId: student.studentId,
-          userType: 'student',
+        await notificationService.createAndNotify(student.studentId, {
+          type: 'DOCUMENT',
           title,
           message,
-          priority: isCritical ? 'high' : 'medium',
-          relatedTo: {
-            type: 'deadline',
-            id: deadline.id
-          },
-          sendEmail: agentConfig.notifications.emailEnabled
+          metadata: {
+            deadlineId: deadline.id,
+            isCritical
+          }
         });
       }
 

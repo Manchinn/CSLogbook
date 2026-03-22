@@ -727,6 +727,20 @@ class InternshipCertificateService {
         throw new Error("ยังไม่ผ่านเงื่อนไขการขอหนังสือรับรองการฝึกงาน (ต้องชั่วโมงครบและมีการประเมินผู้ควบคุมงาน)");
       }
 
+      // ตรวจสอบว่าหนังสือตอบรับได้รับการอนุมัติแล้ว
+      const acceptanceLetter = await Document.findOne({
+        where: {
+          userId,
+          documentName: "ACCEPTANCE_LETTER",
+          documentType: "INTERNSHIP",
+          status: "approved",
+        },
+      });
+
+      if (!acceptanceLetter) {
+        throw new Error("ยังไม่มีหนังสือตอบรับที่ได้รับการอนุมัติ กรุณาตรวจสอบสถานะหนังสือตอบรับก่อนขอหนังสือรับรอง");
+      }
+
       // ดึงข้อมูลนักศึกษาและเอกสาร CS05
       const student = await Student.findOne({
         where: { userId },

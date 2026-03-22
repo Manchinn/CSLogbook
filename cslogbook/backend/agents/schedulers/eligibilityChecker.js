@@ -294,17 +294,14 @@ class EligibilityChecker {
                      `หากมีข้อสงสัยสามารถติดต่อเจ้าหน้าที่ภาควิชาฯ ได้ในวันและเวลาทำการ`;
 
       // ส่งการแจ้งเตือนไปยังนักศึกษา
-      await notificationService.sendNotification({
-        userId: student.id,
-        userType: 'student',
+      await notificationService.createAndNotify(student.id, {
+        type: 'DOCUMENT',
         title,
         message,
-        priority: 'medium',
-        relatedTo: {
-          type: type,
-          eligibility: true
-        },
-        sendEmail: true
+        metadata: {
+          applicationType: type,
+          isEligibility: true
+        }
       });
       
       logger.debug(`EligibilityChecker: Notified student #${student.id} about ${type} eligibility`);

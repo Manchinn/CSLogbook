@@ -289,17 +289,14 @@ class SecurityMonitor {
 
       // ส่งการแจ้งเตือนไปยังผู้ดูแลระบบทุกคน
       for (const admin of admins) {
-        await notificationService.sendNotification({
-          userId: admin.id,
-          userType: 'admin',
+        await notificationService.createAndNotify(admin.id, {
+          type: 'APPROVAL',
           title,
           message,
-          priority: severity === 'high' ? 'high' : 'medium',
-          relatedTo: {
-            type: 'security_issue',
-            issueType: type
-          },
-          sendEmail: true
+          metadata: {
+            alertType: type,
+            severity
+          }
         });
       }
 

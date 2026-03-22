@@ -130,11 +130,6 @@ export default function MeetingLogbookPage() {
   const postTopicLockReasons = useMemo(() => {
     if (!project) return [] as string[];
     const reasons: string[] = [];
-    if (!project.examResult) {
-      reasons.push("เจ้าหน้าที่ภาควิชายังไม่ได้บันทึกผลสอบหัวข้อ");
-    } else if (project.examResult !== "passed") {
-      reasons.push("ผลสอบหัวข้อยังไม่ผ่าน");
-    }
     if (!project.status || !["in_progress", "completed"].includes(project.status)) {
       reasons.push("สถานะโครงงานยังไม่อยู่ในขั้น \"กำลังดำเนินการ\" หรือ \"เสร็จสิ้น\"");
     }
@@ -394,7 +389,7 @@ export default function MeetingLogbookPage() {
 
         {project && postTopicLockReasons.length > 0 ? (
           <div className={styles.noticeWarning}>
-            <p className={styles.noticeTitle}>ขั้นตอนนี้เปิดหลังสอบหัวข้อผ่าน</p>
+            <p className={styles.noticeTitle}>ขั้นตอนนี้เปิดเมื่อโครงงานอยู่ในสถานะ &quot;กำลังดำเนินการ&quot;</p>
             <ul className={styles.noticeList}>
               {postTopicLockReasons.map((reason) => (
                 <li key={reason}>{reason}</li>

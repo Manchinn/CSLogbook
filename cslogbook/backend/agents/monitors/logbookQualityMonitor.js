@@ -187,17 +187,14 @@ class LogbookQualityMonitor {
       }
       
       // ส่งการแจ้งเตือนไปยังนักศึกษา
-      await notificationService.sendNotification({
-        userId: studentId,
-        userType: 'student',
+      await notificationService.createAndNotify(studentId, {
+        type: 'LOGBOOK',
         title,
         message,
-        priority: isPoor ? 'medium' : 'low',
-        relatedTo: {
-          type: 'logbook',
-          id: logbook.id
-        },
-        sendEmail: false // ไม่ส่งอีเมลเพื่อไม่ให้รบกวนนักศึกษามากเกินไป
+        metadata: {
+          logbookId: logbook.id,
+          qualityLevel: isPoor ? 'poor' : 'adequate'
+        }
       });
       
       logger.debug(`LogbookQualityMonitor: Sent ${isPoor ? 'improvement' : 'positive'} feedback to student #${studentId} for logbook #${logbook.id}`);

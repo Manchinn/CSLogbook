@@ -56,6 +56,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 48 | 03-20 | เลขที่อว. 3 ตัวท้าย: เพิ่ม official_number field, เจ้าหน้าที่กรอกตอน review, ใช้ใน PDF ขอความอนุเคราะห์ + ส่งตัว, review modal (single+bulk) |
 | 49 | 03-20 | Investigation: admin/documents/internship — ตรวจ source of truth, filter, พบ frontend .env ชี้ production (119.59.124.67) ไม่ใช่ localhost, local dev DB เป็นคนละตัวกับ prod |
 | 50 | 03-20 | PDF template overhaul: หนังสือขอความอนุเคราะห์ — rewrite ให้ตรง template ราชการ (TH Sarabun New, ตราครุฑ, header ที่อยู่, เรื่อง/เรียน bold, footer ติดต่อ), fix frontend filename ใช้ Content-Disposition |
+| 51 | 03-22 | PDF audit ทั้ง 2 เอกสาร: ลบรหัส/ชั้นปี/ห้องจากขอความอนุเคราะห์, rewrite ส่งตัวตาม template (checklist 3 ข้อ, หมายเหตุ, คณะ+มหาวิทยาลัยใต้ลงนาม), fix เรียนแสดงชื่อบริษัทซ้ำ, รวมเบอร์โทร 4601 |
 
 ### Pending
 

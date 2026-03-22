@@ -48,7 +48,6 @@ export enum ProjectWorkflowPhase {
   ADVISOR_ASSIGNED = 'ADVISOR_ASSIGNED',
   TOPIC_SUBMISSION = 'TOPIC_SUBMISSION',
   TOPIC_EXAM_PENDING = 'TOPIC_EXAM_PENDING',
-  TOPIC_EXAM_SCHEDULED = 'TOPIC_EXAM_SCHEDULED',
   TOPIC_FAILED = 'TOPIC_FAILED',
   IN_PROGRESS = 'IN_PROGRESS',
   THESIS_SUBMISSION = 'THESIS_SUBMISSION',
@@ -63,7 +62,6 @@ export enum ProjectWorkflowPhase {
 /** สถานะคำขอสอบ (project_defense_requests.status) */
 export enum DefenseRequestStatus {
   DRAFT = 'draft',
-  SUBMITTED = 'submitted',
   ADVISOR_IN_REVIEW = 'advisor_in_review',
   ADVISOR_APPROVED = 'advisor_approved',
   STAFF_VERIFIED = 'staff_verified',
@@ -170,8 +168,7 @@ export const PROJECT_WORKFLOW_TRANSITIONS: Record<ProjectWorkflowPhase, ProjectW
   /** @phantom */
   [ProjectWorkflowPhase.ADVISOR_ASSIGNED]: [ProjectWorkflowPhase.TOPIC_SUBMISSION],
   [ProjectWorkflowPhase.TOPIC_SUBMISSION]: [ProjectWorkflowPhase.TOPIC_EXAM_PENDING],
-  [ProjectWorkflowPhase.TOPIC_EXAM_PENDING]: [ProjectWorkflowPhase.TOPIC_EXAM_SCHEDULED],
-  [ProjectWorkflowPhase.TOPIC_EXAM_SCHEDULED]: [ProjectWorkflowPhase.IN_PROGRESS, ProjectWorkflowPhase.TOPIC_FAILED],
+  [ProjectWorkflowPhase.TOPIC_EXAM_PENDING]: [ProjectWorkflowPhase.IN_PROGRESS, ProjectWorkflowPhase.TOPIC_FAILED],
   /** @phantom — re-submit logic not yet implemented */
   [ProjectWorkflowPhase.TOPIC_FAILED]: [ProjectWorkflowPhase.TOPIC_SUBMISSION],
   [ProjectWorkflowPhase.IN_PROGRESS]: [ProjectWorkflowPhase.THESIS_SUBMISSION, ProjectWorkflowPhase.ARCHIVED, ProjectWorkflowPhase.CANCELLED],
@@ -188,9 +185,8 @@ export const PROJECT_WORKFLOW_TRANSITIONS: Record<ProjectWorkflowPhase, ProjectW
 
 /** Defense Request Status transitions */
 export const DEFENSE_REQUEST_TRANSITIONS: Record<DefenseRequestStatus, DefenseRequestStatus[]> = {
-  /** @phantom — defense requests are created with status 'submitted' directly, 'draft' is unused */
-  [DefenseRequestStatus.DRAFT]: [DefenseRequestStatus.SUBMITTED, DefenseRequestStatus.CANCELLED],
-  [DefenseRequestStatus.SUBMITTED]: [DefenseRequestStatus.ADVISOR_IN_REVIEW, DefenseRequestStatus.CANCELLED],
+  /** @phantom — defense requests are created directly as advisor_in_review, 'draft' is unused */
+  [DefenseRequestStatus.DRAFT]: [DefenseRequestStatus.ADVISOR_IN_REVIEW, DefenseRequestStatus.CANCELLED],
   [DefenseRequestStatus.ADVISOR_IN_REVIEW]: [DefenseRequestStatus.ADVISOR_APPROVED, DefenseRequestStatus.ADVISOR_IN_REVIEW, DefenseRequestStatus.CANCELLED],
   [DefenseRequestStatus.ADVISOR_APPROVED]: [DefenseRequestStatus.STAFF_VERIFIED, DefenseRequestStatus.CANCELLED],
   [DefenseRequestStatus.STAFF_VERIFIED]: [DefenseRequestStatus.SCHEDULED],
@@ -271,7 +267,6 @@ export const STATUS_UI_CONFIG: Record<string, StatusUIEntry> = {
   archived:             { label: 'เก็บถาวร',              labelEn: 'Archived',              tone: 'muted' },
 
   // ── Defense Request ──
-  submitted:            { label: 'ยื่นคำขอแล้ว',          labelEn: 'Submitted',             tone: 'info' },
   advisor_in_review:    { label: 'รออาจารย์อนุมัติครบ',     labelEn: 'Advisor In Review',     tone: 'info' },
   advisor_approved:     { label: 'อาจารย์อนุมัติ',         labelEn: 'Advisor Approved',      tone: 'warning' },
   staff_verified:       { label: 'เจ้าหน้าที่ตรวจแล้ว',    labelEn: 'Staff Verified',        tone: 'success' },
@@ -304,7 +299,6 @@ export const STATUS_UI_CONFIG: Record<string, StatusUIEntry> = {
   ADVISOR_ASSIGNED:         { label: 'มีที่ปรึกษาแล้ว',            labelEn: 'Advisor Assigned',         tone: 'info' },
   TOPIC_SUBMISSION:         { label: 'ยื่นหัวข้อ',                 labelEn: 'Topic Submission',         tone: 'info' },
   TOPIC_EXAM_PENDING:       { label: 'รอสอบหัวข้อ',               labelEn: 'Topic Exam Pending',       tone: 'warning' },
-  TOPIC_EXAM_SCHEDULED:     { label: 'นัดสอบหัวข้อแล้ว',           labelEn: 'Topic Exam Scheduled',     tone: 'info' },
   TOPIC_FAILED:             { label: 'สอบหัวข้อไม่ผ่าน',           labelEn: 'Topic Failed',             tone: 'danger' },
   IN_PROGRESS:              { label: 'กำลังดำเนินการ',             labelEn: 'In Progress',              tone: 'warning' },
   THESIS_SUBMISSION:        { label: 'ยื่นปริญญานิพนธ์',           labelEn: 'Thesis Submission',        tone: 'info' },
@@ -368,9 +362,8 @@ export const ALL_TRANSITIONS: TransitionRule[] = [
   { from: 'PENDING_ADVISOR',      to: 'ADVISOR_ASSIGNED',     roles: ['teacher'],        type: 'manual' },
   { from: 'ADVISOR_ASSIGNED',     to: 'TOPIC_SUBMISSION',     roles: ['system'],         type: 'system' },
   { from: 'TOPIC_SUBMISSION',     to: 'TOPIC_EXAM_PENDING',   roles: ['system'],         type: 'system' },
-  { from: 'TOPIC_EXAM_PENDING',   to: 'TOPIC_EXAM_SCHEDULED', roles: ['admin'],          type: 'manual' },
-  { from: 'TOPIC_EXAM_SCHEDULED', to: 'IN_PROGRESS',          roles: ['system'],         type: 'system' },
-  { from: 'TOPIC_EXAM_SCHEDULED', to: 'TOPIC_FAILED',         roles: ['system'],         type: 'system' },
+  { from: 'TOPIC_EXAM_PENDING',   to: 'IN_PROGRESS',          roles: ['system'],         type: 'system' },
+  { from: 'TOPIC_EXAM_PENDING',   to: 'TOPIC_FAILED',         roles: ['system'],         type: 'system' },
   { from: 'TOPIC_FAILED',         to: 'TOPIC_SUBMISSION',     roles: ['student'],        type: 'manual' },
   { from: 'IN_PROGRESS',          to: 'THESIS_SUBMISSION',    roles: ['system'],         type: 'system' },
   { from: 'IN_PROGRESS',          to: 'ARCHIVED',             roles: ['admin'],          type: 'manual' },
@@ -383,14 +376,13 @@ export const ALL_TRANSITIONS: TransitionRule[] = [
   { from: 'COMPLETED',            to: 'ARCHIVED',             roles: ['admin'],          type: 'manual' },
 
   // ── Defense Request ──
-  { from: 'draft',             to: 'submitted',          roles: ['student'],            type: 'manual' },
-  { from: 'submitted',         to: 'advisor_in_review',  roles: ['teacher'],            type: 'manual' },
+  { from: 'draft',             to: 'advisor_in_review',  roles: ['student'],            type: 'manual' },
   { from: 'advisor_in_review', to: 'advisor_approved',   roles: ['teacher'],            type: 'manual' },
   { from: 'advisor_in_review', to: 'advisor_in_review',  roles: ['teacher'],            type: 'manual' },
   { from: 'advisor_approved',  to: 'staff_verified',     roles: ['admin'],              type: 'manual' },
   { from: 'staff_verified',    to: 'scheduled',          roles: ['admin'],              type: 'manual' },
   { from: 'scheduled',         to: 'completed',          roles: ['system'],             type: 'system' },
-  { from: 'submitted',         to: 'cancelled',          roles: ['student'],            type: 'manual' },
+  { from: 'draft',             to: 'cancelled',          roles: ['student'],            type: 'manual' },
   { from: 'advisor_in_review', to: 'cancelled',          roles: ['admin'],              type: 'manual' },
   { from: 'advisor_approved',  to: 'cancelled',          roles: ['admin'],              type: 'manual' },
 

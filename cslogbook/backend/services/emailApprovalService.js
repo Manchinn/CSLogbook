@@ -133,7 +133,6 @@ class EmailApprovalService {
   ) {
     try {
       const approveToken = this.generateApprovalToken();
-      const rejectToken = this.generateApprovalToken();
 
       // กำหนดวันหมดอายุเป็น 7 วัน
       const expiresAt = dayjs().add(7, "day").toDate();
@@ -141,7 +140,7 @@ class EmailApprovalService {
       // เก็บ logIds เป็น string คั่นด้วย comma
       const logIdsString = logIds.join(",");
 
-      // เก็บ token ลงในฐานข้อมูล
+      // สร้าง token เดียว — หน้าเว็บใช้ token เดียวกันสำหรับทั้ง approve และ reject
       const approvalToken = await ApprovalToken.create(
         {
           token: approveToken,
@@ -155,24 +154,9 @@ class EmailApprovalService {
         { transaction }
       );
 
-      const rejectionToken = await ApprovalToken.create(
-        {
-          token: rejectToken,
-          logId: logIdsString,
-          supervisorId: supervisorEmail,
-          studentId,
-          type: type || "single",
-          status: "pending",
-          expiresAt,
-        },
-        { transaction }
-      );
-
       return {
         approveToken,
-        rejectToken,
         approvalTokenRecord: approvalToken,
-        rejectionTokenRecord: rejectionToken,
       };
     } catch (error) {
       logger.error(

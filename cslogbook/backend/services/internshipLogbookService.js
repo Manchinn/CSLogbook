@@ -11,6 +11,10 @@ const {
 } = require("../models");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const { calculateWorkdays } = require("../utils/dateUtils");
 const logger = require("../utils/logger");
 
@@ -26,9 +30,6 @@ const ACTIVE_CS05_STATUSES = [
   "supervisor_approved",
   "supervisor_evaluated",
 ];
-
-// เปิด/ปิด validation วันที่บันทึก — เปลี่ยนเป็น false เพื่อทดสอบบันทึกล่วงหน้า
-const ENFORCE_LOGBOOK_DATE_VALIDATION = false;
 
 class InternshipLogbookService {
   /**
@@ -156,23 +157,11 @@ class InternshipLogbookService {
         throw new Error("ไม่พบข้อมูล CS05");
       }
 
-      // ตรวจสอบวันที่บันทึก: ห้ามบันทึกล่วงหน้า + ต้องอยู่ในช่วงฝึกงาน
-      if (ENFORCE_LOGBOOK_DATE_VALIDATION) {
-        const { startDate, endDate } = document.internshipDocument;
-        const workDateObj = new Date(workDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        workDateObj.setHours(0, 0, 0, 0);
-
-        if (startDate && workDateObj < new Date(startDate)) {
-          throw new Error("ไม่สามารถบันทึกก่อนวันเริ่มฝึกงานได้");
-        }
-        if (endDate && workDateObj > new Date(endDate)) {
-          throw new Error("ไม่สามารถบันทึกหลังวันสิ้นสุดฝึกงานได้");
-        }
-        if (workDateObj > today) {
-          throw new Error("ไม่สามารถบันทึกล่วงหน้าได้ กรุณาบันทึกในวันที่ถึงแล้วเท่านั้น");
-        }
+      // ตรวจสอบวันที่บันทึก: ห้ามบันทึกล่วงหน้า (อนุญาตวันที่ผ่านมาแล้วทุกวัน)
+      const todayBkk = dayjs().tz("Asia/Bangkok").startOf("day");
+      const workDateBkk = dayjs(workDate).tz("Asia/Bangkok").startOf("day");
+      if (workDateBkk.isAfter(todayBkk)) {
+        throw new Error("ไม่สามารถบันทึกล่วงหน้าได้ กรุณาบันทึกในวันที่ถึงแล้วเท่านั้น");
       }
 
       const internshipId = document.internshipDocument.internshipId;
@@ -322,6 +311,15 @@ class InternshipLogbookService {
       // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่
       if (entry.supervisorApproved || entry.advisorApproved) {
         throw new Error("ไม่สามารถแก้ไขบันทึกที่ได้รับการอนุมัติแล้ว");
+      }
+
+      // ตรวจสอบวันที่บันทึก: ห้ามบันทึกล่วงหน้า (อนุญาตวันที่ผ่านมาแล้วทุกวัน)
+      if (workDate) {
+        const todayBkk = dayjs().tz("Asia/Bangkok").startOf("day");
+        const workDateBkk = dayjs(workDate).tz("Asia/Bangkok").startOf("day");
+        if (workDateBkk.isAfter(todayBkk)) {
+          throw new Error("ไม่สามารถบันทึกล่วงหน้าได้ กรุณาบันทึกในวันที่ถึงแล้วเท่านั้น");
+        }
       }
 
       // อัปเดตข้อมูล

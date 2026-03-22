@@ -93,13 +93,23 @@ class InternshipReferralLetterService {
       let status = cs05Document.status;
       let isReady = false;
       let isDownloaded = false;
+      const missingRequirements = [];
+
+      const hasSupervisorInfo = !!(
+        cs05Document.internshipDocument?.supervisorName &&
+        cs05Document.internshipDocument?.supervisorEmail
+      );
 
       if (
         CS05_POST_APPROVAL_STATUSES.has(cs05Document.status) &&
         acceptanceLetter &&
         acceptanceLetter.status === "approved"
       ) {
-        isReady = true;
+        if (hasSupervisorInfo) {
+          isReady = true;
+        } else {
+          missingRequirements.push("ข้อมูลผู้ควบคุมงานไม่ครบถ้วน");
+        }
       }
 
       if (
@@ -122,10 +132,8 @@ class InternshipReferralLetterService {
         cs05Status: status,
         hasAcceptanceLetter: !!acceptanceLetter,
         acceptanceLetterStatus: acceptanceLetter?.status,
-        hasSupervisorInfo: !!(
-          cs05Document.internshipDocument?.supervisorName &&
-          cs05Document.internshipDocument?.supervisorEmail
-        ),
+        hasSupervisorInfo,
+        missingRequirements,
         supervisorInfo: {
           supervisorName:
             cs05Document.internshipDocument?.supervisorName || null,
@@ -149,8 +157,8 @@ class InternshipReferralLetterService {
             : isReady
             ? "ready"
             : "not_ready",
-          requiresSupervisorInfo: false,
-          supervisorInfoOptional: true,
+          requiresSupervisorInfo: true,
+          supervisorInfoOptional: false,
           cs05AlwaysApproved: true,
         },
       };

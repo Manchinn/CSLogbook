@@ -269,7 +269,11 @@ export default function InternshipFlowContent({}: InternshipFlowContentProps) {
               <span className={styles.downloadBtnDisabled}>
                 ดาวน์โหลดหนังสือส่งตัวฝึกงาน
                 <span className={styles.downloadBadge}>
-                  {referralLoading ? "กำลังตรวจสอบ" : "รอหนังสือตอบรับอนุมัติ"}
+                  {referralLoading
+                    ? "กำลังตรวจสอบ"
+                    : referralStatus?.missingRequirements?.length
+                      ? referralStatus.missingRequirements[0]
+                      : "รอหนังสือตอบรับอนุมัติ"}
                 </span>
               </span>
             )}

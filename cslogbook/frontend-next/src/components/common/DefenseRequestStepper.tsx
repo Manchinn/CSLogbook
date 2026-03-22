@@ -19,8 +19,6 @@ const STEPS: Step[] = [
 /** แปลง status ของคำขอสอบ (คพ.02 / คพ.03) เป็น step states */
 function computeStepStates(status: string): StepState[] {
   switch (status) {
-    case "submitted":
-      return ["active", "pending", "pending", "pending"];
     case "advisor_in_review":
       return ["done", "active", "pending", "pending"];
     case "advisor_approved":
