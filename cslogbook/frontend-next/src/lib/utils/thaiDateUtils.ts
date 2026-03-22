@@ -88,6 +88,29 @@ export function formatThaiDate(dateStr: string | null | undefined): string {
   return `${d}/${m}/${beYear}`;
 }
 
+const THAI_SHORT_MONTHS = [
+  "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+];
+
+/**
+ * แปลงวันที่เป็นรูปแบบไทยสั้น เช่น "15 เม.ย. 2569"
+ *
+ * @example
+ *   formatThaiDateShort("2026-04-15") → "15 เม.ย. 2569"
+ */
+export function formatThaiDateShort(dateStr: string | null | undefined): string {
+  if (!dateStr) return "-";
+  const parts = dateStr.substring(0, 10).split("-");
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
+  const year = Number(y);
+  const month = Number(m);
+  if (!Number.isFinite(year) || month < 1 || month > 12) return dateStr;
+  const beYear = year < 2500 ? year + BE_OFFSET : year;
+  return `${Number(d)} ${THAI_SHORT_MONTHS[month]} ${beYear}`;
+}
+
 /**
  * แปลงวันที่ + เวลาเป็น DD/MM/YYYY HH:mm (พ.ศ.)
  *

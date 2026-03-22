@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { labelStatus } from "@/lib/utils/statusLabels";
 import {
-  formatThaiDateTime,
+  formatThaiDateShort,
   bangkokLocalInputToISO,
   isoToBangkokLocalInput,
   academicYearPlaceholder,
@@ -100,6 +100,16 @@ const emptyScheduleForm: ScheduleFormState = {
   internshipSemesters: "",
   projectSemesters: "",
 };
+
+/** Date input พร้อม hint วันที่ไทย (พ.ศ.) ใต้ input */
+function ThaiDateInput({ value, onChange, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <>
+      <input type="date" lang="th" className={styles.input} value={value} onChange={onChange} {...rest} />
+      {value && <span className={styles.fieldHint}>{formatThaiDateShort(value)}</span>}
+    </>
+  );
+}
 
 function relatedToLabel(relatedTo?: string | null) {
   if (!relatedTo) return "ทั่วไป";
@@ -782,11 +792,11 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ภาคเรียน 1</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันเริ่มต้น
-                    <input type="date" className={styles.input} value={scheduleForm.semester1Start}
+                    <ThaiDateInput value={scheduleForm.semester1Start}
                       onChange={(e) => handleScheduleField("semester1Start", e.target.value)} />
                   </label>
                   <label>วันสิ้นสุด
-                    <input type="date" className={styles.input} value={scheduleForm.semester1End}
+                    <ThaiDateInput value={scheduleForm.semester1End}
                       onChange={(e) => handleScheduleField("semester1End", e.target.value)} />
                   </label>
                 </div>
@@ -795,11 +805,11 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ภาคเรียน 2</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันเริ่มต้น
-                    <input type="date" className={styles.input} value={scheduleForm.semester2Start}
+                    <ThaiDateInput value={scheduleForm.semester2Start}
                       onChange={(e) => handleScheduleField("semester2Start", e.target.value)} />
                   </label>
                   <label>วันสิ้นสุด
-                    <input type="date" className={styles.input} value={scheduleForm.semester2End}
+                    <ThaiDateInput value={scheduleForm.semester2End}
                       onChange={(e) => handleScheduleField("semester2End", e.target.value)} />
                   </label>
                 </div>
@@ -808,11 +818,11 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ภาคฤดูร้อน</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันเริ่มต้น
-                    <input type="date" className={styles.input} value={scheduleForm.semester3Start}
+                    <ThaiDateInput value={scheduleForm.semester3Start}
                       onChange={(e) => handleScheduleField("semester3Start", e.target.value)} />
                   </label>
                   <label>วันสิ้นสุด
-                    <input type="date" className={styles.input} value={scheduleForm.semester3End}
+                    <ThaiDateInput value={scheduleForm.semester3End}
                       onChange={(e) => handleScheduleField("semester3End", e.target.value)} />
                   </label>
                 </div>
@@ -835,11 +845,11 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ลงทะเบียนฝึกงาน</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันเริ่มต้น
-                    <input type="date" className={styles.input} value={scheduleForm.internshipStart}
+                    <ThaiDateInput value={scheduleForm.internshipStart}
                       onChange={(e) => handleScheduleField("internshipStart", e.target.value)} />
                   </label>
                   <label>วันสิ้นสุด
-                    <input type="date" className={styles.input} value={scheduleForm.internshipEnd}
+                    <ThaiDateInput value={scheduleForm.internshipEnd}
                       onChange={(e) => handleScheduleField("internshipEnd", e.target.value)} />
                   </label>
                 </div>
@@ -848,11 +858,11 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ลงทะเบียนโครงงาน</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันเริ่มต้น
-                    <input type="date" className={styles.input} value={scheduleForm.projectStart}
+                    <ThaiDateInput value={scheduleForm.projectStart}
                       onChange={(e) => handleScheduleField("projectStart", e.target.value)} />
                   </label>
                   <label>วันสิ้นสุด
-                    <input type="date" className={styles.input} value={scheduleForm.projectEnd}
+                    <ThaiDateInput value={scheduleForm.projectEnd}
                       onChange={(e) => handleScheduleField("projectEnd", e.target.value)} />
                   </label>
                 </div>
@@ -1128,7 +1138,7 @@ export default function AcademicSettingsPage() {
             <div className={styles.fieldGrid4}>
               <label className={styles.field}>
                 วันครบกำหนด
-                <input type="date" className={styles.input} value={deadlineForm.deadlineDate}
+                <ThaiDateInput value={deadlineForm.deadlineDate}
                   onChange={(event) => handleDeadlineField("deadlineDate", event.target.value)} />
               </label>
               <label className={styles.field}>
@@ -1161,7 +1171,7 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ช่วงเปิดรับ — เริ่มต้น</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันที่
-                    <input type="date" className={styles.input} value={deadlineForm.windowStartDate}
+                    <ThaiDateInput value={deadlineForm.windowStartDate}
                       onChange={(e) => handleDeadlineField("windowStartDate", e.target.value)} />
                   </label>
                   <label>เวลา
@@ -1174,7 +1184,7 @@ export default function AcademicSettingsPage() {
                 <div className={styles.semesterBlockLabel}>ช่วงเปิดรับ — สิ้นสุด</div>
                 <div className={styles.semesterDatePair}>
                   <label>วันที่
-                    <input type="date" className={styles.input} value={deadlineForm.windowEndDate}
+                    <ThaiDateInput value={deadlineForm.windowEndDate}
                       onChange={(e) => handleDeadlineField("windowEndDate", e.target.value)} />
                   </label>
                   <label>เวลา
@@ -1315,7 +1325,7 @@ export default function AcademicSettingsPage() {
                     <td>{deadline.academicYear ?? "-"}/{deadline.semester ?? "-"}</td>
                     <td>{relatedToLabel(deadline.relatedTo)}</td>
                     <td><span className={styles.badge}>{deadline.deadlineType === "SUBMISSION" ? "ส่งเอกสาร" : deadline.deadlineType === "ANNOUNCEMENT" ? "ประกาศ" : deadline.deadlineType === "MILESTONE" ? "เหตุการณ์" : deadline.deadlineType ?? "-"}</span></td>
-                    <td>{formatThaiDateTime(deadline.deadlineDate, deadline.deadlineTime)}</td>
+                    <td>{formatThaiDateShort(deadline.deadlineDate)}{deadline.deadlineTime ? ` ${deadline.deadlineTime} น.` : ""}</td>
                     <td>
                       <div className={styles.actions}>
                         <button type="button" className={btn.button} onClick={() => handleDeadlineEdit(deadline)}>

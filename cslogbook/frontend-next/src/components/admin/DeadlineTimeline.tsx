@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatThaiDateTime } from "@/lib/utils/thaiDateUtils";
+import { formatThaiDateShort } from "@/lib/utils/thaiDateUtils";
 import type { ImportantDeadline } from "@/lib/services/importantDeadlineService";
 import styles from "./DeadlineTimeline.module.css";
 
@@ -120,7 +120,7 @@ export function DeadlineTimeline({ deadlines }: Props) {
                 </div>
                 <div>
                   <div className={styles.itemDate}>
-                    {formatThaiDateTime(d.deadlineDate, undefined)}
+                    {formatThaiDateShort(d.deadlineDate)}
                   </div>
                   {d.deadlineTime && (
                     <div className={styles.itemTime}>{d.deadlineTime} น.</div>
