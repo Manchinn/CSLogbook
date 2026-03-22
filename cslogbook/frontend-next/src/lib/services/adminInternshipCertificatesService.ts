@@ -57,6 +57,7 @@ export type AdminCertificateRequestDetail = {
   evaluationDetail?: {
     overallScore?: number;
     passScore?: number;
+    fullScore?: number | null;
     evaluatorName?: string | null;
     submittedAt?: string | null;
     updatedAt?: string | null;

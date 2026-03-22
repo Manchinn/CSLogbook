@@ -2,6 +2,7 @@
  * เกณฑ์คะแนนกลาง — ใช้ทั้ง evaluation, certificate, report
  */
 const PASS_SCORE = 70;
+const FULL_SCORE = 100; // คะแนนเต็ม (ใช้เป็น fallback เมื่อ breakdown items ไม่มี max)
 
 const SCORE_BUCKETS = [
   { range: '>=80', min: 80, max: Infinity },
@@ -16,4 +17,4 @@ function scoreToBucket(score) {
   return bucket ? bucket.range : '<50';
 }
 
-module.exports = { PASS_SCORE, SCORE_BUCKETS, scoreToBucket };
+module.exports = { PASS_SCORE, FULL_SCORE, SCORE_BUCKETS, scoreToBucket };

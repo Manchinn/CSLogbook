@@ -184,6 +184,11 @@ class DocumentService {
                 }
             }
 
+            // fallback วันที่ส่ง: ใช้ created_at เมื่อ submitted_at เป็น null
+            if (!documentData.submittedAt && documentData.created_at) {
+                documentData.submittedAt = documentData.created_at;
+            }
+
             if (includeRelations) {
                 // ดึงข้อมูลผู้ใช้ที่เกี่ยวข้อง
                 if (document.userId) {
@@ -202,7 +207,7 @@ class DocumentService {
                 }
 
                 // ดึงข้อมูล InternshipDocument ที่เกี่ยวข้อง
-                const internshipDocument = await InternshipDocument.findOne({
+                let internshipDocument = await InternshipDocument.findOne({
                     where: { documentId: documentId },
                     attributes: [
                         'internshipId', 'documentId', 'companyName',
@@ -212,6 +217,30 @@ class DocumentService {
                         'created_at', 'updated_at'
                     ]
                 });
+
+                // ACCEPTANCE_LETTER ไม่มี InternshipDocument ของตัวเอง — ดึงจาก CS05 ของ user เดียวกัน
+                if (!internshipDocument && document.documentType === 'INTERNSHIP' && document.userId) {
+                    const cs05Doc = await Document.findOne({
+                        where: {
+                            userId: document.userId,
+                            documentType: 'INTERNSHIP',
+                            documentName: 'CS05'
+                        },
+                        attributes: ['documentId']
+                    });
+                    if (cs05Doc) {
+                        internshipDocument = await InternshipDocument.findOne({
+                            where: { documentId: cs05Doc.documentId },
+                            attributes: [
+                                'internshipId', 'documentId', 'companyName',
+                                'companyAddress', 'internshipPosition', 'contactPersonName', 'contactPersonPosition',
+                                'supervisorName', 'supervisorPosition',
+                                'supervisorPhone', 'supervisorEmail', 'startDate', 'endDate',
+                                'created_at', 'updated_at'
+                            ]
+                        });
+                    }
+                }
 
                 if (internshipDocument) {
                     documentData.internshipDocument = internshipDocument.toJSON();
@@ -1262,7 +1291,7 @@ class DocumentService {
             }
 
             const overallScore = evaluationRecord?.overallScore != null ? Number(evaluationRecord.overallScore) : null;
-            const { PASS_SCORE: passScore } = require('../config/scoring');
+            const { PASS_SCORE: passScore, FULL_SCORE: defaultFullScore } = require('../config/scoring');
             let evaluationPassed = false;
             if (typeof overallScore === 'number') {
                 evaluationPassed = overallScore >= passScore;
@@ -1354,6 +1383,12 @@ class DocumentService {
                 .filter((log) => log.supervisorApproved === 1 || log.supervisorApproved === true)
                 .reduce((sum, log) => sum + parseFloat(log.workHours || 0), 0);
 
+            // คำนวณคะแนนเต็มจาก breakdown items — fallback เป็น FULL_SCORE (100) เมื่อ breakdown ไม่มี max
+            const breakdownMax = breakdown.length > 0
+                ? breakdown.reduce((sum, item) => sum + (typeof item.max === 'number' ? item.max : 0), 0)
+                : 0;
+            const fullScore = breakdownMax > 0 ? breakdownMax : defaultFullScore;
+
             const detail = {
                 id: request.id,
                 status: request.status,
@@ -1382,6 +1417,7 @@ class DocumentService {
                         status: request.evaluationStatus,
                         overallScore,
                         passScore,
+                        fullScore,
                         passed: evaluationPassed
                     },
                     // summary เดิม (JSON) เปลี่ยนใช้สำหรับตรวจว่าพร้อมสร้าง PDF หรือไม่
@@ -1390,6 +1426,7 @@ class DocumentService {
                 evaluationDetail: {
                     overallScore,
                     passScore,
+                    fullScore,
                     passed: evaluationPassed,
                     submittedAt: evaluationRecord?.evaluationDate || null,
                     updatedAt: evaluationRecord?.updated_at || null,

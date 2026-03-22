@@ -409,8 +409,11 @@ export default function AdminInternshipCertificatesPage() {
                       <p>
                         คะแนนรวม:{" "}
                         {typeof detail.evaluationDetail?.overallScore === "number"
-                          ? `${detail.evaluationDetail.overallScore}/${detail.evaluationDetail?.passScore ?? "-"}`
+                          ? `${detail.evaluationDetail.overallScore}/${detail.evaluationDetail?.fullScore ?? (breakdownTotalMax || "-")}`
                           : "-"}
+                        {typeof detail.evaluationDetail?.passScore === "number"
+                          ? ` (เกณฑ์ผ่าน: ${detail.evaluationDetail.passScore})`
+                          : ""}
                       </p>
                       <p>อัปเดตล่าสุด: {formatDateTime(detail.evaluationDetail?.updatedAt)}</p>
                     </section>
