@@ -58,3 +58,12 @@ export async function getCurrentAcademicInfo(): Promise<AcademicInfo | null> {
     activeCurriculumId,
   };
 }
+
+export type AcademicYearOption = {
+  academicYear: number;
+  status: string;
+};
+
+export async function getAcademicYears(): Promise<AcademicYearOption[]> {
+  return (await apiFetchData<AcademicYearOption[]>("/academic/years")) ?? [];
+}

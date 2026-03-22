@@ -9,6 +9,7 @@ const { Student } = require('../../models');
 const notificationService = require('../../services/notificationService');
 const agentConfig = require('../config');
 const logger = require('../../utils/logger');
+const { getActiveAcademicYearFilter } = require('../../utils/academicYearHelper');
 
 class DeadlineReminderAgent {
   constructor() {
@@ -63,6 +64,13 @@ class DeadlineReminderAgent {
   const criticalDate = new Date(now.getTime() + this.config.criticalDeadlineWarningDays * 86400000);
 
     try {
+      // ดึง filter ปีการศึกษาที่ active
+      const yearFilter = await getActiveAcademicYearFilter();
+      if (!yearFilter) {
+        logger.warn('DeadlineReminderAgent: No active academic year, skipping');
+        return;
+      }
+
       // ค้นหากำหนดส่งที่ใกล้จะถึง
       const upcomingDeadlines = await ImportantDeadline.findAll({
         where: {
@@ -70,6 +78,7 @@ class DeadlineReminderAgent {
             { deadline_at: { [Op.between]: [now, warningDate] } },
             { [Op.and]: [ { deadline_at: { [Op.is]: null } }, { date: { [Op.between]: [now, warningDate] } } ] }
           ],
+          academicYear: yearFilter,
           notified: false
         }
       });
@@ -81,6 +90,7 @@ class DeadlineReminderAgent {
             { deadline_at: { [Op.between]: [now, criticalDate] } },
             { [Op.and]: [ { deadline_at: { [Op.is]: null } }, { date: { [Op.between]: [now, criticalDate] } } ] }
           ],
+          academicYear: yearFilter,
           isCritical: true,
           criticalNotified: false
         }
@@ -115,10 +125,16 @@ class DeadlineReminderAgent {
     try {
       // สำหรับตัวอย่างนี้ เราจะดึงรายการนักศึกษาที่เกี่ยวข้องกับกำหนดส่งนี้
       // ในระบบจริงอาจมีการกรองนักศึกษาตามชั้นปี สาขา หรือสถานะการฝึกงาน
-      const students = await Student.findAll({
-        // ลบ active: true เพราะ Student model ไม่มี field active
-        // เงื่อนไขเพิ่มเติมตามความต้องการ
-      });
+      // กรองนักศึกษาตาม relatedTo ของ deadline
+      let studentWhere = {};
+      if (deadline.relatedTo === 'internship') {
+        studentWhere = { isEnrolledInternship: true };
+      } else if (['project1', 'project2', 'project'].includes(deadline.relatedTo)) {
+        studentWhere = { isEnrolledProject: true };
+      }
+      // general → ไม่กรอง (ส่งทุกคน เหมือน behavior เดิม)
+
+      const students = await Student.findAll({ where: studentWhere });
 
       // สร้างเนื้อหาการแจ้งเตือน
       const title = isCritical 

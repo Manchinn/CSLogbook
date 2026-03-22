@@ -143,6 +143,16 @@ exports.updateAcademicSchedule = async (req, res) => {
   }
 };
 
+exports.getAcademicYears = async (req, res) => {
+  try {
+    const years = await academicService.getDistinctYears();
+    res.json({ success: true, data: years });
+  } catch (error) {
+    logger.error('Error fetching academic years:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงรายการปีการศึกษาได้' });
+  }
+};
+
 exports.activateAcademicSchedule = async (req, res) => {
   try {
     const { id } = req.params;

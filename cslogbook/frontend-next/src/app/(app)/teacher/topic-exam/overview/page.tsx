@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { TeacherPageScaffold, TeacherEmptyState } from "@/components/teacher/TeacherPageScaffold";
+import { useAcademicYears } from "@/hooks/useAcademicYears";
 import { useTopicExamOverview } from "@/hooks/useTeacherModule";
 import styles from "./TopicExamOverview.module.css";
 
 export default function TopicExamOverviewPage() {
+  const { data: academicYears = [] } = useAcademicYears();
   const [academicYear, setAcademicYear] = useState<string>("");
   const [semester, setSemester] = useState<string>("");
 
@@ -32,9 +34,11 @@ export default function TopicExamOverviewPage() {
               className={styles.select}
             >
               <option value="">ทั้งหมด</option>
-              <option value="2567">2567</option>
-              <option value="2566">2566</option>
-              <option value="2565">2565</option>
+              {academicYears.map((y) => (
+                <option key={y.academicYear} value={String(y.academicYear)}>
+                  {y.academicYear}
+                </option>
+              ))}
             </select>
           </div>
           <div className={styles.filterGroup}>

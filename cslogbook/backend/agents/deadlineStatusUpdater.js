@@ -19,6 +19,7 @@ const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const { ImportantDeadline, ProjectWorkflowState, WorkflowStepDefinition } = require('../models');
 const { getStateMappingForDeadline } = require('../constants/deadlineStateMapping');
 const logger = require('../utils/logger');
+const { getActiveAcademicYearFilter } = require('../utils/academicYearHelper');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -78,12 +79,19 @@ class DeadlineStatusUpdater {
 
     try {
       const now = dayjs().tz('Asia/Bangkok');
-      
+
+      // ดึง filter ปีการศึกษาที่ active
+      const yearFilter = await getActiveAcademicYearFilter();
+      if (!yearFilter) {
+        logger.warn('DeadlineStatusUpdater: No active academic year found, skipping deadline check');
+        return;
+      }
+
       // Job 1: Process soft deadlines (deadline_at)
-      await this.processDeadlineAt(now);
-      
+      await this.processDeadlineAt(now, yearFilter);
+
       // Job 2: Process hard deadlines (end_date / windowEndAt)
-      await this.processEndDate(now);
+      await this.processEndDate(now, yearFilter);
 
       logger.info('DeadlineStatusUpdater: Status check completed successfully');
     } catch (error) {
@@ -97,9 +105,9 @@ class DeadlineStatusUpdater {
    * Job 1: Check soft deadlines (deadline_at)
    * Move projects from PENDING_STUDENT_SUBMISSION → PENDING_LATE_SUBMISSION
    */
-  async processDeadlineAt(now) {
+  async processDeadlineAt(now, yearFilter) {
     logger.info('DeadlineStatusUpdater: Processing soft deadlines (deadline_at)...');
-    
+
     let transitionedCount = 0;
     let errorCount = 0;
 
@@ -111,7 +119,8 @@ class DeadlineStatusUpdater {
             [Op.lte]: now.toDate(),
             [Op.gte]: now.subtract(1, 'day').toDate()
           },
-          relatedTo: { [Op.in]: ['project1', 'project2'] }
+          relatedTo: { [Op.in]: ['project1', 'project2'] },
+          academicYear: yearFilter
         }
       });
 
@@ -200,9 +209,9 @@ class DeadlineStatusUpdater {
    * Job 2: Check hard deadlines (end_date)
    * Move projects from PENDING/LATE → OVERDUE
    */
-  async processEndDate(now) {
+  async processEndDate(now, yearFilter) {
     logger.info('DeadlineStatusUpdater: Processing hard deadlines (end_date)...');
-    
+
     let transitionedCount = 0;
     let errorCount = 0;
 
@@ -214,7 +223,8 @@ class DeadlineStatusUpdater {
             [Op.lte]: now.toDate(),
             [Op.gte]: now.subtract(1, 'day').toDate()
           },
-          relatedTo: { [Op.in]: ['project1', 'project2'] }
+          relatedTo: { [Op.in]: ['project1', 'project2'] },
+          academicYear: yearFilter
         }
       });
 

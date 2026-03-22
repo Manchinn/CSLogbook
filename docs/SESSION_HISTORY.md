@@ -1170,3 +1170,35 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `frontend-next/src/styles/shared/admin-queue.module.css` | **EDIT** — CSS สำหรับ review modal |
 | `docs/superpowers/specs/2026-03-19-official-number-design.md` | **NEW** — design spec |
 | `docs/superpowers/plans/2026-03-19-official-number.md` | **NEW** — implementation plan |
+
+---
+
+## Session 53 (claude, 2026-03-22) — Pending Tasks Audit + Build Fix
+
+### สรุป
+
+ตรวจสอบ pending tasks ทั้งหมดจาก session 52 — พบว่าหลายรายการไม่ต้องแก้ (ไม่ใช่ dead code, ทำงานปกติ, ใช้งานอยู่) แก้ build error 1 จุด
+
+### สิ่งที่ทำ
+
+1. **Pending tasks audit** — สำรวจ 10 รายการ พบว่าทำจริงได้ 5, ที่เหลือลบออกจาก pending
+   - `TOPIC_EXAM_SCHEDULED` — ใช้งานอยู่ (ห้ามลบ)
+   - Notification types — ทำงานปกติ
+   - TimelineStep model, deadlineStatusUpdater.js — ไม่ใช่ dead code (มี full stack)
+   - SSO stateStore — low priority, skip
+2. **Fix build error** — `ThesisDefenseRequestContent.tsx:54` เพิ่ม null guard ก่อน `.includes()` แก้ TS error `string | null | undefined`
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `frontend-next/src/app/(app)/project/phase2/thesis-defense/ThesisDefenseRequestContent.tsx` | **EDIT** — เพิ่ม `!summary.status ||` guard แก้ build error |
+
+### Pending Tasks (ยังเหลือ)
+
+1. DB migration: ลบ `submitted` จาก `project_defense_requests.status` ENUM
+2. Settings hub: ลบ 3 dead links (`/status`, `/workflow-steps`, `/compatibility`)
+3. Reports: สร้าง tab nav layout (7 หน้า)
+4. AppRedirect: handle null → redirect to login
+5. Dead code: ลบ `getApprovalHistory` จาก emailApprovalService
+6. **ImportantDeadline: อัปเดตข้อมูล deadline ให้เป็นปัจจุบันสำหรับ production** (next session)

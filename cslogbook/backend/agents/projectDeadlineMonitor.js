@@ -21,6 +21,7 @@ const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
 const logger = require('../utils/logger');
 const projectWorkflowStateService = require('../services/projectWorkflowStateService');
 const { getStateMappingForDeadline } = require('../constants/deadlineStateMapping');
+const { getActiveAcademicYearFilter } = require('../utils/academicYearHelper');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -142,11 +143,18 @@ class ProjectDeadlineMonitor {
    */
   async processDeadlineStateTransitions(now) {
     try {
+      // ดึง filter ปีการศึกษาที่ active
+      const yearFilter = await getActiveAcademicYearFilter();
+      if (!yearFilter) {
+        logger.warn('ProjectDeadlineMonitor: No active academic year, skipping deadline transitions');
+        return;
+      }
+
       // Job 1: Check soft deadlines (deadline_at)
-      await this.processDeadlineAt(now);
-      
+      await this.processDeadlineAt(now, yearFilter);
+
       // Job 2: Check hard deadlines (end_date)
-      await this.processEndDate(now);
+      await this.processEndDate(now, yearFilter);
     } catch (error) {
       logger.error('Error in processDeadlineStateTransitions:', error);
     }
@@ -155,7 +163,7 @@ class ProjectDeadlineMonitor {
   /**
    * Job 1: Check soft deadline (deadline_at) → move PENDING → LATE_SUBMISSION
    */
-  async processDeadlineAt(now) {
+  async processDeadlineAt(now, yearFilter) {
     try {
       // Find deadlines that just passed (within last 24 hours)
       const passedDeadlines = await ImportantDeadline.findAll({
@@ -164,7 +172,8 @@ class ProjectDeadlineMonitor {
             [Op.lte]: now.toDate(),
             [Op.gte]: now.subtract(1, 'day').toDate()
           },
-          relatedTo: { [Op.in]: ['project1', 'project2'] }
+          relatedTo: { [Op.in]: ['project1', 'project2'] },
+          academicYear: yearFilter
         }
       });
 
@@ -238,7 +247,7 @@ class ProjectDeadlineMonitor {
   /**
    * Job 2: Check hard deadline (end_date) → move PENDING/LATE → OVERDUE
    */
-  async processEndDate(now) {
+  async processEndDate(now, yearFilter) {
     try {
       // Find deadlines whose end_date just passed
       const closedDeadlines = await ImportantDeadline.findAll({
@@ -247,7 +256,8 @@ class ProjectDeadlineMonitor {
             [Op.lte]: now.toDate(),
             [Op.gte]: now.subtract(1, 'day').toDate()
           },
-          relatedTo: { [Op.in]: ['project1', 'project2'] }
+          relatedTo: { [Op.in]: ['project1', 'project2'] },
+          academicYear: yearFilter
         }
       });
 

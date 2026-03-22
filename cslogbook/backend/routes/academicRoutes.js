@@ -11,6 +11,13 @@ router.get(
   academicController.getAcademicSettings
 );
 
+// ดึงรายการปีการศึกษาทั้งหมด (สำหรับ dropdown filter)
+router.get(
+  "/years",
+  authenticateToken,
+  academicController.getAcademicYears
+);
+
 // ดึงข้อมูลการตั้งค่าปีการศึกษา (สำหรับ admin เท่านั้น)
 router.get(
   "/",

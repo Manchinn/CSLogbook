@@ -32,6 +32,7 @@ import {
   getImportantDeadlineStats,
   type ImportantDeadline,
 } from "@/lib/services/importantDeadlineService";
+import { useAcademicYears } from "@/hooks/useAcademicYears";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
@@ -175,6 +176,9 @@ export default function AcademicSettingsPage() {
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<"schedule" | "deadline">("schedule");
+  const [deadlineYearFilter, setDeadlineYearFilter] = useState<string>("");
+  const [deadlineSemesterFilter, setDeadlineSemesterFilter] = useState<string>("");
+  const { data: academicYears = [] } = useAcademicYears();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     mainInfo: true,
     semesterRanges: true,
@@ -628,8 +632,6 @@ export default function AcademicSettingsPage() {
 
   return (
     <div className={styles.page}>
-        <p className={styles.subtitle}>บริหารปีการศึกษา ตารางเวลา และกำหนดการสำคัญของระบบ</p>
-
         {message ? (
           <div
             className={`${styles.alert} ${
@@ -730,11 +732,17 @@ export default function AcademicSettingsPage() {
                   className={styles.select}
                   value={scheduleForm.status}
                   onChange={(event) => handleScheduleField("status", event.target.value)}
+                  disabled={scheduleForm.status === "active"}
                 >
                   <option value="draft">ร่าง (Draft)</option>
                   <option value="published">เผยแพร่ (Published)</option>
-                  <option value="active">ใช้งาน (Active)</option>
+                  {scheduleForm.status === "active" && (
+                    <option value="active">ใช้งาน (Active)</option>
+                  )}
                 </select>
+                {scheduleForm.status === "active" && (
+                  <span className={styles.fieldHint}>เปลี่ยนสถานะผ่านปุ่ม Activate ในตาราง</span>
+                )}
               </label>
             </div>
           </div>
@@ -859,23 +867,33 @@ export default function AcademicSettingsPage() {
           </div>
 
           <div className={styles.actionsRight}>
+            {scheduleForm.id && (
+              <span className={styles.badge}>
+                กำลังแก้ไข: ปี {scheduleForm.academicYear || "?"} (ID {scheduleForm.id})
+              </span>
+            )}
             <button type="button" className={btn.button} onClick={() => setScheduleForm(emptyScheduleForm)}>
-              ล้างฟอร์ม
+              {scheduleForm.id ? "ยกเลิกแก้ไข" : "ล้างฟอร์ม"}
             </button>
-            <button type="button" className={btn.button} onClick={handleCreateSchedule} disabled={loading}>
-              สร้างปีการศึกษาใหม่
-            </button>
-            <button type="button" className={btn.button} onClick={handleUpdateSchedule} disabled={loading}>
-              อัปเดตรายการที่เลือก
-            </button>
-            <button
-              type="button"
-              className={`${btn.button} ${btn.buttonPrimary}`}
-              onClick={handleSaveCurrent}
-              disabled={loading}
-            >
-              บันทึกเป็นปีปัจจุบัน
-            </button>
+            {scheduleForm.id ? (
+              <button
+                type="button"
+                className={`${btn.button} ${btn.buttonPrimary}`}
+                onClick={scheduleForm.status === "active" ? handleSaveCurrent : handleUpdateSchedule}
+                disabled={loading}
+              >
+                บันทึกการแก้ไข
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={`${btn.button} ${btn.buttonPrimary}`}
+                onClick={handleCreateSchedule}
+                disabled={loading}
+              >
+                สร้างปีการศึกษาใหม่
+              </button>
+            )}
           </div>
         </section>
 
@@ -976,16 +994,8 @@ export default function AcademicSettingsPage() {
           <div className={styles.sectionHeader}>
             <strong><span className={styles.sectionIcon}>⏰</span> กำหนดการสำคัญ</strong>
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={btn.button}
-                onClick={() => loadDeadlines({ academicYear: deadlineForm.academicYear, semester: deadlineForm.semester })}
-                disabled={loading}
-              >
-                รีเฟรช
-              </button>
               <button type="button" className={btn.button} onClick={() => setDeadlineForm(emptyDeadlineForm)}>
-                ล้างฟอร์ม
+                {deadlineForm.id ? "ยกเลิกแก้ไข" : "ล้างฟอร์ม"}
               </button>
               <button
                 type="button"
@@ -993,10 +1003,15 @@ export default function AcademicSettingsPage() {
                 onClick={handleDeadlineSave}
                 disabled={loading}
               >
-                บันทึกกำหนดการ
+                {deadlineForm.id ? "บันทึกการแก้ไข" : "สร้างกำหนดการ"}
               </button>
             </div>
           </div>
+          {deadlineForm.id && (
+            <div className={`${styles.alert} ${styles.alertInfo}`}>
+              กำลังแก้ไข: {deadlineForm.name || "—"}
+            </div>
+          )}
 
           {deadlineIssues.length > 0 && (
             <div className={`${styles.alert} ${styles.alertWarning}`}>
@@ -1030,21 +1045,27 @@ export default function AcademicSettingsPage() {
               </label>
               <label className={styles.field}>
                 ปีการศึกษา
-                <input type="number" className={styles.input} placeholder={academicYearPlaceholder()}
+                <select className={styles.select}
                   value={deadlineForm.academicYear}
-                  onChange={(event) => handleDeadlineField("academicYear", event.target.value)} />
-                {validateBuddhistYear(deadlineForm.academicYear) ? (
-                  <span className={styles.fieldWarn}>{validateBuddhistYear(deadlineForm.academicYear)}</span>
-                ) : deadlineForm.academicYear ? (
-                  <span className={styles.fieldHint}></span>
-                ) : null}
+                  onChange={(event) => handleDeadlineField("academicYear", event.target.value)}>
+                  <option value="">เลือกปีการศึกษา</option>
+                  {academicYears.map((y) => (
+                    <option key={y.academicYear} value={String(y.academicYear)}>
+                      {y.academicYear} {y.status === "active" ? "(ปัจจุบัน)" : y.status === "draft" ? "(ร่าง)" : ""}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className={styles.field}>
                 ภาคเรียน
-                <input type="number" className={styles.input} placeholder="เช่น 1"
-                  min={1} max={3}
+                <select className={styles.select}
                   value={deadlineForm.semester}
-                  onChange={(event) => handleDeadlineField("semester", event.target.value)} />
+                  onChange={(event) => handleDeadlineField("semester", event.target.value)}>
+                  <option value="">เลือกภาคเรียน</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">ฤดูร้อน</option>
+                </select>
               </label>
             </div>
             <div className={styles.fieldGrid4}>
@@ -1183,27 +1204,71 @@ export default function AcademicSettingsPage() {
             </div>
           </div>
 
+          {/* ━━ Filter bar ━━ */}
+          <div className={styles.formGroup}>
+            <div className={styles.formGroupLabel}>กรองรายการ</div>
+            <div className={styles.fieldGrid3}>
+              <label className={styles.field}>
+                ปีการศึกษา
+                <select className={styles.select} value={deadlineYearFilter}
+                  onChange={(e) => {
+                    setDeadlineYearFilter(e.target.value);
+                    loadDeadlines({ academicYear: e.target.value, semester: deadlineSemesterFilter });
+                  }}>
+                  <option value="">ทุกปีการศึกษา</option>
+                  {academicYears.map((y) => (
+                    <option key={y.academicYear} value={String(y.academicYear)}>
+                      {y.academicYear} {y.status === "active" ? "(ปัจจุบัน)" : y.status === "draft" ? "(ร่าง)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                ภาคเรียน
+                <select className={styles.select} value={deadlineSemesterFilter}
+                  onChange={(e) => {
+                    setDeadlineSemesterFilter(e.target.value);
+                    loadDeadlines({ academicYear: deadlineYearFilter, semester: e.target.value });
+                  }}>
+                  <option value="">ทุกภาคเรียน</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">ฤดูร้อน</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                &nbsp;
+                <button type="button" className={btn.button}
+                  onClick={() => { setDeadlineYearFilter(""); setDeadlineSemesterFilter(""); loadDeadlines(); }}>
+                  ล้าง filter
+                </button>
+              </label>
+            </div>
+          </div>
+
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th>ชื่อ</th>
+                  <th>ปี/เทอม</th>
                   <th>หมวด</th>
+                  <th>ประเภท</th>
                   <th>กำหนดส่ง</th>
-                  <th>สถานะ</th>
                   <th>จัดการ</th>
                 </tr>
               </thead>
               <tbody>
                 {deadlines.map((deadline) => (
                   <tr key={deadline.id}>
-                    <td>{deadline.name}</td>
-                    <td>{relatedToLabel(deadline.relatedTo)}</td>
-                    {/* แสดงวันที่-เวลาในรูปแบบไทย DD/MM/YYYY (พ.ศ.) HH:mm */}
-                    <td>{formatThaiDateTime(deadline.deadlineDate, deadline.deadlineTime)}</td>
                     <td>
-                      <span className={styles.badge}>{labelStatus(deadline.status)}</span>
+                      {deadline.name}
+                      {deadline.isCritical && <> <span className={`${styles.badge} ${styles.badgeWarning}`}>สำคัญ</span></>}
                     </td>
+                    <td>{deadline.academicYear ?? "-"}/{deadline.semester ?? "-"}</td>
+                    <td>{relatedToLabel(deadline.relatedTo)}</td>
+                    <td><span className={styles.badge}>{deadline.deadlineType === "SUBMISSION" ? "ส่งเอกสาร" : deadline.deadlineType === "ANNOUNCEMENT" ? "ประกาศ" : deadline.deadlineType === "MILESTONE" ? "เหตุการณ์" : deadline.deadlineType ?? "-"}</span></td>
+                    <td>{formatThaiDateTime(deadline.deadlineDate, deadline.deadlineTime)}</td>
                     <td>
                       <div className={styles.actions}>
                         <button type="button" className={btn.button} onClick={() => handleDeadlineEdit(deadline)}>
@@ -1214,7 +1279,7 @@ export default function AcademicSettingsPage() {
                           className={btn.button}
                           onClick={() => handleDeadlineStats(deadline.id)}
                         >
-                          ดูสถิติ
+                          สถิติ
                         </button>
                         <button
                           type="button"

@@ -424,10 +424,10 @@ class AcademicService {
   }
 
   async updateAcademicSettings(id, academicData) {
-    return this.updateAcademicSchedule(id, {
-      ...academicData,
-      status: ACADEMIC_STATUSES.ACTIVE,
-    });
+    // ไม่บังคับ status — ให้ updateAcademicSchedule รักษา status เดิมของ record
+    // ถ้าต้องการเปลี่ยนเป็น active ให้ใช้ activateAcademicSchedule() แทน
+    const { status, ...dataWithoutStatus } = academicData;
+    return this.updateAcademicSchedule(id, dataWithoutStatus);
   }
 
   /**
@@ -442,6 +442,33 @@ class AcademicService {
       logger.error('AcademicService: Error updating current status', error);
       throw new Error('ไม่สามารถอัปเดตสถานะปัจจุบันได้: ' + error.message);
     }
+  }
+
+  /**
+   * ดึงรายการปีการศึกษาที่มีใน DB (deduplicate, เรียงจากล่าสุด)
+   * ใช้สำหรับ dropdown filter ใน frontend
+   * @returns {Array<{academicYear: number, status: string}>}
+   */
+  async getDistinctYears() {
+    const schedules = await Academic.findAll({
+      attributes: ['academicYear', 'status'],
+      order: [['academicYear', 'DESC']],
+    });
+
+    // Deduplicate by academicYear — เก็บ status ที่มี priority สูงสุด
+    const statusPriority = { active: 0, published: 1, draft: 2 };
+    const yearMap = new Map();
+
+    for (const s of schedules) {
+      const year = s.academicYear;
+      if (!year) continue;
+      const existing = yearMap.get(year);
+      if (!existing || (statusPriority[s.status] ?? 99) < (statusPriority[existing.status] ?? 99)) {
+        yearMap.set(year, { academicYear: Number(year), status: s.status || 'draft' });
+      }
+    }
+
+    return Array.from(yearMap.values());
   }
 
   /**

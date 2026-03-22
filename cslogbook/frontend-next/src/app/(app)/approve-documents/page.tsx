@@ -13,6 +13,7 @@ import {
   useRejectAcceptanceLetter,
 } from "@/hooks/useTeacherModule";
 import type { InternshipDocument } from "@/lib/services/teacherService";
+import { useAcademicYears } from "@/hooks/useAcademicYears";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "./ApproveDocuments.module.css";
@@ -115,6 +116,9 @@ export default function ApproveDocumentsPage() {
     params.set("tab", tab);
     router.push(`?${params.toString()}`);
   }
+
+  // Academic years (dynamic)
+  const { data: academicYears = [] } = useAcademicYears();
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -373,9 +377,11 @@ export default function ApproveDocumentsPage() {
                 aria-label="กรองตามปีการศึกษา"
               >
                 <option value="">ทุกปีการศึกษา</option>
-                <option value="2567">2567</option>
-                <option value="2566">2566</option>
-                <option value="2565">2565</option>
+                {academicYears.map((y) => (
+                  <option key={y.academicYear} value={String(y.academicYear)}>
+                    {y.academicYear}
+                  </option>
+                ))}
               </select>
               <select
                 className={styles.select}
