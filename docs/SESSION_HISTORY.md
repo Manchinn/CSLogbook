@@ -57,6 +57,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 49 | 03-20 | Investigation: admin/documents/internship — ตรวจ source of truth, filter, พบ frontend .env ชี้ production (119.59.124.67) ไม่ใช่ localhost, local dev DB เป็นคนละตัวกับ prod |
 | 50 | 03-20 | PDF template overhaul: หนังสือขอความอนุเคราะห์ — rewrite ให้ตรง template ราชการ (TH Sarabun New, ตราครุฑ, header ที่อยู่, เรื่อง/เรียน bold, footer ติดต่อ), fix frontend filename ใช้ Content-Disposition |
 | 51 | 03-22 | PDF audit ทั้ง 2 เอกสาร: ลบรหัส/ชั้นปี/ห้องจากขอความอนุเคราะห์, rewrite ส่งตัวตาม template (checklist 3 ข้อ, หมายเหตุ, คณะ+มหาวิทยาลัยใต้ลงนาม), fix เรียนแสดงชื่อบริษัทซ้ำ, รวมเบอร์โทร 4601 |
+| 52 | 03-22 | Full system flow audit + 26 bug fixes: 5 agents sendNotification→createAndNotify, evidence upload field name, KP02 decision normalize, getCurrentCS05 status filter, FORCE_ENABLE_CARD=false, duplicate PATCH route, eligibility mock→real data, logbook date validation, dual→single token, certificate/eval backend checks, referral isReady supervisor check, TOPIC_EXAM_SCHEDULED/SUBMITTED cleanup, meeting logbook gate, THESIS_IN_PROGRESS→IN_PROGRESS (correct model), systemTestReady gate, OVERDUE dedup fix, token refresh full claims, teacherType controller pass-through, side-effect getter→explicit controller, split reject path, evaluation ENUM fix |
 
 ### Pending
 
