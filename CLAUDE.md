@@ -142,16 +142,16 @@ Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction do
 
 ## Session History
 
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (45 sessions)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (54 sessions)
 
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
-| 46 | 03-18 | Redesign approve-documents, fix workflow step order, Thai status labels, timeline to student-profile, logbook date validation |
-| 45 | 03-16 | Report/stats: Document Pipeline, สถานประกอบการ, CSV export, improve internship+project visuals, fix source-of-truth |
-| 44 | 03-11 | Unified request pages: shared CSS module, sub-components, consistent design |
-| 39-43 | 03-09 | PDF audit, IDOR fixes, data integrity, certificate PDF rewire |
-| 38 | 03-09 | สร้างหนังสือขอความอนุเคราะห์ PDF + download flow |
+| 54 | 03-22 | Fix admin document detail: internship วันที่ส่ง/ข้อมูลฝึกงาน fallback, certificates คะแนนรวม overallScore/fullScore |
+| 53 | 03-22 | Academic year planning, dynamic year filtering, DeadlineTimeline, CSV export, ThaiDateInput |
+| 52 | 03-22 | Full system flow audit — 26 bug fixes |
+| 51 | 03-22 | PDF audit ทั้ง 2 เอกสาร: ขอความอนุเคราะห์ + ส่งตัว |
+| 50 | 03-20 | PDF template overhaul: หนังสือขอความอนุเคราะห์ |
 
 ---
 
@@ -159,7 +159,7 @@ Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (45 sessions)
 
 | File | Notes |
 |---|---|
-| `backend/config/scoring.js` | `PASS_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
+| `backend/config/scoring.js` | `PASS_SCORE`, `FULL_SCORE`, `SCORE_BUCKETS`, `scoreToBucket()` |
 | `backend/utils/studentUtils.js` | CONSTANTS cache, `reloadDynamicConstants` |
 | `backend/config/departmentInfo.js` | ชื่อหัวหน้าภาค — ใช้ใน PDF ทุกประเภท |
 | `src/constants/workflowStates.ts` | Enums, transitions, UI config, `canTransition()` |
