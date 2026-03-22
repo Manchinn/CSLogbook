@@ -1,4 +1,4 @@
-const { ProjectDocument, ProjectMember, Timeline, WorkflowDefinition } = require('../models');
+const { ProjectDocument, ProjectMember, ProjectWorkflowState, Timeline, WorkflowDefinition } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
@@ -79,14 +79,22 @@ async function transitionToProject2(projectId, options = {}) {
         const project = eligibility.project;
         const originalProjectId = project.project_id;
 
-        // อัปเดตโครงงาน
+        // อัปเดตโครงงาน (ProjectDocument)
         await project.update({
             projectType: 'project2',
             transitioned_to_project2: true,
             transitioned_at: new Date(),
-            currentPhase: 'IN_PROGRESS',
             status: 'in_progress'
         }, { transaction });
+
+        // อัปเดต ProjectWorkflowState (currentPhase อยู่ในตารางนี้ ไม่ใช่ ProjectDocument)
+        const workflowState = await ProjectWorkflowState.findOne({
+            where: { projectId: project.project_id },
+            transaction
+        });
+        if (workflowState) {
+            await workflowState.update({ currentPhase: 'IN_PROGRESS' }, { transaction });
+        }
 
         // สร้าง Timeline entry สำหรับ transition
         await Timeline.create({

@@ -50,7 +50,7 @@ class InternshipEvaluationService {
       where: {
         userId,
         documentName: "CS05",
-        status: ["approved", "supervisor_approved", "supervisor_evaluated"],
+        status: ["approved", "supervisor_evaluated"],
       },
       attributes: ["documentId", "status", "documentName"],
       include: [
@@ -159,7 +159,7 @@ class InternshipEvaluationService {
           documentId: documentId,
           userId,
           documentName: "CS05",
-          status: ["approved", "supervisor_approved"],
+          status: ["approved", "supervisor_evaluated"],
         },
         attributes: ["documentId", "status"],
         include: [
@@ -310,7 +310,7 @@ class InternshipEvaluationService {
         where: {
           documentId: approvalToken.documentId,
           documentName: "CS05",
-          status: ["approved", "supervisor_approved"],
+          status: ["approved", "supervisor_evaluated"],
         },
         attributes: ["documentId", "status", "documentName", "userId"],
         include: [

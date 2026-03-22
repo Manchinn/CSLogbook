@@ -52,7 +52,7 @@ module.exports = (sequelize) => {
     status: {
       type: DataTypes.ENUM('draft', 'submitted', 'advisor_in_review', 'advisor_approved', 'staff_verified', 'scheduled', 'completed', 'cancelled'),
       allowNull: false,
-      defaultValue: 'submitted'
+      defaultValue: 'advisor_in_review'
     },
     formPayload: {
       type: DataTypes.JSON,

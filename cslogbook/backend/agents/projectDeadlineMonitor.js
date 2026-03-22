@@ -363,7 +363,7 @@ class ProjectDeadlineMonitor {
           }
 
           // นับสถิติ (skip if already counted in state transition)
-          if (result.isOverdue && !wasOverdue && !state.isOverdue) {
+          if (result.isOverdue && !wasOverdue) {
             this.statistics.newlyOverdue++;
             await this.notifyOverdue(state, result.overdueDeadlines);
           } else if (result.isOverdue && wasOverdue) {
