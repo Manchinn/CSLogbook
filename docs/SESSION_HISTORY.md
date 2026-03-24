@@ -60,6 +60,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 52 | 03-22 | Full system flow audit + 26 bug fixes: 5 agents sendNotification→createAndNotify, evidence upload field name, KP02 decision normalize, getCurrentCS05 status filter, FORCE_ENABLE_CARD=false, duplicate PATCH route, eligibility mock→real data, logbook date validation, dual→single token, certificate/eval backend checks, referral isReady supervisor check, TOPIC_EXAM_SCHEDULED/SUBMITTED cleanup, meeting logbook gate, THESIS_IN_PROGRESS→IN_PROGRESS (correct model), systemTestReady gate, OVERDUE dedup fix, token refresh full claims, teacherType controller pass-through, side-effect getter→explicit controller, split reject path, evaluation ENUM fix |
 | 53 | 03-22 | Academic year planning & dynamic year filtering: สร้าง academicYearHelper (shared active year filter), แก้ 3 agents filter ตาม active year (deadlineStatusUpdater, projectDeadlineMonitor, deadlineReminderAgent + student enrollment filter), เพิ่ม GET /api/academic/years endpoint, สร้าง useAcademicYears hook, แก้ hardcoded year dropdown 2 หน้า (approve-documents, teacher/topic-exam), fix updateAcademicSettings บังคับ active bug, ปรับ UX admin/settings/academic ทั้ง 2 tab (ลดปุ่ม action, แสดง create/edit mode, ซ่อน active จาก status dropdown, เพิ่ม year/semester filter + คอลัมน์ในตาราง deadline, form dropdown จาก DB), สร้าง DeadlineTimeline component (timeline จัดกลุ่มตามเดือน + สี tag ตามหมวด), เพิ่ม CSV export, สร้าง formatThaiDateShort + ThaiDateInput (แสดงวันที่ไทย พ.ศ. ทุก date input) |
 | 54 | 03-22 | Fix admin document detail pages: (1) internship detail — วันที่ส่ง fallback created_at เมื่อ submitted_at null, ข้อมูลฝึกงาน lookup จาก CS05 เมื่อ ACCEPTANCE_LETTER ไม่มี InternshipDocument (2) certificates — คะแนนรวมแสดง overallScore/fullScore แทน overallScore/passScore, เพิ่ม FULL_SCORE=100 ใน scoring.js, เพิ่มเกณฑ์ผ่านแยก |
+| 55 | 03-22 | SurveyBanner responsive fix: เพิ่ม media query ≤540px — banner stack column, ปุ่ม full-width, modal padding ลด |
 
 ### Pending
 
@@ -1204,3 +1205,25 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 4. AppRedirect: handle null → redirect to login
 5. Dead code: ลบ `getApprovalHistory` จาก emailApprovalService
 6. **ImportantDeadline: อัปเดตข้อมูล deadline ให้เป็นปัจจุบันสำหรับ production** (next session)
+
+---
+
+### Session 55 (claude, 2026-03-22) — SurveyBanner Responsive Fix
+
+**เป้าหมาย:** ตรวจสอบและแก้ไข responsive ของ SurveyBanner component
+
+### สิ่งที่ทำ
+
+1. **วิเคราะห์ปัญหา** — SurveyBanner.module.css ไม่มี media query เลย
+   - Banner mode: `flex-wrap: wrap` อย่างเดียวไม่พอ — บนจอแคบ layout ไม่สมดุลเมื่อ wrap
+   - Popup mode: ไม่มีปัญหา (`max-width: 420px` + overlay padding รองรับอยู่)
+2. **เพิ่ม responsive breakpoint `≤540px`**
+   - Banner: `flex-direction: column`, gap ลดเหลือ 0.75rem, padding สม่ำเสมอ
+   - ปุ่ม actions: `width: 100%` + `flex: 1` ทำให้ tap-friendly บน mobile
+   - Modal: padding ลดเล็กน้อย (`1.5rem 1.25rem`)
+
+### ไฟล์ที่เปลี่ยน
+
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `frontend-next/src/components/dashboard/SurveyBanner.module.css` | **EDIT** — เพิ่ม `@media (max-width: 540px)` สำหรับ banner, actions, modal |
