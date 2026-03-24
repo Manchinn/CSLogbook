@@ -146,4 +146,62 @@ export const SEL = {
   REJECT_REASON_INPUT: 'textarea[placeholder*="กรอกเหตุผลอย่างน้อย"]', // [unused]
   BTN_CONFIRM_REJECT: 'button:has-text("ยืนยันปฏิเสธ")', // [unused]
   ADMIN_FEEDBACK_ALERT: '[class*="alert"]',
+
+  // ─── Admin — Document Management (Internship/Project/Certificates) ──
+  ADMIN_DOC_HEADER: ':text("จัดการเอกสาร"), :text("จัดการคำร้อง")',
+  ADMIN_DOC_STATS: '[class*="stats"], [class*="stat"]',
+  ADMIN_DOC_SEARCH: 'input[placeholder*="ค้นหา"]',
+  ADMIN_DOC_STATUS_FILTER: '[class*="filters"] select, select',
+  ADMIN_DOC_TABLE: 'table, [class*="table"]',
+  ADMIN_DOC_DETAIL_BTN: 'button:has-text("รายละเอียด")',
+  ADMIN_DOC_APPROVE_BTN: 'button:has-text("อนุมัติ")',
+  ADMIN_DOC_REJECT_BTN: 'button:has-text("ปฏิเสธ")',
+  ADMIN_DOC_FORWARD_BTN: 'button:has-text("ส่งต่อ"), button:has-text("ตรวจและส่งต่อ")',
+  ADMIN_DOC_RESET_FILTER: 'button:has-text("รีเซ็ตตัวกรอง")',
+  ADMIN_DOC_PAGINATION: '[class*="pagination"]',
+  ADMIN_DOC_DRAWER: '[class*="drawer"]',
+
+  // ─── Admin — Certificate Management ─────────────────────────────────
+  CERT_APPROVE_MODAL: '[class*="modal"], [role="dialog"]',
+  CERT_NUMBER_INPUT: '[class*="modal"] input',
+  CERT_REJECT_TEXTAREA: '[class*="modal"] textarea',
+  CERT_CONFIRM_BTN: '[class*="modal"] button:has-text("ยืนยัน")',
+  CERT_CANCEL_BTN: '[class*="modal"] button:has-text("ยกเลิก")',
+
+  // ─── Admin — Exam Results ───────────────────────────────────────────
+  EXAM_RESULT_HEADER: ':text("บันทึกผลสอบ")',
+  EXAM_PASS_BTN: 'button:has-text("ผ่าน")',
+  EXAM_FAIL_BTN: 'button:has-text("ไม่ผ่าน")',
+  EXAM_EDIT_BTN: 'button:has-text("แก้ไขผล")',
+  EXAM_EXPORT_BTN: 'button:has-text("ส่งออก Excel"), button:has-text("Export")',
+  EXAM_PREVIEW_BTN: 'button:has-text("ดูตัวอย่างก่อนส่งออก")',
+  EXAM_DETAIL_BTN: 'button:has-text("รายละเอียด")',
+  EXAM_MODAL: '[class*="modal"], [role="dialog"]',
+  EXAM_MODAL_CANCEL: '[class*="modal"] button:has-text("ยกเลิก")',
+  EXAM_FAIL_REASON: '[class*="modal"] textarea',
+
+  // ─── Student — Dashboard ────────────────────────────────────────────
+  DASHBOARD_WIDGET: '[class*="widget"], [class*="card"], [class*="section"]',
+  DASHBOARD_NAV_LINK: 'a[href*="/project"], a[href*="/internship"], a[href*="/deadlines"]',
+
+  // ─── Public — Timesheet Approval ────────────────────────────────────
+  TIMESHEET_BRANDING: ':text("CS Logbook"), :text("อนุมัติบันทึกการฝึกงาน")',
+  TIMESHEET_SUMMARY_CARD: '[class*="summaryCard"], [class*="summary"]',
+  TIMESHEET_ENTRY_CARD: '[class*="entryCard"], [class*="entry"]',
+  TIMESHEET_RADIO_APPROVE: '[class*="radioCard"]:has-text("อนุมัติ")',
+  TIMESHEET_RADIO_REJECT: '[class*="radioCard"]:has-text("ปฏิเสธ")',
+  TIMESHEET_COMMENT: 'textarea[placeholder*="หมายเหตุ"], textarea[placeholder*="เหตุผล"]',
+  TIMESHEET_SUBMIT: 'button:has-text("ยืนยันการดำเนินการ")',
+
+  // ─── Public — Supervisor Evaluation ─────────────────────────────────
+  EVAL_HERO: ':text("แบบประเมินผลการฝึกงาน")',
+  EVAL_SUPERVISOR_NAME: 'input[placeholder*="นายสมศักดิ์"], input[placeholder*="ชื่อ"]',
+  EVAL_SUPERVISOR_POSITION: 'input[placeholder*="Senior"], input[placeholder*="ตำแหน่ง"]',
+  EVAL_RATING_BUTTON: '[class*="ratingButton"]',
+  EVAL_DECISION_PASS: 'button:has-text("ผ่าน"), [class*="decisionButton"]:has-text("ผ่าน")',
+  EVAL_DECISION_FAIL: 'button:has-text("ไม่ผ่าน"), [class*="decisionButton"]:has-text("ไม่ผ่าน")',
+  EVAL_STRENGTHS: 'textarea[placeholder*="จุดเด่น"]',
+  EVAL_IMPROVEMENTS: 'textarea[placeholder*="ควรปรับปรุง"]',
+  EVAL_SUBMIT: 'button:has-text("ส่งแบบประเมิน")',
+  EVAL_SCORE_TOTAL: ':text("คะแนนรวม")',
 } as const;

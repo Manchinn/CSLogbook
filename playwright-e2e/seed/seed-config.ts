@@ -68,3 +68,34 @@ export const SEED_DATA = {
     endDate: '2026-08-31',
   },
 };
+
+/** Test data สำหรับ evaluation & certificate flow tests */
+export const EVALUATION_SEED = {
+  // Token ที่ valid สำหรับ test supervisor evaluation form
+  // ต้อง generate จาก API — ใส่ค่าหลัง seed
+  supervisorEvalToken: process.env.E2E_EVAL_TOKEN || '',
+  timesheetApprovalToken: process.env.E2E_TIMESHEET_TOKEN || '',
+};
+
+/** Test data สำหรับ admin document management tests */
+export const DOCUMENT_SEED = {
+  // Documents ที่จะถูกสร้างเป็น pending สำหรับ test approve/reject
+  pendingCS05: {
+    companyName: 'E2E Document Test Company',
+    companyAddress: '456 ถนนสุขุมวิท กรุงเทพฯ 10110',
+    position: 'QA Engineer Intern',
+    contactPersonName: 'คุณทดสอบ เอกสาร',
+    contactPersonPosition: 'IT Manager',
+    startDate: '2026-06-01',
+    endDate: '2026-08-31',
+  },
+};
+
+/** Test data สำหรับ exam results tests */
+export const EXAM_SEED = {
+  // Project ที่มี topic submitted + พร้อมบันทึกผลสอบ
+  topicExamProject: {
+    title: 'E2E Exam Test Project — ระบบวิเคราะห์ข้อมูล',
+    titleEn: 'E2E Exam Test Project — Data Analytics System',
+  },
+};

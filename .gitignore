@@ -1,3 +1,9 @@
 node_modules/
 .claude/
-playwright-e2e/
+
+# Playwright E2E — track source, ignore artifacts
+playwright-e2e/node_modules/
+playwright-e2e/test-results/
+playwright-e2e/playwright-report/
+playwright-e2e/blob-report/
+playwright-e2e/dist/
