@@ -61,6 +61,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 53 | 03-22 | Academic year planning & dynamic year filtering: สร้าง academicYearHelper (shared active year filter), แก้ 3 agents filter ตาม active year (deadlineStatusUpdater, projectDeadlineMonitor, deadlineReminderAgent + student enrollment filter), เพิ่ม GET /api/academic/years endpoint, สร้าง useAcademicYears hook, แก้ hardcoded year dropdown 2 หน้า (approve-documents, teacher/topic-exam), fix updateAcademicSettings บังคับ active bug, ปรับ UX admin/settings/academic ทั้ง 2 tab (ลดปุ่ม action, แสดง create/edit mode, ซ่อน active จาก status dropdown, เพิ่ม year/semester filter + คอลัมน์ในตาราง deadline, form dropdown จาก DB), สร้าง DeadlineTimeline component (timeline จัดกลุ่มตามเดือน + สี tag ตามหมวด), เพิ่ม CSV export, สร้าง formatThaiDateShort + ThaiDateInput (แสดงวันที่ไทย พ.ศ. ทุก date input) |
 | 54 | 03-22 | Fix admin document detail pages: (1) internship detail — วันที่ส่ง fallback created_at เมื่อ submitted_at null, ข้อมูลฝึกงาน lookup จาก CS05 เมื่อ ACCEPTANCE_LETTER ไม่มี InternshipDocument (2) certificates — คะแนนรวมแสดง overallScore/fullScore แทน overallScore/passScore, เพิ่ม FULL_SCORE=100 ใน scoring.js, เพิ่มเกณฑ์ผ่านแยก |
 | 55 | 03-22 | SurveyBanner responsive fix: เพิ่ม media query ≤540px — banner stack column, ปุ่ม full-width, modal padding ลด |
+| 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 
 ### Pending
 

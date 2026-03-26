@@ -142,16 +142,16 @@ Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction do
 
 ## Session History
 
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (54 sessions)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (56 sessions)
 
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
+| 56 | 03-25 | Permissions cleanup, memory consolidation, project directory audit, Claude Code architecture walkthrough |
+| 55 | 03-22 | SurveyBanner responsive fix |
 | 54 | 03-22 | Fix admin document detail: internship วันที่ส่ง/ข้อมูลฝึกงาน fallback, certificates คะแนนรวม overallScore/fullScore |
 | 53 | 03-22 | Academic year planning, dynamic year filtering, DeadlineTimeline, CSV export, ThaiDateInput |
 | 52 | 03-22 | Full system flow audit — 26 bug fixes |
-| 51 | 03-22 | PDF audit ทั้ง 2 เอกสาร: ขอความอนุเคราะห์ + ส่งตัว |
-| 50 | 03-20 | PDF template overhaul: หนังสือขอความอนุเคราะห์ |
 
 ---
 
