@@ -14,6 +14,7 @@ const {
 } = require('../models');
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
+const notificationService = require('./notificationService');
 const projectDocumentService = require('./projectDocumentService');
 const deadlineAutoAssignService = require('./deadlineAutoAssignService');
 
@@ -904,7 +905,29 @@ class DocumentService {
             });
 
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
-            return { 
+
+            // ส่ง notification แจ้งนักศึกษา
+            if (document.userId) {
+                try {
+                    await notificationService.createAndNotify(document.userId, {
+                        type: 'DOCUMENT',
+                        title: `เอกสาร${document.fileName || ''} ถูกปฏิเสธ`,
+                        message: reason || 'กรุณาตรวจสอบและแก้ไข',
+                        metadata: {
+                            documentId: document.documentId,
+                            documentType: document.documentType || null,
+                            action: 'rejected',
+                            targetUrl: document.documentType === 'INTERNSHIP'
+                                ? '/internship-registration'
+                                : '/project/documents'
+                        }
+                    });
+                } catch (notifErr) {
+                    logger.warn('Notification failed (document reject):', notifErr.message);
+                }
+            }
+
+            return {
                 message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
                 reviewComment: document.reviewComment
             };
