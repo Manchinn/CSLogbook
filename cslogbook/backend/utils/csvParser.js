@@ -190,22 +190,6 @@ const validateCSVRowEnhanced = (row, processedStudentIDs = new Set()) => {
   };
 };
 
-// Keep the original function for backward compatibility
-const validateCSVRow = (row) => {
-  const result = validateCSVRowEnhanced(row);
-  return {
-    isValid: result.isValid,
-    errors: result.errors,
-    normalizedData: result.normalizedData
-  };
-};
-
 module.exports = {
-  validateStudentID,
-  validateCSVRow,
-  validateCSVRowEnhanced,
-  parseScientificNotation,
-  parseCredits,
-  validateClassroom,
-  THAI_MESSAGES
+  validateCSVRowEnhanced
 };

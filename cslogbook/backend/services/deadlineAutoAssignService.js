@@ -106,53 +106,6 @@ class DeadlineAutoAssignService {
         return null;
     }
 
-    /**
-     * Auto-assign deadline ให้กับเอกสารที่ยังไม่มี deadline
-     * @param {Object} document - Document instance
-     * @param {Object} contextData - { workflowType, academicYear, semester }
-     */
-    async autoAssignToDocument(document, contextData = {}) {
-        if (document.importantDeadlineId) {
-            return; // มี deadline แล้ว ข้าม
-        }
-
-        const deadlineId = await this.findMatchingDeadline({
-            documentType: document.documentType,
-            category: document.category,
-            workflowType: contextData.workflowType,
-            academicYear: contextData.academicYear,
-            semester: contextData.semester
-        });
-
-        if (deadlineId) {
-            await document.update({ importantDeadlineId: deadlineId });
-            logger.info('[DeadlineAutoAssign] Auto-assigned deadline:', {
-                documentId: document.documentId,
-                deadlineId
-            });
-        }
-    }
-
-    /**
-     * สร้าง mapping configuration พื้นฐาน
-     * ใช้เมื่อต้องการ seed ข้อมูล mappings
-     */
-    async seedDefaultMappings(academicYear, semester) {
-        const mappings = [
-            // ตัวอย่าง mappings สำหรับฝึกงาน
-            // ต้องสร้าง deadline ก่อน แล้วเอา ID มาใส่
-            // {
-            //     importantDeadlineId: 1, // deadline สำหรับส่ง คพ.01
-            //     workflowType: 'internship',
-            //     documentSubtype: 'KP01',
-            //     autoAssign: 'on_submit',
-            //     active: true
-            // }
-        ];
-
-        logger.warn('[DeadlineAutoAssign] seedDefaultMappings ต้องกำหนด deadlines ก่อน');
-        return mappings;
-    }
 }
 
 module.exports = new DeadlineAutoAssignService();
