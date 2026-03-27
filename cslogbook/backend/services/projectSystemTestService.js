@@ -9,6 +9,7 @@ const {
   User
 } = require('../models');
 const projectDocumentService = require('./projectDocumentService');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const { calculateSystemTestRequestLate } = require('../utils/lateSubmissionHelper');
 const dayjs = require('dayjs');
@@ -70,6 +71,21 @@ function ensureAdvisor(project, teacherId) {
   if (!project) return false;
   const ids = [project.advisorId, project.coAdvisorId].filter(Boolean).map(Number);
   return ids.includes(Number(teacherId));
+}
+
+async function notifyProjectMembers(projectId, notification) {
+  try {
+    const members = await ProjectMember.findAll({
+      where: { projectId },
+      include: [{ model: Student, as: 'student', include: [{ model: User, as: 'user', attributes: ['userId'] }] }]
+    });
+    const userIds = members.map(m => m.student?.user?.userId).filter(Boolean);
+    if (userIds.length > 0) {
+      await notificationService.createAndNotifyMany(userIds, notification);
+    }
+  } catch (err) {
+    logger.error('Failed to send rejection notification', { projectId, error: err.message });
+  }
 }
 
 class ProjectSystemTestService {
@@ -370,6 +386,16 @@ class ProjectSystemTestService {
 
       await record.update(update, { transaction: t });
       await t.commit();
+
+      if (decision === 'reject') {
+        await notifyProjectMembers(project.projectId, {
+          type: 'APPROVAL',
+          title: 'คำขอทดสอบระบบถูกส่งกลับ',
+          message: payload.note || 'กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งใหม่',
+          metadata: { projectId: project.projectId, action: 'rejected', rejectedBy: 'advisor', targetUrl: '/project/phase2/system-test' }
+        });
+      }
+
       return this.serialize(await this.findLatest(project.projectId));
     } catch (error) {
       await t.rollback();
@@ -407,6 +433,16 @@ class ProjectSystemTestService {
       };
       await record.update(update, { transaction: t });
       await t.commit();
+
+      if (decision === 'reject') {
+        await notifyProjectMembers(project.projectId, {
+          type: 'APPROVAL',
+          title: 'คำขอทดสอบระบบถูกส่งกลับจากเจ้าหน้าที่',
+          message: payload.note || 'กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งใหม่',
+          metadata: { projectId: project.projectId, action: 'rejected', rejectedBy: 'staff', targetUrl: '/project/phase2/system-test' }
+        });
+      }
+
       return this.serialize(await this.findLatest(project.projectId));
     } catch (error) {
       await t.rollback();

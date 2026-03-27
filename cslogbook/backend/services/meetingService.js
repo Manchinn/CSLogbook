@@ -12,6 +12,7 @@ const {
   User
 } = require('../models');
 const { Op } = require('sequelize');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const { buildSummary } = require('./meetingSummaryHelper');
 const mailer = require('../utils/mailer');
@@ -794,6 +795,20 @@ class MeetingService {
     });
 
     logger.info('meetingService.updateLogApproval success', { meetingId, logId, decision, actorId: actor.userId });
+
+    if (decision === 'rejected' && updated?.recordedBy) {
+      try {
+        await notificationService.createAndNotify(updated.recordedBy, {
+          type: 'MEETING',
+          title: 'บันทึกการพบอาจารย์ถูกส่งกลับ',
+          message: payload.approvalNote || 'กรุณาตรวจสอบและแก้ไขบันทึกการประชุม',
+          metadata: { meetingId, logId, action: 'rejected', targetUrl: '/project/phase1/meeting-logbook' }
+        });
+      } catch (notifErr) {
+        logger.error('Failed to send meeting log rejection notification', { logId, error: notifErr.message });
+      }
+    }
+
     return this.serializeLog(updated);
   }
 

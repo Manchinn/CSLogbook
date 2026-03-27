@@ -12,6 +12,7 @@ const {
   sequelize
 } = require('../models');
 const { Op } = require('sequelize');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const projectDocumentService = require('./projectDocumentService');
 const projectWorkflowService = require('./projectWorkflowService');
@@ -782,42 +783,40 @@ class ProjectExamResultService {
     try {
       const examTypeTh = examResult.examType === 'PROJECT1' ? 'โครงงานพิเศษ 1' : 'ปริญญานิพนธ์';
       const resultTh = examResult.result === 'PASS' ? 'ผ่าน' : 'ไม่ผ่าน';
-      const resultIcon = examResult.result === 'PASS' ? '🎉' : '❌';
+      const isThesis = examResult.examType !== 'PROJECT1';
+      const targetUrl = isThesis ? '/project/phase2/thesis-defense' : '/project/phase1/topic-exam';
 
-      for (const member of project.members) {
-        const studentEmail = member.student?.user?.email;
-        if (!studentEmail) {
-          continue;
-        }
+      let message = `ผลการสอบ${examTypeTh}: ${resultTh}`;
+      if (examResult.notes) {
+        message += ` — ${examResult.notes}`;
+      }
+      if (message.length > 490) message = message.substring(0, 490) + '...';
 
-        let message = `${resultIcon} ผลการสอบ${examTypeTh}: ${resultTh}\n\nโครงงาน: ${project.projectNameTh}`;
+      const userIds = (project.members || [])
+        .map(m => m.student?.user?.userId)
+        .filter(Boolean);
 
-        if (examResult.notes) {
-          message += `\n\nหมายเหตุจากคณะกรรมการ:\n${examResult.notes}`;
-        }
-
-        if (examResult.result === 'PASS') {
-          if (examResult.requireScopeRevision) {
-            message += '\n\n⚠️ คุณต้องส่งเอกสารปรับปรุง Scope ก่อนดำเนินการต่อ';
-          } else {
-            message += '\n\n✅ คุณสามารถเดินหน้าไปยังขั้นตอนถัดไปได้แล้ว';
+      if (userIds.length > 0) {
+        await notificationService.createAndNotifyMany(userIds, {
+          type: 'EVALUATION',
+          title: `ผลสอบ${examTypeTh}: ${resultTh}`,
+          message,
+          metadata: {
+            projectId: project.projectId,
+            examType: examResult.examType,
+            result: examResult.result,
+            action: examResult.result === 'PASS' ? 'exam_passed' : 'exam_failed',
+            targetUrl
           }
-        } else {
-          message += '\n\nกรุณาเข้าระบบเพื่อรับทราบผล';
-        }
-
-        logger.info(`Notification sent to student: ${studentEmail}`);
+        });
       }
 
-      const advisorEmail = project.advisor?.user?.email;
-      if (advisorEmail) {
-        logger.info(`Notification sent to advisor: ${advisorEmail}`);
-      }
-
-      const coAdvisorEmail = project.coAdvisor?.user?.email;
-      if (coAdvisorEmail) {
-        logger.info(`Notification sent to co-advisor: ${coAdvisorEmail}`);
-      }
+      logger.info('Exam result notifications sent', {
+        projectId: project.projectId,
+        examType: examResult.examType,
+        result: examResult.result,
+        recipientCount: userIds.length
+      });
     } catch (error) {
       logger.error('Error sending exam result notifications:', error);
     }

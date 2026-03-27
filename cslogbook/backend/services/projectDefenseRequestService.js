@@ -13,6 +13,7 @@ const {
   User
 } = require('../models');
 const projectDocumentService = require('./projectDocumentService');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const ExcelJS = require('exceljs');
@@ -1065,6 +1066,33 @@ class ProjectDefenseRequestService {
         defenseType,
         decision: normalizedDecision
       });
+
+      if (hasRejected) {
+        try {
+          const members = await ProjectMember.findAll({
+            where: { projectId },
+            include: [{ model: Student, as: 'student', include: [{ model: User, as: 'user', attributes: ['userId'] }] }]
+          });
+          const userIds = members.map(m => m.student?.user?.userId).filter(Boolean);
+          const isThesis = defenseType === 'THESIS';
+          if (userIds.length > 0) {
+            await notificationService.createAndNotifyMany(userIds, {
+              type: 'APPROVAL',
+              title: isThesis ? 'คำขอสอบปริญญานิพนธ์ถูกส่งกลับ' : 'คำขอสอบโครงงานพิเศษถูกส่งกลับ',
+              message: (typeof note === 'string' && note.trim()) || 'กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งใหม่',
+              metadata: {
+                projectId,
+                requestId: request.requestId,
+                defenseType,
+                action: 'rejected',
+                targetUrl: isThesis ? '/project/phase2/thesis-defense' : '/project/phase1/exam-submit'
+              }
+            });
+          }
+        } catch (notifErr) {
+          logger.error('Failed to send defense rejection notification', { projectId, error: notifErr.message });
+        }
+      }
 
       const refreshed = await ProjectDefenseRequest.findByPk(request.requestId, { include: this.buildRequestInclude() });
       const serialized = this.serializeRequest(refreshed);
