@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DefenseRequestStepper } from "@/components/common/DefenseRequestStepper";
 import { RejectionNotice } from "@/components/common/RejectionNotice";
+import { RejectionDetailModal } from "@/components/common/RejectionDetailModal";
 import { RequestTimeline, type TimelineItem } from "@/components/common/RequestTimeline";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { StudentTable } from "@/components/common/StudentTable";
@@ -159,6 +160,10 @@ export default function ExamSubmitPage() {
   }, [request]);
 
   const advisorApprovals = Array.isArray(request?.advisorApprovals) ? request?.advisorApprovals : [];
+  const rejectedApproval = advisorApprovals.find((a) => a.status === "rejected") ?? null;
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const openRejectionModal = useCallback(() => setRejectionModalOpen(true), []);
+  const closeRejectionModal = useCallback(() => setRejectionModalOpen(false), []);
 
   if (!project) {
     return (
@@ -219,7 +224,11 @@ export default function ExamSubmitPage() {
 
         <RejectionNotice
           status={status}
+          visible={!!rejectedApproval}
+          details={rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
           message="กรุณาตรวจสอบสถานะอาจารย์ด้านล่าง แก้ไขข้อมูลแล้วส่งใหม่ได้เลย"
+          actionText="กรุณาแก้ไขข้อมูลแล้วกดส่งคำขอสอบใหม่"
+          onViewDetails={openRejectionModal}
         />
 
         {errorMessage ? <p className={styles.notice}>{errorMessage}</p> : null}
@@ -349,6 +358,16 @@ export default function ExamSubmitPage() {
             <p className={styles.noticeInline}>คำขออยู่ระหว่างดำเนินการ — ไม่สามารถแก้ไขได้</p>
           ) : null}
         </section>
+
+        <RejectionDetailModal
+          isOpen={rejectionModalOpen}
+          onClose={closeRejectionModal}
+          title="รายละเอียดการปฏิเสธคำขอสอบ"
+          rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
+          rejectedAt={request?.updatedAt ? String(request.updatedAt) : null}
+          reason={rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+          guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบโครงงานพิเศษใหม่"
+        />
       </div>
     </RoleGuard>
   );

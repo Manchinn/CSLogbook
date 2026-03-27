@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DefenseRequestStepper } from "@/components/common/DefenseRequestStepper";
 import { Phase2GateWarning } from "@/components/common/Phase2GateWarning";
 import { RejectionNotice } from "@/components/common/RejectionNotice";
+import { RejectionDetailModal } from "@/components/common/RejectionDetailModal";
 import { StudentTable } from "@/components/common/StudentTable";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -140,6 +141,10 @@ export default function ThesisDefenseRequestContent() {
   const statusLabel = statusLabels[status] || "ยังไม่พบสถานะคำขอ";
   const statusClass = styles[toneClassName(statusTone(status))];
   const formLocked = ["staff_verified", "scheduled", "completed"].includes(status);
+
+  const advisorApprovals = Array.isArray(request?.advisorApprovals) ? request.advisorApprovals : [];
+  const rejectedApproval = advisorApprovals.find((a: Record<string, unknown>) => a.status === "rejected") ?? null;
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const disabledSubmission =
     phase2GateReasons.length > 0 || !meetingRequirement.satisfied || !systemTestReady || formLocked;
 
@@ -159,7 +164,14 @@ export default function ThesisDefenseRequestContent() {
 
       <Phase2GateWarning reasons={phase2GateReasons} />
 
-      <RejectionNotice status={status} />
+      <RejectionNotice
+        status={status}
+        visible={!!rejectedApproval}
+        details={rejectedApproval?.note ? String(rejectedApproval.note) : rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+        message="กรุณาตรวจสอบข้อมูลและส่งคำขอสอบปริญญานิพนธ์ใหม่"
+        actionText="กรุณาแก้ไขข้อมูลแล้วกดส่งคำขอใหม่"
+        onViewDetails={() => setRejectionModalOpen(true)}
+      />
 
       <section className={styles.card}>
         <div className={styles.tagRow}>
@@ -227,6 +239,16 @@ export default function ThesisDefenseRequestContent() {
           <p className={styles.noticeInline}>คำขอนี้ถูกล็อกแล้ว — ไม่สามารถแก้ไขได้หลังเจ้าหน้าที่รับเรื่อง</p>
         ) : null}
       </section>
+
+      <RejectionDetailModal
+        isOpen={rejectionModalOpen}
+        onClose={() => setRejectionModalOpen(false)}
+        title="รายละเอียดการปฏิเสธคำขอสอบปริญญานิพนธ์"
+        rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
+        rejectedAt={rejectedApproval?.approvedAt ? String(rejectedApproval.approvedAt) : null}
+        reason={rejectedApproval?.note ? String(rejectedApproval.note) : rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+        guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบปริญญานิพนธ์ใหม่"
+      />
     </div>
   );
 }

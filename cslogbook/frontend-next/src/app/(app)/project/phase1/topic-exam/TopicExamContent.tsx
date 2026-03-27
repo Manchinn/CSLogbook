@@ -81,6 +81,9 @@ export default function TopicExamContent() {
       {showFailedBox ? (
         <section className={styles.noticeDanger}>
           <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
+          {project?.examFailReason ? (
+            <p className={styles.noticeBody}>หมายเหตุจากคณะกรรมการ: {project.examFailReason}</p>
+          ) : null}
           <p className={styles.noticeBody}>
             กรุณากดรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้ออกจากระบบก่อนยื่นหัวข้อใหม่
           </p>

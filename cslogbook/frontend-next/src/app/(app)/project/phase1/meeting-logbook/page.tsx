@@ -27,6 +27,8 @@ type MeetingLogRecord = {
   currentProgress?: string | null;
   problemsIssues?: string | null;
   nextActionItems?: string | null;
+  approvalNote?: string | null;
+  advisorComment?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -659,6 +661,11 @@ export default function MeetingLogbookPage() {
                               </span>
                             ) : null}
                           </div>
+                          {log.status === "rejected" && (log.approvalNote || log.advisorComment) ? (
+                            <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--tag-danger-text, #cf1322)" }}>
+                              เหตุผล: {log.approvalNote || log.advisorComment}
+                            </p>
+                          ) : null}
                         </div>
                         <div className={styles.actions}>
                           <button
