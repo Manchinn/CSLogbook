@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Logbook — System Architecture</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --text-muted: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --orange: #f0883e; --red: #f85149; --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0.8rem 2rem; display: flex; align-items: center; gap: 1.5rem;
+  }
+  nav .logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
+  nav a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
+    padding: 0.4rem 0.8rem; border-radius: 6px; transition: all 0.15s;
+  }
+  nav a:hover, nav a.active { color: var(--text); background: #1f6feb22; }
+  .theme-toggle {
+    margin-left: auto; background: none; border: 1px solid var(--border);
+    color: var(--text-muted); padding: 0.3rem 0.7rem; border-radius: 6px;
+    cursor: pointer; font-size: 0.8rem;
+  }
+
+  /* Sections */
+  section { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem; }
+  h1 { font-size: 2rem; margin-bottom: 0.3rem; }
+  h2 { font-size: 1.4rem; margin-bottom: 1.2rem; color: var(--accent); }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.4rem; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+  .card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+  .badge {
+    display: inline-block; font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.06em; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600;
+  }
+  .b-fe { background: #58a6ff22; color: var(--accent); }
+  .b-be { background: #3fb95022; color: var(--green); }
+  .b-db { background: #f0883e22; color: var(--orange); }
+  .b-infra { background: #bc8cff22; color: var(--purple); }
+  .b-risk { background: #f8514922; color: var(--red); }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 2rem; margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+  th { background: #1c2129; text-align: left; padding: 0.7rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; }
+  td { padding: 0.7rem 1rem; border-top: 1px solid var(--border); }
+  tr:hover td { background: #1c212944; }
+
+  /* Module Flow */
+  .flow-steps {
+    display: flex; gap: 0; overflow-x: auto; padding: 1rem 0;
+  }
+  .flow-step {
+    flex-shrink: 0; text-align: center; position: relative;
+    padding: 0.8rem 1.2rem; min-width: 120px;
+  }
+  .flow-step::after {
+    content: '→'; position: absolute; right: -8px; top: 50%;
+    transform: translateY(-50%); color: var(--text-muted); font-size: 1.2rem;
+  }
+  .flow-step:last-child::after { display: none; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 0.75rem;
+    font-weight: 700; margin-bottom: 0.4rem;
+  }
+  .step-label { font-size: 0.75rem; color: var(--text-muted); }
+  .sn-blue { background: var(--accent); color: #0d1117; }
+  .sn-green { background: var(--green); color: #0d1117; }
+  .sn-orange { background: var(--orange); color: #0d1117; }
+  .sn-purple { background: var(--purple); color: #0d1117; }
+
+  /* Risk */
+  .risk-bar { height: 6px; border-radius: 3px; margin-top: 0.4rem; }
+  .risk-crit { background: var(--red); width: 90%; }
+  .risk-high { background: var(--orange); width: 65%; }
+  .risk-med { background: #d29922; width: 40%; }
+
+  /* Tab */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+  .tab-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">CS Logbook</span>
+  <a href="#overview" class="active">Overview</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#modules">Modules</a>
+  <a href="#roles">Roles & RBAC</a>
+  <a href="#risks">QA Risks</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀ Light</button>
+</nav>
+
+<!-- OVERVIEW -->
+<section id="overview">
+  <h1>CS Logbook</h1>
+  <p class="subtitle">ระบบจัดการโครงงานพิเศษและฝึกงาน — ภาควิชาวิทยาการคอมพิวเตอร์</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="badge b-fe">Frontend</span> React + Next.js</h3>
+      <p>Vite build, Tailwind CSS, SSR-ready<br>Path: <code>~/CSLog/cslogbook/frontend-next/</code></p>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-be">Backend</span> Node.js + Express</h3>
+      <p>REST API, JWT Auth, Role-based middleware<br>MongoDB database</p>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-db">Infra</span> Vercel + Git</h3>
+      <p>Version control: Git<br>Deploy: Vercel (frontend), Railway (backend)</p>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-infra">Status</span> UAT Phase</h3>
+      <p>34 test cases, 8 modules<br>52+ gaps found, 4 bugs confirmed</p>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <h2>System Architecture</h2>
+
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+graph TB
+    subgraph Client["🖥️ Frontend — Next.js + React"]
+        LOGIN["Login Page<br/>JWT Auth"]
+        STU["Student Dashboard"]
+        ADV["Advisor Dashboard"]
+        ADM["Admin Dashboard"]
+        FORMS["Forms: คพ.02 / คพ.03 / คพ.05"]
+    end
+
+    subgraph API["⚡ Backend — Node.js + Express"]
+        AUTH["Auth Middleware<br/>JWT + RBAC"]
+        ROUTES["API Routes<br/>/api/auth, /api/students<br/>/api/proposals, /api/exams"]
+        NOTIF["Email Notification<br/>Service"]
+    end
+
+    subgraph DB["🗄️ Database — MongoDB"]
+        USERS["Users Collection<br/>student / advisor / admin"]
+        PROJECTS["Projects Collection<br/>proposals, exams, status"]
+        LOGS["Activity Logs"]
+    end
+
+    subgraph INFRA["☁️ Infrastructure"]
+        VERCEL["Vercel<br/>Frontend Deploy"]
+        RAILWAY["Railway<br/>Backend Deploy"]
+    end
+
+    LOGIN -->|POST /api/auth/login| AUTH
+    AUTH -->|JWT Token| LOGIN
+    STU --> FORMS
+    FORMS -->|API Calls| ROUTES
+    ADV -->|Approve/Reject| ROUTES
+    ADM -->|Manage| ROUTES
+    ROUTES --> NOTIF
+    ROUTES --> USERS
+    ROUTES --> PROJECTS
+    ROUTES --> LOGS
+    Client --> VERCEL
+    API --> RAILWAY
+    </div>
+  </div>
+
+  <h2>Data Flow — Approval Pipeline</h2>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    participant S as 👨‍🎓 Student
+    participant F as 📱 Frontend
+    participant B as ⚡ Backend
+    participant A as 👨‍🏫 Advisor
+    participant AD as 🏢 Admin
+
+    S->>F: ส่งคำร้อง (คพ.02/03/05)
+    F->>B: POST /api/proposals
+    B->>B: Validate + Save
+    B-->>A: Email Notification
+    A->>F: เปิด Dashboard
+    F->>B: GET /api/proposals/pending
+    A->>F: อนุมัติ/ปฏิเสธ
+    F->>B: PATCH /api/proposals/:id
+    B-->>S: Email Notification
+    B-->>AD: Update Status
+    AD->>F: บันทึกผลสอบ
+    F->>B: POST /api/exams/result
+    B-->>S: ผลสอบ Notification
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- MODULES -->
+<section id="modules">
+  <h2>8 Modules — Student Workflow</h2>
+  <p class="subtitle">ลำดับขั้นตอนโครงงานพิเศษจากมุมนักศึกษา (8 Steps)</p>
+
+  <div class="flow-steps">
+    <div class="flow-step"><div class="step-num sn-blue">1</div><div class="step-label">ลงทะเบียน<br>โครงงาน</div></div>
+    <div class="flow-step"><div class="step-num sn-blue">2</div><div class="step-label">เลือก<br>ที่ปรึกษา</div></div>
+    <div class="flow-step"><div class="step-num sn-orange">3</div><div class="step-label">สอบหัวข้อ<br>(คพ.02)</div></div>
+    <div class="flow-step"><div class="step-num sn-orange">4</div><div class="step-label">บันทึก<br>การเข้าพบ</div></div>
+    <div class="flow-step"><div class="step-num sn-purple">5</div><div class="step-label">ทดสอบ<br>ระบบ</div></div>
+    <div class="flow-step"><div class="step-num sn-purple">6</div><div class="step-label">สอบ<br>ปริญญานิพนธ์<br>(คพ.03)</div></div>
+    <div class="flow-step"><div class="step-num sn-green">7</div><div class="step-label">ฝึกงาน<br>(คพ.05)</div></div>
+    <div class="flow-step"><div class="step-num sn-green">8</div><div class="step-label">ส่งเล่ม<br>สมบูรณ์</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab-modules')">Module Overview</button>
+    <button class="tab-btn" onclick="showTab('tab-forms')">Form Codes</button>
+  </div>
+
+  <div id="tab-modules" class="tab-content active">
+    <table>
+      <thead><tr><th>Module</th><th>Test Cases</th><th>Coverage</th><th>Gap Analysis</th></tr></thead>
+      <tbody>
+        <tr><td>Login / Auth</td><td>TC_001–002</td><td style="color:var(--red)">Low (2/8)</td><td>ไม่มี RBAC test, brute-force, session management</td></tr>
+        <tr><td>Upload รายชื่อ</td><td>TC_003</td><td style="color:var(--red)">Low (1/6)</td><td>ไม่มี negative test (ไฟล์ผิด format, encoding)</td></tr>
+        <tr><td>ผลสอบหัวข้อ</td><td>TC_008–009</td><td style="color:var(--orange)">Medium</td><td>ไม่มี concurrent test, validation check</td></tr>
+        <tr><td>คำร้อง คพ.02</td><td>TC_010–011</td><td style="color:var(--orange)">Medium</td><td>ไม่มี re-submit after reject, workflow bypass</td></tr>
+        <tr><td>ทดสอบระบบ</td><td>TC_012–015</td><td style="color:var(--orange)">Medium</td><td>ไม่มี boundary test (min 5 chars reason)</td></tr>
+        <tr><td>คพ.03 สอบปริญญานิพนธ์</td><td>TC_016–023</td><td style="color:var(--green)">Good</td><td>ครอบคลุมดี แต่ขาด edge cases</td></tr>
+        <tr><td>แจ้งเตือน Email</td><td>TC_024–028</td><td style="color:var(--orange)">Medium</td><td>ทดสอบแค่ toggle ไม่ verify ส่งจริง</td></tr>
+        <tr><td>ฝึกงาน คพ.05</td><td>TC_029</td><td style="color:var(--red)">Critical (1/5)</td><td>มีแค่ 1 test case ทั้ง module</td></tr>
+        <tr><td>Advisor Approve</td><td>TC_030–033</td><td style="color:var(--red)">Critical</td><td><b>ไม่มี rejection test เลย</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-forms" class="tab-content">
+    <table>
+      <thead><tr><th>Form Code</th><th>ชื่อเต็ม</th><th>ใช้เมื่อ</th><th>Approval Chain</th></tr></thead>
+      <tbody>
+        <tr><td><b>คพ.02</b></td><td>คำร้องขอสอบหัวข้อโครงงาน</td><td>นักศึกษาต้องการสอบเสนอหัวข้อ</td><td>Student → Advisor → Staff</td></tr>
+        <tr><td><b>คพ.03</b></td><td>คำร้องขอสอบปริญญานิพนธ์</td><td>พร้อมสอบจบ</td><td>Student → Advisor → Staff → Committee</td></tr>
+        <tr><td><b>คพ.05</b></td><td>คำร้องฝึกงาน</td><td>ยื่นขอฝึกงาน</td><td>Student → Advisor → Staff</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr>
+
+<!-- ROLES -->
+<section id="roles">
+  <h2>Roles & RBAC Matrix</h2>
+
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+graph LR
+    subgraph Roles["User Roles"]
+        R1["👨‍🎓 Student<br/>นักศึกษา"]
+        R2["👨‍🏫 Advisor<br/>อาจารย์ที่ปรึกษา"]
+        R3["🏢 Staff/Admin<br/>เจ้าหน้าที่"]
+    end
+
+    subgraph Permissions
+        P1["ส่งคำร้อง"]
+        P2["ดูสถานะ"]
+        P3["อนุมัติ/ปฏิเสธ"]
+        P4["บันทึกผลสอบ"]
+        P5["จัดการข้อมูล"]
+        P6["Upload รายชื่อ"]
+        P7["ตั้งค่าระบบ"]
+    end
+
+    R1 --> P1
+    R1 --> P2
+    R2 --> P2
+    R2 --> P3
+    R3 --> P3
+    R3 --> P4
+    R3 --> P5
+    R3 --> P6
+    R3 --> P7
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Feature</th><th>👨‍🎓 Student</th><th>👨‍🏫 Advisor</th><th>🏢 Admin</th></tr></thead>
+    <tbody>
+      <tr><td>Login</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>ส่งคำร้อง (คพ.02/03/05)</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>ดู Progress 8 Steps</td><td>✅</td><td>✅ (ของ advisee)</td><td>✅ (ทั้งหมด)</td></tr>
+      <tr><td>อนุมัติ/ปฏิเสธคำร้อง</td><td>—</td><td>✅</td><td>✅</td></tr>
+      <tr><td>บันทึกผลสอบ</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>Upload รายชื่อ (.xlsx)</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>ตั้งค่า (หลักสูตร, ปี, API)</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>จัดการ Email Notifications</td><td>—</td><td>—</td><td>✅</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<hr>
+
+<!-- RISKS -->
+<section id="risks">
+  <h2>QA Risk Assessment</h2>
+  <p class="subtitle">จาก UAT Analysis — 52+ gaps, 4 confirmed bugs, 31 missing edge cases</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="badge b-risk">Critical</span> Auth / RBAC</h3>
+      <p>มีแค่ 2 test cases จากที่ต้องการ 8+ — ไม่มี test ป้องกัน student เข้าหน้า admin</p>
+      <div class="risk-bar risk-crit"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-risk">Critical</span> Advisor Rejection</h3>
+      <p>TC_030–033 ทดสอบแค่ "อนุมัติ" — ไม่มี rejection test แม้แต่ 1 case</p>
+      <div class="risk-bar risk-crit"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-risk">Critical</span> File Upload</h3>
+      <p>TC_003 มีแค่ happy path — ไม่ทดสอบ wrong format, encoding, duplicate data</p>
+      <div class="risk-bar risk-crit"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-risk">High</span> Internship Module</h3>
+      <p>คพ.05 มีแค่ 1 test case ทั้ง module — ขาด reject, partial approve, date validation</p>
+      <div class="risk-bar risk-high"></div>
+    </div>
+  </div>
+
+  <h2>Confirmed Bugs (4)</h2>
+  <table>
+    <thead><tr><th>#</th><th>Bug</th><th>Location</th><th>Severity</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>"โหลดสถานะโครงงานไม่สำเร็จ" — API error on student dashboard</td><td>Student Dashboard</td><td style="color:var(--red)">High</td></tr>
+      <tr><td>2</td><td>Unstyled 404 page — plain black, no nav</td><td>/project-proposal</td><td style="color:var(--orange)">Medium</td></tr>
+      <tr><td>3</td><td>Missing status value in advisor's คพ.03 table</td><td>Advisor Dashboard</td><td style="color:var(--orange)">Medium</td></tr>
+      <tr><td>4</td><td>"เหลือ 0 วัน" deadline with no action link</td><td>Teacher Dashboard</td><td style="color:var(--orange)">Medium</td></tr>
+    </tbody>
+  </table>
+
+  <h2>UX Scores</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Usability</h3>
+      <p style="font-size:2rem;font-weight:700;color:var(--accent)">7/10</p>
+      <p>Core flows work — แต่ discoverability ของ forms ยังไม่ดี</p>
+    </div>
+    <div class="card">
+      <h3>Clarity</h3>
+      <p style="font-size:2rem;font-weight:700;color:var(--green)">7.5/10</p>
+      <p>UI สะอาด — แต่ form codes (คพ.02/03/05) ไม่มี explanation</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1f6feb', primaryTextColor: '#e6edf3',
+      primaryBorderColor: '#30363d', lineColor: '#58a6ff',
+      secondaryColor: '#161b22', tertiaryColor: '#0d1117',
+      fontFamily: 'Segoe UI, system-ui, sans-serif'
+    }
+  });
+
+  function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // Smooth scroll for nav
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+
+  // Theme toggle placeholder
+  let dark = true;
+  function toggleTheme() {
+    dark = !dark;
+    document.querySelector('.theme-toggle').textContent = dark ? '☀ Light' : '🌙 Dark';
+  }
+</script>
+</body>
+</html>

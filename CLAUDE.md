@@ -140,18 +140,30 @@ Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction do
 
 ---
 
+## Visual Documentation
+
+Interactive HTML diagrams in `docs/visual/`:
+
+| File | Description |
+|---|---|
+| [`architecture.html`](docs/visual/architecture.html) | System architecture (Mermaid), data flow, module coverage, RBAC matrix, QA risks |
+| [`recap.html`](docs/visual/recap.html) | Project recap — context-switching snapshot (tech stack, priorities, gotchas) |
+| [`slides.html`](docs/visual/slides.html) | 7-slide deck — overview, stack, roles, workflow, QA status, bugs, action plan |
+
+---
+
 ## Session History
 
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (56 sessions)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (58 sessions)
 
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
+| 58 | 03-27 | Dead code audit (6 agents, 2 rounds verify): ลบ 10 ไฟล์ -650 lines, fix CRLF, fix PDF rewrite loop, upload volume analysis |
+| 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams ใน agent-experiment, คู่มือส่ง Notion |
 | 56 | 03-25 | Permissions cleanup, memory consolidation, project directory audit, Claude Code architecture walkthrough |
 | 55 | 03-22 | SurveyBanner responsive fix |
 | 54 | 03-22 | Fix admin document detail: internship วันที่ส่ง/ข้อมูลฝึกงาน fallback, certificates คะแนนรวม overallScore/fullScore |
-| 53 | 03-22 | Academic year planning, dynamic year filtering, DeadlineTimeline, CSV export, ThaiDateInput |
-| 52 | 03-22 | Full system flow audit — 26 bug fixes |
 
 ---
 

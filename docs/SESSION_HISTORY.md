@@ -62,6 +62,8 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 54 | 03-22 | Fix admin document detail pages: (1) internship detail — วันที่ส่ง fallback created_at เมื่อ submitted_at null, ข้อมูลฝึกงาน lookup จาก CS05 เมื่อ ACCEPTANCE_LETTER ไม่มี InternshipDocument (2) certificates — คะแนนรวมแสดง overallScore/fullScore แทน overallScore/passScore, เพิ่ม FULL_SCORE=100 ใน scoring.js, เพิ่มเกณฑ์ผ่านแยก |
 | 55 | 03-22 | SurveyBanner responsive fix: เพิ่ม media query ≤540px — banner stack column, ปุ่ม full-width, modal padding ลด |
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
+| 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
+| 58 | 03-27 | Dead code audit (6 agents, 2 rounds verify): ลบ 10 ไฟล์ -650 lines, fix CRLF line endings (886 files), fix PDF iframe rewrite loop in production (INTERNAL_BACKEND_URL), วิเคราะห์ upload volume missing |
 
 ### Pending
 

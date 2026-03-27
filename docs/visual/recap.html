@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Logbook — Project Recap</title>
+<style>
+  :root { --bg:#0d1117;--s:#161b22;--b:#30363d;--t:#e6edf3;--tm:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#f0883e;--r:#f85149;--p:#bc8cff; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);padding:2rem;max-width:900px;margin:0 auto}
+  h1{font-size:1.8rem;margin-bottom:0.2rem}
+  h2{font-size:1.2rem;color:var(--a);margin:2rem 0 0.8rem;padding-bottom:0.4rem;border-bottom:1px solid var(--b)}
+  .sub{color:var(--tm);font-size:0.9rem;margin-bottom:2rem}
+  .meta{display:flex;gap:2rem;flex-wrap:wrap;margin:1.5rem 0;font-size:0.85rem}
+  .meta-item{background:var(--s);border:1px solid var(--b);border-radius:8px;padding:0.8rem 1.2rem;flex:1;min-width:180px}
+  .meta-label{color:var(--tm);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem}
+  .meta-value{font-weight:600;font-size:1rem}
+  .tag{display:inline-block;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:12px;margin:0.1rem;font-weight:600}
+  .t-fe{background:#58a6ff22;color:var(--a)} .t-be{background:#3fb95022;color:var(--g)}
+  .t-db{background:#f0883e22;color:var(--o)} .t-tool{background:#bc8cff22;color:var(--p)}
+  .t-risk{background:#f8514922;color:var(--r)} .t-ok{background:#3fb95022;color:var(--g)}
+  .section{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:1.5rem;margin:1rem 0}
+  .section h3{font-size:0.95rem;margin-bottom:0.8rem;display:flex;align-items:center;gap:0.5rem}
+  .section p,.section li{font-size:0.85rem;color:#c9d1d9;line-height:1.7}
+  .section ul{padding-left:1.2rem}
+  .section li{margin-bottom:0.3rem}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+  .priority{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;border-bottom:1px solid #21262d}
+  .priority:last-child{border:none}
+  .p-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0}
+  .p1{background:var(--r);color:#fff} .p2{background:var(--o);color:#0d1117} .p3{background:var(--a);color:#0d1117}
+  .kv{display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid #21262d;font-size:0.85rem}
+  .kv:last-child{border:none}
+  .kv-k{color:var(--tm)} .kv-v{font-weight:500}
+  .status-badge{display:inline-block;padding:0.2rem 0.8rem;border-radius:20px;font-size:0.8rem;font-weight:600}
+  .sb-uat{background:#d2992222;color:#d29922}
+  code{background:#21262d;padding:0.15rem 0.4rem;border-radius:4px;font-size:0.8rem}
+  .divider{text-align:center;color:var(--tm);margin:2rem 0;font-size:0.8rem}
+</style>
+</head>
+<body>
+
+<h1>CS Logbook — Project Recap</h1>
+<p class="sub">Context-switching snapshot — ทุกอย่างที่ต้องรู้ก่อนเริ่มทำงานกับโปรเจคนี้</p>
+
+<div class="meta">
+  <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value"><span class="status-badge sb-uat">UAT Phase</span></div></div>
+  <div class="meta-item"><div class="meta-label">Path</div><div class="meta-value"><code>~/CSLog/cslogbook/</code></div></div>
+  <div class="meta-item"><div class="meta-label">Version Control</div><div class="meta-value">Git</div></div>
+  <div class="meta-item"><div class="meta-label">Last QA</div><div class="meta-value">March 2026</div></div>
+</div>
+
+<h2>What is this?</h2>
+<div class="section">
+  <p>ระบบจัดการโครงงานพิเศษและฝึกงานของภาควิชาวิทยาการคอมพิวเตอร์ — ครอบคลุมตั้งแต่ลงทะเบียนโครงงาน, สอบหัวข้อ, สอบปริญญานิพนธ์, ไปจนถึงฝึกงาน มี 3 roles หลัก (Student, Advisor, Admin) และ approval workflow ผ่าน form codes คพ.02 / คพ.03 / คพ.05</p>
+</div>
+
+<h2>Tech Stack</h2>
+<div class="grid-2">
+  <div class="section">
+    <h3>Frontend</h3>
+    <p>
+      <span class="tag t-fe">React</span> <span class="tag t-fe">Next.js</span>
+      <span class="tag t-fe">Vite</span> <span class="tag t-fe">Tailwind CSS</span>
+    </p>
+    <div class="kv"><span class="kv-k">Path</span><span class="kv-v"><code>frontend-next/</code></span></div>
+  </div>
+  <div class="section">
+    <h3>Backend</h3>
+    <p>
+      <span class="tag t-be">Node.js</span> <span class="tag t-be">Express</span>
+      <span class="tag t-db">MongoDB</span> <span class="tag t-be">JWT</span>
+    </p>
+    <div class="kv"><span class="kv-k">Auth</span><span class="kv-v">JWT + RBAC middleware</span></div>
+  </div>
+</div>
+<div class="section">
+  <h3>Infrastructure & Tools</h3>
+  <p>
+    <span class="tag t-tool">Git</span> <span class="tag t-tool">Vercel</span>
+    <span class="tag t-tool">Railway</span> <span class="tag t-tool">WSL2</span>
+  </p>
+</div>
+
+<h2>Key Modules (8)</h2>
+<div class="section">
+  <div class="kv"><span class="kv-k">1. Login / Auth</span><span class="kv-v">JWT + 3 roles</span></div>
+  <div class="kv"><span class="kv-k">2. Upload รายชื่อ (.xlsx)</span><span class="kv-v">Admin only</span></div>
+  <div class="kv"><span class="kv-k">3. ผลสอบหัวข้อ (คพ.02)</span><span class="kv-v">ผ่าน / ไม่ผ่าน</span></div>
+  <div class="kv"><span class="kv-k">4. บันทึกการเข้าพบ</span><span class="kv-v">Student ↔ Advisor</span></div>
+  <div class="kv"><span class="kv-k">5. ทดสอบระบบ</span><span class="kv-v">Request → Approve</span></div>
+  <div class="kv"><span class="kv-k">6. สอบปริญญานิพนธ์ (คพ.03)</span><span class="kv-v">Multi-step approval</span></div>
+  <div class="kv"><span class="kv-k">7. ฝึกงาน (คพ.05)</span><span class="kv-v">Request → Approve</span></div>
+  <div class="kv"><span class="kv-k">8. Email Notifications</span><span class="kv-v">Configurable per event</span></div>
+</div>
+
+<h2>Current Priorities</h2>
+<div class="section">
+  <div class="priority"><span class="p-num p1">1</span><div><strong>Fix 4 confirmed bugs</strong><p>API error on dashboard, unstyled 404, missing status, dead deadline link</p></div></div>
+  <div class="priority"><span class="p-num p1">2</span><div><strong>เพิ่ม rejection test ทุก approval module</strong><p>TC_030–033 ไม่มี test ปฏิเสธเลย — เป็น critical gap</p></div></div>
+  <div class="priority"><span class="p-num p1">3</span><div><strong>เพิ่ม RBAC / Auth test cases</strong><p>ป้องกัน student เข้าหน้า admin — มีแค่ 2 จาก 8+ ที่ต้องการ</p></div></div>
+  <div class="priority"><span class="p-num p2">4</span><div><strong>ขยาย Internship module test</strong><p>คพ.05 มีแค่ 1 test case — ต้องมี 4-5 เพิ่ม</p></div></div>
+  <div class="priority"><span class="p-num p2">5</span><div><strong>File upload negative tests</strong><p>Wrong format, encoding issues, duplicate data, large files</p></div></div>
+  <div class="priority"><span class="p-num p3">6</span><div><strong>UX Polish</strong><p>Branded 404, loading spinners, form code explanations, confirm dialogs</p></div></div>
+</div>
+
+<h2>Gotchas & Notes</h2>
+<div class="grid-2">
+  <div class="section">
+    <h3>Things to Watch</h3>
+    <ul>
+      <li>Form codes (คพ.02/03/05) ไม่มี explanation ใน UI</li>
+      <li>8-step cards ไม่ clickable — ควรลิงก์ไปหา form</li>
+      <li>Mixed English/Thai headers</li>
+      <li>Race condition ใน concurrent approvals ยังไม่ test</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h3>Existing Docs</h3>
+    <ul>
+      <li><code>CS_Logbook_QA_Analysis.md</code> — full QA analysis (EN)</li>
+      <li><code>CS_Logbook_QA_Critical_Fixes.docx</code> — 25 fix items</li>
+      <li><code>cslogbook-ux-evaluation.md</code> — UX evaluation report</li>
+    </ul>
+  </div>
+</div>
+
+<div class="divider">— Generated by Claude Cowork · March 2026 —</div>
+
+</body>
+</html>

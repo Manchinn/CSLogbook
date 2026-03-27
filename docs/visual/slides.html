@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Logbook — Slide Deck</title>
+<style>
+  :root{--bg:#0a0a0f;--s:#12121a;--b:#2a2a3a;--t:#f0f0f5;--tm:#8888a0;--a:#6c8cff;--g:#4ade80;--o:#fb923c;--r:#f87171;--p:#c084fc}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);overflow:hidden;height:100vh}
+
+  /* Slide container */
+  .deck{position:relative;width:100vw;height:100vh}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:6vh 8vw;opacity:0;transform:translateX(40px);transition:all 0.5s cubic-bezier(.4,0,.2,1);pointer-events:none}
+  .slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+  .slide.prev{opacity:0;transform:translateX(-40px)}
+
+  /* Typography */
+  .slide h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.15;margin-bottom:1rem;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .slide h2{font-size:clamp(1.4rem,3vw,2.2rem);font-weight:700;margin-bottom:1.5rem}
+  .slide h3{font-size:1.1rem;color:var(--a);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.8rem;font-weight:600}
+  .slide p{font-size:clamp(0.9rem,1.5vw,1.1rem);color:var(--tm);line-height:1.8;max-width:700px}
+  .slide .big-num{font-size:clamp(3rem,8vw,6rem);font-weight:900;line-height:1}
+
+  /* Layout helpers */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+  .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+  @media(max-width:768px){.two-col,.three-col{grid-template-columns:1fr}}
+
+  /* Cards */
+  .s-card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:1.5rem}
+  .s-card h4{font-size:0.95rem;margin-bottom:0.5rem}
+  .s-card p{font-size:0.82rem}
+
+  /* Tags */
+  .tag{display:inline-block;font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:12px;margin:0.15rem;font-weight:600}
+  .t-a{background:#6c8cff22;color:var(--a)} .t-g{background:#4ade8022;color:var(--g)}
+  .t-o{background:#fb923c22;color:var(--o)} .t-r{background:#f8717122;color:var(--r)}
+  .t-p{background:#c084fc22;color:var(--p)}
+
+  /* Stats */
+  .stat-row{display:flex;gap:2rem;margin:1rem 0;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat .num{font-size:2.5rem;font-weight:800;line-height:1.1}
+  .stat .label{font-size:0.75rem;color:var(--tm);text-transform:uppercase;letter-spacing:0.05em}
+
+  /* Progress bar */
+  .bar-wrap{margin:0.6rem 0}
+  .bar-label{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.3rem}
+  .bar{height:8px;background:var(--b);border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;transition:width 0.8s ease}
+
+  /* Steps visual */
+  .steps{display:flex;gap:0;flex-wrap:wrap}
+  .step{position:relative;padding:0.6rem 1.5rem;text-align:center;flex:1;min-width:100px}
+  .step::after{content:'';position:absolute;right:0;top:25%;height:50%;width:1px;background:var(--b)}
+  .step:last-child::after{display:none}
+  .step .s-n{font-size:1.8rem;font-weight:800}
+  .step .s-l{font-size:0.7rem;color:var(--tm);margin-top:0.2rem}
+
+  /* Navigation */
+  .nav-bar{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);padding:0.8rem 2rem;display:flex;align-items:center;justify-content:space-between;z-index:100}
+  .nav-btn{background:none;border:1px solid var(--b);color:var(--t);padding:0.4rem 1.2rem;border-radius:6px;cursor:pointer;font-size:0.85rem;transition:all 0.15s}
+  .nav-btn:hover{background:var(--a);color:var(--bg);border-color:var(--a)}
+  .nav-btn:disabled{opacity:0.3;cursor:default}
+  .nav-btn:disabled:hover{background:none;color:var(--t);border-color:var(--b)}
+  .progress{display:flex;gap:4px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--b);transition:all 0.3s}
+  .dot.active{background:var(--a);width:24px;border-radius:4px}
+  .slide-counter{color:var(--tm);font-size:0.8rem}
+
+  /* Accent line */
+  .accent-line{width:60px;height:4px;border-radius:2px;margin-bottom:1.5rem}
+  .al-a{background:var(--a)} .al-g{background:var(--g)} .al-o{background:var(--o)} .al-r{background:var(--r)} .al-p{background:var(--p)}
+
+  /* List */
+  .check-list{list-style:none;padding:0}
+  .check-list li{padding:0.5rem 0;border-bottom:1px solid #1a1a2a;font-size:0.9rem;display:flex;align-items:flex-start;gap:0.5rem}
+  .check-list li::before{content:'→';color:var(--a);font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- Slide 1: Title -->
+  <div class="slide active" data-idx="0">
+    <h3>Project Overview</h3>
+    <h1>CS Logbook</h1>
+    <p>ระบบจัดการโครงงานพิเศษและฝึกงาน<br>ภาควิชาวิทยาการคอมพิวเตอร์</p>
+    <div class="stat-row" style="margin-top:2rem">
+      <div class="stat"><div class="num" style="color:var(--a)">8</div><div class="label">Modules</div></div>
+      <div class="stat"><div class="num" style="color:var(--g)">3</div><div class="label">User Roles</div></div>
+      <div class="stat"><div class="num" style="color:var(--o)">34</div><div class="label">Test Cases</div></div>
+      <div class="stat"><div class="num" style="color:var(--r)">52+</div><div class="label">QA Gaps</div></div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Tech Stack -->
+  <div class="slide" data-idx="1">
+    <h3>Architecture</h3>
+    <h2>Tech Stack</h2>
+    <div class="accent-line al-a"></div>
+    <div class="three-col">
+      <div class="s-card">
+        <h4>Frontend</h4>
+        <p><span class="tag t-a">React</span> <span class="tag t-a">Next.js</span> <span class="tag t-a">Vite</span> <span class="tag t-a">Tailwind</span></p>
+        <p style="margin-top:0.8rem">SSR-ready, component-based UI</p>
+      </div>
+      <div class="s-card">
+        <h4>Backend</h4>
+        <p><span class="tag t-g">Node.js</span> <span class="tag t-g">Express</span> <span class="tag t-g">JWT</span> <span class="tag t-o">MongoDB</span></p>
+        <p style="margin-top:0.8rem">REST API + RBAC middleware</p>
+      </div>
+      <div class="s-card">
+        <h4>Infrastructure</h4>
+        <p><span class="tag t-p">Vercel</span> <span class="tag t-p">Railway</span> <span class="tag t-p">Git</span> <span class="tag t-p">WSL2</span></p>
+        <p style="margin-top:0.8rem">Auto-deploy on push</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: User Roles -->
+  <div class="slide" data-idx="2">
+    <h3>Access Control</h3>
+    <h2>3 User Roles</h2>
+    <div class="accent-line al-g"></div>
+    <div class="three-col">
+      <div class="s-card" style="border-color:var(--a)">
+        <h4 style="color:var(--a)">Student</h4>
+        <ul class="check-list">
+          <li>ส่งคำร้อง คพ.02 / 03 / 05</li>
+          <li>ดู progress 8 steps</li>
+          <li>บันทึกการเข้าพบ advisor</li>
+        </ul>
+      </div>
+      <div class="s-card" style="border-color:var(--g)">
+        <h4 style="color:var(--g)">Advisor</h4>
+        <ul class="check-list">
+          <li>อนุมัติ / ปฏิเสธคำร้อง</li>
+          <li>ดู progress ของ advisee</li>
+          <li>ตรวจเอกสาร</li>
+        </ul>
+      </div>
+      <div class="s-card" style="border-color:var(--o)">
+        <h4 style="color:var(--o)">Admin / Staff</h4>
+        <ul class="check-list">
+          <li>บันทึกผลสอบ</li>
+          <li>Upload รายชื่อ (.xlsx)</li>
+          <li>จัดการระบบ, ตั้งค่า API</li>
+          <li>จัดการ Email notifications</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: 8-Step Workflow -->
+  <div class="slide" data-idx="3">
+    <h3>Student Journey</h3>
+    <h2>8-Step Project Workflow</h2>
+    <div class="accent-line al-p"></div>
+    <div class="steps">
+      <div class="step"><div class="s-n" style="color:var(--a)">1</div><div class="s-l">ลงทะเบียน<br>โครงงาน</div></div>
+      <div class="step"><div class="s-n" style="color:var(--a)">2</div><div class="s-l">เลือก<br>ที่ปรึกษา</div></div>
+      <div class="step"><div class="s-n" style="color:var(--o)">3</div><div class="s-l">สอบหัวข้อ<br>คพ.02</div></div>
+      <div class="step"><div class="s-n" style="color:var(--o)">4</div><div class="s-l">บันทึก<br>เข้าพบ</div></div>
+      <div class="step"><div class="s-n" style="color:var(--p)">5</div><div class="s-l">ทดสอบ<br>ระบบ</div></div>
+      <div class="step"><div class="s-n" style="color:var(--p)">6</div><div class="s-l">สอบจบ<br>คพ.03</div></div>
+      <div class="step"><div class="s-n" style="color:var(--g)">7</div><div class="s-l">ฝึกงาน<br>คพ.05</div></div>
+      <div class="step"><div class="s-n" style="color:var(--g)">8</div><div class="s-l">ส่งเล่ม<br>สมบูรณ์</div></div>
+    </div>
+    <p style="margin-top:2rem">Approval chain: <span class="tag t-a">Student ส่ง</span> → <span class="tag t-g">Advisor อนุมัติ</span> → <span class="tag t-o">Staff บันทึกผล</span></p>
+  </div>
+
+  <!-- Slide 5: QA Status -->
+  <div class="slide" data-idx="4">
+    <h3>Quality Assurance</h3>
+    <h2>UAT Coverage Analysis</h2>
+    <div class="accent-line al-o"></div>
+    <div class="two-col">
+      <div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>Login / Auth</span><span style="color:var(--r)">25%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:25%;background:var(--r)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>File Upload</span><span style="color:var(--r)">17%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:17%;background:var(--r)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>ผลสอบหัวข้อ</span><span style="color:var(--o)">50%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:50%;background:var(--o)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>คพ.02 Approval</span><span style="color:var(--o)">55%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:55%;background:var(--o)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>ทดสอบระบบ</span><span style="color:var(--o)">60%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:60%;background:var(--o)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>คพ.03 สอบจบ</span><span style="color:var(--g)">80%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:80%;background:var(--g)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>Internship คพ.05</span><span style="color:var(--r)">20%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:20%;background:var(--r)"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>Advisor Approve</span><span style="color:var(--r)">0% reject</span></div>
+          <div class="bar"><div class="bar-fill" style="width:5%;background:var(--r)"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="s-card" style="border-color:var(--r)">
+          <h4 style="color:var(--r)">Key Finding</h4>
+          <div class="big-num" style="color:var(--r);margin:0.5rem 0">0</div>
+          <p>Rejection test cases ใน Advisor module — ทดสอบแค่ "อนุมัติ" ไม่เคยทดสอบ "ปฏิเสธ"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Bugs -->
+  <div class="slide" data-idx="5">
+    <h3>Known Issues</h3>
+    <h2>4 Confirmed Bugs</h2>
+    <div class="accent-line al-r"></div>
+    <div class="two-col">
+      <div class="s-card" style="border-left:3px solid var(--r)">
+        <h4>Bug #1 — API Error</h4>
+        <p>"โหลดสถานะโครงงานไม่สำเร็จ" แสดงบน Student Dashboard</p>
+        <span class="tag t-r">High</span>
+      </div>
+      <div class="s-card" style="border-left:3px solid var(--o)">
+        <h4>Bug #2 — Unstyled 404</h4>
+        <p>หน้า 404 เป็นสีดำเปล่า ไม่มี navigation กลับ</p>
+        <span class="tag t-o">Medium</span>
+      </div>
+      <div class="s-card" style="border-left:3px solid var(--o)">
+        <h4>Bug #3 — Missing Status</h4>
+        <p>ตาราง คพ.03 ของ Advisor ไม่แสดงค่า status</p>
+        <span class="tag t-o">Medium</span>
+      </div>
+      <div class="s-card" style="border-left:3px solid var(--o)">
+        <h4>Bug #4 — Dead Deadline</h4>
+        <p>"เหลือ 0 วัน" บน Teacher Dashboard ไม่มี action link</p>
+        <span class="tag t-o">Medium</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Next Steps -->
+  <div class="slide" data-idx="6">
+    <h3>Action Plan</h3>
+    <h2>Next Steps</h2>
+    <div class="accent-line al-g"></div>
+    <div class="two-col">
+      <div>
+        <ul class="check-list">
+          <li><strong style="color:var(--r)">Critical:</strong> เพิ่ม rejection tests ทุก approval workflow</li>
+          <li><strong style="color:var(--r)">Critical:</strong> เพิ่ม RBAC tests — ป้องกัน role escalation</li>
+          <li><strong style="color:var(--r)">Critical:</strong> Negative tests สำหรับ file upload</li>
+          <li><strong style="color:var(--o)">High:</strong> ขยาย Internship module (1 → 5 cases)</li>
+          <li><strong style="color:var(--o)">High:</strong> Boundary tests (min 5 chars validation)</li>
+          <li><strong style="color:var(--a)">Medium:</strong> UX Polish — branded 404, loading states</li>
+          <li><strong style="color:var(--a)">Medium:</strong> Verify email notifications ส่งจริง</li>
+        </ul>
+      </div>
+      <div>
+        <div class="s-card">
+          <h4>UX Scores</h4>
+          <div style="display:flex;gap:2rem;margin:1rem 0">
+            <div class="stat"><div class="num" style="color:var(--a)">7</div><div class="label">Usability</div></div>
+            <div class="stat"><div class="num" style="color:var(--g)">7.5</div><div class="label">Clarity</div></div>
+          </div>
+          <p>Foundation ดี — ต้อง polish discoverability และ error handling</p>
+        </div>
+        <div class="s-card" style="margin-top:1rem">
+          <h4>Target</h4>
+          <p>เพิ่ม test cases จาก 34 → 65+ เพื่อ UAT sign-off</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" disabled>← Prev</button>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <div class="progress" id="progress"></div>
+    <span class="slide-counter" id="counter">1 / 7</span>
+  </div>
+  <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next →</button>
+</div>
+
+<script>
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+
+// Build dots
+const prog = document.getElementById('progress');
+for(let i=0;i<total;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);prog.appendChild(d)}
+
+function goTo(n){
+  if(n<0||n>=total)return;
+  slides[current].classList.remove('active');
+  slides[current].classList.add(n>current?'prev':'');
+  current=n;
+  slides.forEach((s,i)=>{s.classList.remove('active','prev');if(i<current)s.classList.add('prev')});
+  slides[current].classList.add('active');
+  document.querySelectorAll('.dot').forEach((d,i)=>{d.classList.toggle('active',i===current)});
+  document.getElementById('counter').textContent=`${current+1} / ${total}`;
+  document.getElementById('prevBtn').disabled=current===0;
+  document.getElementById('nextBtn').disabled=current===total-1;
+}
+function navigate(dir){goTo(current+dir)}
+
+// Keyboard navigation
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')navigate(1);
+  if(e.key==='ArrowLeft')navigate(-1);
+});
+</script>
+</body>
+</html>
