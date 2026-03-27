@@ -159,7 +159,7 @@ Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (58 sessions)
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
-| 58 | 03-27 | Dead code audit (6 agents, 2 rounds verify): ลบ 10 ไฟล์ -650 lines, fix CRLF, fix PDF rewrite loop, upload volume analysis |
+| 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams ใน agent-experiment, คู่มือส่ง Notion |
 | 56 | 03-25 | Permissions cleanup, memory consolidation, project directory audit, Claude Code architecture walkthrough |
 | 55 | 03-22 | SurveyBanner responsive fix |
