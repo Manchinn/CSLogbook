@@ -167,7 +167,7 @@ export default function ThesisDefenseRequestContent() {
       <RejectionNotice
         status={status}
         visible={!!rejectedApproval}
-        details={rejectedApproval?.note ? String(rejectedApproval.note) : rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+        details={rejectedApproval?.note ? String(rejectedApproval.note) : null}
         message="กรุณาตรวจสอบข้อมูลและส่งคำขอสอบปริญญานิพนธ์ใหม่"
         actionText="กรุณาแก้ไขข้อมูลแล้วกดส่งคำขอใหม่"
         onViewDetails={() => setRejectionModalOpen(true)}
@@ -246,7 +246,7 @@ export default function ThesisDefenseRequestContent() {
         title="รายละเอียดการปฏิเสธคำขอสอบปริญญานิพนธ์"
         rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
         rejectedAt={rejectedApproval?.approvedAt ? String(rejectedApproval.approvedAt) : null}
-        reason={rejectedApproval?.note ? String(rejectedApproval.note) : rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+        reason={rejectedApproval?.note ? String(rejectedApproval.note) : null}
         guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบปริญญานิพนธ์ใหม่"
       />
     </div>

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — ภาพรวมระบบสำหรับกรรมการ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --transition: 0.3s ease; }
+  [data-theme="dark"] {
+    --bg: #0F172A; --bg2: #1E293B; --card: #1E293B; --card-hover: #263550;
+    --text: #F1F5F9; --text2: #CBD5E1; --muted: #64748B;
+    --accent: #0891B2; --accent-l: #22D3EE; --glow: rgba(8,145,178,0.12);
+    --green: #10B981; --purple: #8B5CF6; --amber: #F59E0B; --rose: #F43F5E;
+    --border: rgba(255,255,255,0.06); --shadow: 0 4px 20px rgba(0,0,0,0.25);
+  }
+  [data-theme="light"] {
+    --bg: #F8FAFC; --bg2: #FFFFFF; --card: #FFFFFF; --card-hover: #F1F5F9;
+    --text: #0F172A; --text2: #475569; --muted: #94A3B8;
+    --accent: #0891B2; --accent-l: #0E7490; --glow: rgba(8,145,178,0.06);
+    --green: #059669; --purple: #7C3AED; --amber: #D97706; --rose: #E11D48;
+    --border: rgba(0,0,0,0.08); --shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+  .nav-inner {
+    max-width: 960px; margin: 0 auto; padding: 0 1.5rem; height: 54px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--accent-l); }
+  .nav-brand span { color: var(--muted); font-weight: 400; font-size: 0.82rem; }
+  .nav-links { display: flex; gap: 0.2rem; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem;
+    padding: 0.35rem 0.65rem; border-radius: 6px; transition: all var(--transition);
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--accent-l); background: var(--glow); }
+  .theme-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 0.3rem 0.55rem; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
+  }
+  .theme-btn:hover { border-color: var(--accent); color: var(--accent-l); }
+
+  /* ── Layout ── */
+  main { max-width: 960px; margin: 0 auto; padding: 78px 1.5rem 3rem; }
+  section { margin-bottom: 4rem; scroll-margin-top: 70px; }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent-l), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: var(--text2); font-size: 1.05rem; margin: 0.4rem 0 2rem; }
+  h2 {
+    font-size: 1.4rem; font-weight: 700; margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.6rem; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.5rem; box-shadow: var(--shadow); transition: all var(--transition);
+  }
+  .card:hover { background: var(--card-hover); transform: translateY(-2px); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap: 1.25rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 1.25rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 1rem; }
+
+  /* ── Feature Card ── */
+  .feature-card { text-align: center; padding: 1.75rem 1.25rem; }
+  .feature-card .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .feature-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+  .feature-card p { font-size: 0.88rem; color: var(--text2); }
+
+  /* ── Stat ── */
+  .stat { text-align: center; padding: 1.25rem 0.75rem; }
+  .stat-num {
+    font-size: 2.8rem; font-weight: 800; line-height: 1;
+    background: linear-gradient(135deg, var(--accent-l), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 0.82rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* ── Roles ── */
+  .role { border-top: 3px solid var(--accent); padding-top: 1.5rem; }
+  .role.student { border-color: var(--green); }
+  .role.teacher { border-color: var(--purple); }
+  .role.admin { border-color: var(--accent); }
+  .role .role-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+  .role ul { list-style: none; margin-top: 0.6rem; }
+  .role ul li {
+    font-size: 0.88rem; color: var(--text2); padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .role ul li:last-child { border: none; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 600;
+  }
+  .badge-teal { background: rgba(8,145,178,0.15); color: var(--accent-l); }
+  .badge-green { background: rgba(16,185,129,0.15); color: #34D399; }
+  .badge-purple { background: rgba(139,92,246,0.15); color: #A78BFA; }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #FBBF24; }
+
+  /* ── Mermaid ── */
+  .mermaid-wrap {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.5rem; overflow-x: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  /* ── Chart ── */
+  .chart-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.5rem;
+  }
+  .chart-wrap canvas { max-height: 300px; }
+
+  /* ── Flow ── */
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 0.5rem 0; }
+  .flow-step {
+    flex: 1; min-width: 155px; text-align: center; padding: 1.25rem 0.75rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    transition: all var(--transition);
+  }
+  .flow-step:hover { border-color: var(--accent); }
+  .flow-step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+    color: #fff; font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem;
+  }
+  .flow-step h4 { font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .flow-step p { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+  .flow-arrow { display: flex; align-items: center; color: var(--accent-l); font-size: 1.4rem; padding: 0 0.25rem; }
+
+  /* ── Highlight Box ── */
+  .highlight {
+    border-left: 3px solid var(--accent); padding: 1rem 1.25rem;
+    background: var(--glow); border-radius: 0 10px 10px 0;
+    color: var(--text2); font-size: 0.9rem;
+  }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 2rem; }
+  .timeline::before {
+    content: ''; position: absolute; left: 0.7rem; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .timeline-item { position: relative; margin-bottom: 1.5rem; }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -1.55rem; top: 0.35rem;
+    width: 12px; height: 12px; border-radius: 50%; background: var(--accent);
+  }
+  .timeline-item h4 { font-size: 0.92rem; font-weight: 600; }
+  .timeline-item p { font-size: 0.85rem; color: var(--text2); margin-top: 0.2rem; }
+
+  /* ── Table ── */
+  .simple-table { width: 100%; border-collapse: collapse; }
+  .simple-table th {
+    text-align: left; padding: 0.6rem 1rem; font-size: 0.78rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 2px solid var(--border); font-weight: 600;
+  }
+  .simple-table td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.88rem; color: var(--text2); }
+  .simple-table tr:hover td { background: var(--glow); }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    h1 { font-size: 1.7rem; }
+    .nav-links { display: none; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); justify-content: center; }
+  }
+  /* ── Fade ── */
+  .fade { opacity: 0; transform: translateY(16px); transition: opacity 0.5s, transform 0.5s; }
+  .fade.vis { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand">CSLogbook <span>&nbsp;สรุปสำหรับกรรมการ</span></div>
+    <div class="nav-links">
+      <a href="#intro">แนะนำ</a>
+      <a href="#problems">ปัญหา</a>
+      <a href="#features">ฟีเจอร์</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#roles">ผู้ใช้งาน</a>
+      <a href="#results">ผลลัพธ์</a>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ═══ 1. INTRO ═══ -->
+<section id="intro" class="fade">
+  <h1>CSLogbook</h1>
+  <p class="subtitle">ระบบจัดการกิจกรรมนักศึกษา — ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ, มจพ.</p>
+
+  <div class="grid-4" style="margin-bottom: 1.5rem;">
+    <div class="card stat"><div class="stat-num">3</div><div class="stat-label">กลุ่มผู้ใช้งาน</div></div>
+    <div class="card stat"><div class="stat-num">72</div><div class="stat-label">หน้าจอในระบบ</div></div>
+    <div class="card stat"><div class="stat-num">8</div><div class="stat-label">ระบบอัตโนมัติ</div></div>
+    <div class="card stat"><div class="stat-num">1</div><div class="stat-label">แพลตฟอร์มเดียว</div></div>
+  </div>
+
+  <div class="highlight">
+    <strong>CSLogbook</strong> คือระบบ Web Application ที่รวมการจัดการ<strong>ฝึกงาน</strong>และ<strong>โปรเจกต์จบการศึกษา</strong>ไว้ในที่เดียว ครอบคลุมตั้งแต่การลงทะเบียน, ส่งเอกสาร, เขียน Logbook, นัดพบอาจารย์, ไปจนถึงการสอบและประเมินผล — แทนที่กระบวนการกระดาษและ Excel ที่กระจัดกระจาย
+  </div>
+</section>
+
+<!-- ═══ 2. PROBLEMS ═══ -->
+<section id="problems" class="fade">
+  <h2>🔍 ปัญหาที่ระบบแก้ไข</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>❌ ก่อนใช้ CSLogbook</h3>
+      <ul style="list-style: none; margin-top: 0.5rem;">
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">📄 เอกสารกระจาย — ส่งผ่าน Email, Line, กระดาษ</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">📊 ติดตามความคืบหน้ายาก — อาจารย์ต้องถามทีละคน</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">⏰ Deadline ตกหล่น — ไม่มีระบบแจ้งเตือนอัตโนมัติ</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">🔄 ข้อมูลซ้ำซ้อน — กรอกซ้ำหลายที่</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem;">📈 ไม่มี Dashboard สรุปภาพรวม</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--green);">
+      <h3>✅ หลังใช้ CSLogbook</h3>
+      <ul style="list-style: none; margin-top: 0.5rem;">
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">📱 ศูนย์กลางเดียว — ทุกเอกสารและขั้นตอนอยู่ในระบบ</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">📊 Dashboard แบบ Real-time — ดูสถานะนักศึกษาทั้งหมดได้ทันที</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">🔔 แจ้งเตือนอัตโนมัติ — ก่อน Deadline, เมื่อมีเอกสารใหม่</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem; border-bottom:1px solid var(--border);">⚡ กรอกครั้งเดียว — ข้อมูลนักศึกษาใช้ร่วมทั้งระบบ</li>
+        <li style="padding:0.4rem 0; color:var(--text2); font-size:0.88rem;">📈 รายงานสรุปอัตโนมัติ — ดาวน์โหลดได้ทันที</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 3. FEATURES ═══ -->
+<section id="features" class="fade">
+  <h2>⭐ ความสามารถหลักของระบบ</h2>
+  <div class="grid-3">
+    <div class="card feature-card">
+      <div class="icon">📋</div>
+      <h3>จัดการฝึกงาน</h3>
+      <p>ลงทะเบียน, หนังสือขอความอนุเคราะห์ (CP05), หนังสือส่งตัว, ส่ง Logbook รายสัปดาห์, ขอใบรับรอง, ประเมินผล</p>
+    </div>
+    <div class="card feature-card">
+      <div class="icon">🎓</div>
+      <h3>จัดการโปรเจกต์จบ</h3>
+      <p>สอบหัวข้อ, System Test, KP02, Defense, ติดตาม Milestone, บันทึกการประชุม, ส่งเอกสารเล่มจบ</p>
+    </div>
+    <div class="card feature-card">
+      <div class="icon">📄</div>
+      <h3>Workflow เอกสาร</h3>
+      <p>นักศึกษาส่ง → อาจารย์ตรวจ → อนุมัติ/ส่งกลับแก้ไข พร้อมลิงก์อนุมัติทาง Email ได้ทันที</p>
+    </div>
+    <div class="card feature-card">
+      <div class="icon">🔔</div>
+      <h3>แจ้งเตือนอัตโนมัติ</h3>
+      <p>แจ้งเตือนแบบ Real-time เมื่อมีเอกสารใหม่, ใกล้ Deadline, หรือมีการเปลี่ยนสถานะ</p>
+    </div>
+    <div class="card feature-card">
+      <div class="icon">📊</div>
+      <h3>Dashboard & Reports</h3>
+      <p>ภาพรวมสถานะนักศึกษาทั้งหมด, รายงานความคืบหน้า, สถิติฝึกงาน, workload อาจารย์</p>
+    </div>
+    <div class="card feature-card">
+      <div class="icon">📅</div>
+      <h3>ปฏิทิน & Deadline</h3>
+      <p>ปฏิทินรวม Deadline ทั้งหมด, กำหนดส่งแบบยืดหยุ่น, ล็อกเอกสารหลังกำหนด</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 4. WORKFLOW ═══ -->
+<section id="workflow" class="fade">
+  <h2>🔄 กระบวนการทำงานหลัก</h2>
+
+  <h3 style="margin-top:1rem;">Workflow ฝึกงาน</h3>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+graph LR
+    A["🎓 ลงทะเบียน\nฝึกงาน"] --> B["📄 ส่ง CP05\nหนังสือขอความอนุเคราะห์"]
+    B --> C["✅ อาจารย์\nอนุมัติ"]
+    C --> D["📋 เขียน Logbook\nรายสัปดาห์"]
+    D --> E["📊 อาจารย์\nตรวจ Logbook"]
+    E --> F["🏆 ขอใบรับรอง\nประเมินผล"]
+
+    style A fill:#10B981,stroke:none,color:#fff
+    style B fill:#0891B2,stroke:none,color:#fff
+    style C fill:#8B5CF6,stroke:none,color:#fff
+    style D fill:#0891B2,stroke:none,color:#fff
+    style E fill:#8B5CF6,stroke:none,color:#fff
+    style F fill:#F59E0B,stroke:none,color:#000
+    </pre>
+  </div>
+
+  <h3 style="margin-top:2rem;">Workflow โปรเจกต์จบการศึกษา</h3>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+graph LR
+    A["📝 เสนอหัวข้อ"] --> B["🧪 สอบหัวข้อ"]
+    B --> C["💻 พัฒนาระบบ\n+ Milestone"]
+    C --> D["🔬 System Test"]
+    D --> E["📄 ส่ง KP02"]
+    E --> F["🎤 สอบ Defense"]
+    F --> G["📚 ส่งเล่มจบ"]
+
+    style A fill:#10B981,stroke:none,color:#fff
+    style B fill:#8B5CF6,stroke:none,color:#fff
+    style C fill:#0891B2,stroke:none,color:#fff
+    style D fill:#8B5CF6,stroke:none,color:#fff
+    style E fill:#0891B2,stroke:none,color:#fff
+    style F fill:#F59E0B,stroke:none,color:#000
+    style G fill:#10B981,stroke:none,color:#fff
+    </pre>
+  </div>
+
+  <h3 style="margin-top: 2rem;">ขั้นตอนการอนุมัติเอกสาร</h3>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="num">1</div>
+      <h4>นักศึกษาส่งเอกสาร</h4>
+      <p>อัปโหลดไฟล์ PDF ผ่านระบบ</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="num">2</div>
+      <h4>แจ้งเตือนอาจารย์</h4>
+      <p>ระบบแจ้งอัตโนมัติ + ส่ง Email</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="num">3</div>
+      <h4>ตรวจสอบ</h4>
+      <p>อาจารย์ตรวจเอกสารในระบบ</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="num">4</div>
+      <h4>อนุมัติ / แก้ไข</h4>
+      <p>อนุมัติได้ผ่าน Email Link หรือหน้าจอ</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="num">5</div>
+      <h4>บันทึกผล</h4>
+      <p>ระบบอัปเดตสถานะ + แจ้งนักศึกษา</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 5. ROLES ═══ -->
+<section id="roles" class="fade">
+  <h2>👥 ผู้ใช้งานในระบบ</h2>
+  <div class="grid-3">
+    <div class="card role student">
+      <div class="role-icon">🎓</div>
+      <h3>นักศึกษา</h3>
+      <span class="badge badge-green">30+ หน้าจอ</span>
+      <ul>
+        <li>ลงทะเบียนฝึกงาน / โปรเจกต์</li>
+        <li>ส่งเอกสารและ Logbook</li>
+        <li>ดูปฏิทิน Deadline</li>
+        <li>ติดตามสถานะเอกสาร</li>
+        <li>ขอนัดพบอาจารย์ที่ปรึกษา</li>
+        <li>ดูผลการประเมิน</li>
+      </ul>
+    </div>
+    <div class="card role teacher">
+      <div class="role-icon">👨‍🏫</div>
+      <h3>อาจารย์</h3>
+      <span class="badge badge-purple">ตรวจสอบ & อนุมัติ</span>
+      <ul>
+        <li>ตรวจและอนุมัติเอกสาร</li>
+        <li>ตรวจ Logbook นักศึกษา</li>
+        <li>เป็นกรรมการสอบ</li>
+        <li>จัดการ Timeline</li>
+        <li>อนุมัติผ่าน Email Link</li>
+        <li>ดูนักศึกษาในที่ปรึกษา</li>
+      </ul>
+    </div>
+    <div class="card role admin">
+      <div class="role-icon">🛡️</div>
+      <h3>เจ้าหน้าที่ / Admin</h3>
+      <span class="badge badge-teal">จัดการทั้งระบบ</span>
+      <ul>
+        <li>จัดการข้อมูลผู้ใช้ทั้งหมด</li>
+        <li>ตั้งค่าปีการศึกษา / หลักสูตร</li>
+        <li>กำหนด Deadline & Workflow</li>
+        <li>ดู Dashboard & Report รวม</li>
+        <li>นำเข้าข้อมูลผ่าน CSV</li>
+        <li>ตั้งค่าการแจ้งเตือน</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mermaid-wrap" style="margin-top:1.5rem;">
+    <pre class="mermaid">
+graph TB
+    Student["🎓 นักศึกษา\nส่งเอกสาร, Logbook, โปรเจกต์"] -->|"ส่งเอกสาร"| System["📱 CSLogbook\nWeb Application"]
+    Teacher["👨‍🏫 อาจารย์\nตรวจสอบ, อนุมัติ, ให้คะแนน"] -->|"ตรวจ & อนุมัติ"| System
+    Admin["🛡️ เจ้าหน้าที่\nจัดการระบบ, ดูรายงาน"] -->|"จัดการ & ตั้งค่า"| System
+    System -->|"แจ้งเตือน Real-time"| Student
+    System -->|"แจ้งเตือน + Email Link"| Teacher
+    System -->|"Dashboard & Reports"| Admin
+
+    style Student fill:#10B981,stroke:none,color:#fff
+    style Teacher fill:#8B5CF6,stroke:none,color:#fff
+    style Admin fill:#0891B2,stroke:none,color:#fff
+    style System fill:#F59E0B,stroke:none,color:#000
+    </pre>
+  </div>
+</section>
+
+<!-- ═══ 6. RESULTS / IMPACT ═══ -->
+<section id="results" class="fade">
+  <h2>📊 ผลลัพธ์และขอบเขตของระบบ</h2>
+
+  <div class="grid-2" style="margin-bottom:1.5rem;">
+    <div class="chart-wrap">
+      <h3 style="margin-bottom:1rem;">หน้าจอแยกตามกลุ่มผู้ใช้</h3>
+      <canvas id="pagesChart"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <h3 style="margin-bottom:1rem;">ความสามารถระบบ</h3>
+      <canvas id="capChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h3>ขอบเขตฟังก์ชันการทำงาน</h3>
+    <table class="simple-table" style="margin-top:0.75rem;">
+      <thead><tr><th>โมดูล</th><th>รายละเอียด</th><th>สถานะ</th></tr></thead>
+      <tbody>
+        <tr><td><strong>การฝึกงาน</strong></td><td>ลงทะเบียน, CP05, หนังสือส่งตัว, Logbook, ใบรับรอง, ประเมินผล</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>โปรเจกต์ Phase 1</strong></td><td>สอบหัวข้อ, System Test, KP02, Defense</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>โปรเจกต์ Phase 2</strong></td><td>สอบ Defense เล่ม 2, ส่งเอกสารจบ</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>เอกสาร & Workflow</strong></td><td>อัปโหลด, ตรวจสอบ, อนุมัติ, Email Approval</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>แจ้งเตือน</strong></td><td>Real-time notification, Deadline reminder</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>Dashboard & Reports</strong></td><td>สรุปภาพรวม, Advisor workload, Deadline compliance</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>ระบบอัตโนมัติ</strong></td><td>8 agents: เตือน Deadline, ตรวจสิทธิ์, อัปเดตปีการศึกษา</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+        <tr><td><strong>Admin & Settings</strong></td><td>จัดการผู้ใช้, หลักสูตร, ปีการศึกษา, ค่าคงที่</td><td><span class="badge badge-green">เสร็จสมบูรณ์</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top: 1.5rem;">เทคโนโลยีที่ใช้ (สรุปสั้น)</h3>
+  <div class="grid-4" style="margin-top:0.75rem;">
+    <div class="card" style="text-align:center; padding:1rem;">
+      <div style="font-size:1.5rem; margin-bottom:0.3rem;">🌐</div>
+      <div style="font-size:0.85rem; font-weight:600;">Web Application</div>
+      <div style="font-size:0.75rem; color:var(--muted);">ใช้งานผ่าน Browser</div>
+    </div>
+    <div class="card" style="text-align:center; padding:1rem;">
+      <div style="font-size:1.5rem; margin-bottom:0.3rem;">📱</div>
+      <div style="font-size:0.85rem; font-weight:600;">Responsive</div>
+      <div style="font-size:0.75rem; color:var(--muted);">รองรับมือถือ & แท็บเล็ต</div>
+    </div>
+    <div class="card" style="text-align:center; padding:1rem;">
+      <div style="font-size:1.5rem; margin-bottom:0.3rem;">⚡</div>
+      <div style="font-size:0.85rem; font-weight:600;">Real-time</div>
+      <div style="font-size:0.75rem; color:var(--muted);">แจ้งเตือนทันที</div>
+    </div>
+    <div class="card" style="text-align:center; padding:1rem;">
+      <div style="font-size:1.5rem; margin-bottom:0.3rem;">🔒</div>
+      <div style="font-size:0.85rem; font-weight:600;">ปลอดภัย</div>
+      <div style="font-size:0.75rem; color:var(--muted);">SSL + แยกสิทธิ์ 3 ระดับ</div>
+    </div>
+  </div>
+
+  <!-- ── Closing ── -->
+  <div class="card" style="margin-top:2.5rem; text-align:center; padding:2.5rem 1.5rem; border-top: 3px solid var(--accent);">
+    <div style="font-size: 2rem; margin-bottom: 0.75rem;">🎓</div>
+    <h2 style="justify-content:center; margin-bottom:0.5rem;">CSLogbook</h2>
+    <p style="color:var(--text2); font-size: 0.95rem;">
+      ระบบจัดการกิจกรรมนักศึกษา — ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ
+    </p>
+    <p style="color:var(--muted); font-size: 0.85rem; margin-top: 0.5rem;">
+      มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ &nbsp;•&nbsp; มีนาคม 2569
+    </p>
+  </div>
+</section>
+
+</main>
+
+<script>
+function toggleTheme() {
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  initCharts();
+}
+
+// Scroll fade-in
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.fade').forEach(el => obs.observe(el));
+
+// Active nav
+const secs = document.querySelectorAll('section[id]');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  secs.forEach(s => { if (scrollY >= s.offsetTop - 100) cur = s.id; });
+  document.querySelectorAll('.nav-links a').forEach(a =>
+    a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+});
+
+// Mermaid
+mermaid.initialize({
+  startOnLoad: true, theme: 'dark',
+  themeVariables: {
+    primaryColor: '#0891B2', primaryTextColor: '#F1F5F9',
+    primaryBorderColor: '#22D3EE', lineColor: '#64748B',
+    secondaryColor: '#1E293B', tertiaryColor: '#1a3a6e', fontSize: '14px'
+  },
+  flowchart: { htmlLabels: true, curve: 'basis' }
+});
+
+// Charts
+let charts = {};
+function getC() {
+  const d = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    txt: d ? '#94A3B8' : '#475569', grid: d ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+    teal: '#0891B2', purple: '#8B5CF6', green: '#10B981', amber: '#F59E0B', rose: '#F43F5E', blue: '#3B82F6'
+  };
+}
+function initCharts() {
+  const c = getC();
+  Object.values(charts).forEach(ch => ch.destroy()); charts = {};
+
+  charts.pages = new Chart(document.getElementById('pagesChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['นักศึกษา (30+)', 'Admin (27)', 'อาจารย์ (5)', 'Dashboard (4)', 'หน้าสาธารณะ (6)'],
+      datasets: [{ data: [30, 27, 5, 4, 6], backgroundColor: [c.green, c.teal, c.purple, c.amber, c.blue], borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { color: c.txt, padding: 14, font: { size: 12 } } } }
+    }
+  });
+
+  charts.cap = new Chart(document.getElementById('capChart'), {
+    type: 'bar',
+    data: {
+      labels: ['ฝึกงาน', 'โปรเจกต์', 'เอกสาร', 'แจ้งเตือน', 'รายงาน', 'ตั้งค่า'],
+      datasets: [{
+        label: 'ฟังก์ชัน', data: [6, 8, 4, 3, 5, 4],
+        backgroundColor: [c.green, c.purple, c.teal, c.amber, c.blue, c.rose],
+        borderRadius: 6, barPercentage: 0.55
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: c.txt }, grid: { display: false } },
+        y: { ticks: { color: c.txt }, grid: { color: c.grid }, title: { display: true, text: 'จำนวนฟังก์ชัน', color: c.txt } }
+      }
+    }
+  });
+}
+window.addEventListener('load', initCharts);
+</script>
+</body>
+</html>

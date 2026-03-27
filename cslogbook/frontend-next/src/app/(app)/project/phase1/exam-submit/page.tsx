@@ -225,7 +225,7 @@ export default function ExamSubmitPage() {
         <RejectionNotice
           status={status}
           visible={!!rejectedApproval}
-          details={rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+          details={rejectedApproval?.note ? String(rejectedApproval.note) : null}
           message="กรุณาตรวจสอบสถานะอาจารย์ด้านล่าง แก้ไขข้อมูลแล้วส่งใหม่ได้เลย"
           actionText="กรุณาแก้ไขข้อมูลแล้วกดส่งคำขอสอบใหม่"
           onViewDetails={openRejectionModal}
@@ -282,8 +282,8 @@ export default function ExamSubmitPage() {
                   <div key={String(approval.advisorId)} className={styles.listItem}>
                     <div>
                       <span>{approval.name ? String(approval.name) : `อาจารย์ที่ปรึกษา`}</span>
-                      {approval.status === "rejected" && approval.comment ? (
-                        <p className={styles.approvalNote}>เหตุผล: {String(approval.comment)}</p>
+                      {approval.status === "rejected" && approval.note ? (
+                        <p className={styles.approvalNote}>เหตุผล: {String(approval.note)}</p>
                       ) : null}
                     </div>
                     <span
@@ -365,7 +365,7 @@ export default function ExamSubmitPage() {
           title="รายละเอียดการปฏิเสธคำขอสอบ"
           rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
           rejectedAt={request?.updatedAt ? String(request.updatedAt) : null}
-          reason={rejectedApproval?.comment ? String(rejectedApproval.comment) : null}
+          reason={rejectedApproval?.note ? String(rejectedApproval.note) : null}
           guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบโครงงานพิเศษใหม่"
         />
       </div>

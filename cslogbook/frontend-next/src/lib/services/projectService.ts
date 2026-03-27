@@ -72,7 +72,7 @@ export type ProjectDefenseRequest = {
   staffVerificationNote?: string | null;
   staffVerifiedBy?: { fullName?: string | null } | null;
   submittedLate?: boolean | null;
-  advisorApprovals?: Array<{ advisorId: number; status?: string | null; name?: string | null; comment?: string | null }>;
+  advisorApprovals?: Array<{ advisorId: number; status?: string | null; name?: string | null; note?: string | null }>;
   updatedAt?: string | null;
 };
 

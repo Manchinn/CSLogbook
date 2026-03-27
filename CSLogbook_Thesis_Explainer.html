@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Logbook — Visual Explainer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f0f4f8; --surface: #ffffff; --text: #1e293b; --text2: #475569;
+  --accent: #2563eb; --accent2: #0891b2; --navy: #0B1D3A; --teal: #0891b2;
+  --border: #e2e8f0; --shadow: rgba(0,0,0,0.08);
+  --grad1: #2563eb; --grad2: #0891b2;
+  --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+  --table-header: #1e3a5f; --table-alt: #f8fafc; --table-border: #cbd5e1;
+}
+[data-theme="dark"] {
+  --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --text2: #94a3b8;
+  --border: #334155; --shadow: rgba(0,0,0,0.3);
+  --table-header: #0f2744; --table-alt: #1a2a40; --table-border: #475569;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.7; transition: background .3s, color .3s;
+}
+/* NAV */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--navy); color: #fff;
+  padding: 0; box-shadow: 0 2px 12px var(--shadow);
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.nav-inner::-webkit-scrollbar { display: none; }
+.nav-brand {
+  padding: 12px 20px; font-weight: 700; font-size: 1.1rem;
+  white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+}
+.nav a {
+  color: rgba(255,255,255,0.75); text-decoration: none;
+  padding: 14px 16px; font-size: 0.82rem; white-space: nowrap;
+  transition: all .2s; border-bottom: 3px solid transparent;
+}
+.nav a:hover, .nav a.active {
+  color: #fff; background: rgba(255,255,255,0.08);
+  border-bottom-color: var(--teal);
+}
+.theme-toggle {
+  margin-left: auto; padding: 10px 16px;
+  background: none; border: none; color: #fff;
+  font-size: 1.2rem; cursor: pointer;
+}
+/* HERO */
+.hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #1a365d 50%, var(--teal) 100%);
+  color: #fff; text-align: center; padding: 80px 20px 60px;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(8,145,178,0.25) 0%, transparent 60%),
+              radial-gradient(circle at 70% 30%, rgba(37,99,235,0.2) 0%, transparent 50%);
+}
+.hero * { position: relative; }
+.hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -1px; }
+.hero .subtitle { font-size: 1.15rem; opacity: 0.9; max-width: 800px; margin: 0 auto 24px; }
+.hero .authors {
+  display: flex; justify-content: center; gap: 40px; margin-top: 24px;
+  font-size: 0.95rem; opacity: 0.85;
+}
+.hero .badge {
+  display: inline-block; background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 20px;
+  padding: 6px 18px; font-size: 0.85rem; margin-top: 16px;
+}
+/* SECTIONS */
+section {
+  max-width: 1100px; margin: 0 auto; padding: 60px 24px;
+  opacity: 0; transform: translateY(24px);
+  transition: opacity .6s, transform .6s;
+}
+section.visible { opacity: 1; transform: translateY(0); }
+.section-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 32px;
+}
+.section-num {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--grad1), var(--grad2));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.1rem; flex-shrink: 0;
+}
+.section-header h2 { font-size: 1.8rem; font-weight: 700; }
+.divider {
+  height: 1px; background: linear-gradient(90deg, var(--border), transparent);
+  margin: 0 auto; max-width: 1100px;
+}
+/* CARDS */
+.card {
+  background: var(--surface); border-radius: 14px;
+  border: 1px solid var(--border); padding: 28px;
+  box-shadow: 0 2px 12px var(--shadow);
+  margin-bottom: 20px; transition: transform .2s, box-shadow .2s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.card-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; margin-bottom: 14px; flex-shrink: 0;
+}
+.card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+.card p, .card li { color: var(--text2); font-size: 0.92rem; }
+.card ul { padding-left: 20px; }
+.card ul li { margin-bottom: 6px; }
+/* PROBLEM BEFORE/AFTER */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.compare-card.before { border-left: 4px solid var(--danger); }
+.compare-card.after { border-left: 4px solid var(--success); }
+.compare-label {
+  display: inline-block; font-size: 0.75rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 4px; margin-bottom: 10px; text-transform: uppercase;
+}
+.compare-card.before .compare-label { background: #fef2f2; color: var(--danger); }
+.compare-card.after .compare-label { background: #ecfdf5; color: var(--success); }
+[data-theme="dark"] .compare-card.before .compare-label { background: #3b1111; }
+[data-theme="dark"] .compare-card.after .compare-label { background: #0a3622; }
+/* TABLES */
+.process-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; margin: 20px 0; font-size: 0.88rem; }
+.process-table thead { background: var(--table-header); color: #fff; }
+.process-table th { padding: 14px 16px; text-align: left; font-weight: 600; white-space: nowrap; }
+.process-table td { padding: 12px 16px; border-bottom: 1px solid var(--table-border); }
+.process-table tbody tr:nth-child(even) { background: var(--table-alt); }
+.process-table tbody tr:hover { background: rgba(8,145,178,0.08); }
+.check { color: var(--success); font-weight: 700; font-size: 1.1rem; text-align: center; }
+.process-table td:nth-child(n+4) { text-align: center; }
+/* ROLE CARDS */
+.role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.role-card {
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+  padding: 20px; box-shadow: 0 2px 8px var(--shadow);
+}
+.role-card .role-icon { font-size: 2rem; margin-bottom: 10px; }
+.role-card h4 { font-size: 1.05rem; margin-bottom: 8px; color: var(--accent); }
+.role-card ul { padding-left: 18px; font-size: 0.88rem; color: var(--text2); }
+.role-card ul li { margin-bottom: 4px; }
+/* MERMAID */
+.mermaid-wrap {
+  background: var(--surface); border-radius: 14px; border: 1px solid var(--border);
+  padding: 24px; margin: 20px 0; overflow-x: auto;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.mermaid { display: flex; justify-content: center; }
+.mermaid svg { max-width: 100%; height: auto; }
+/* CHART */
+.chart-wrap {
+  background: var(--surface); border-radius: 14px; border: 1px solid var(--border);
+  padding: 24px; margin: 20px 0; box-shadow: 0 2px 12px var(--shadow);
+}
+.chart-wrap canvas { max-height: 360px; }
+/* DEMO SECTION */
+.demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.demo-card {
+  background: var(--surface); border-radius: 14px; border: 1px solid var(--border);
+  padding: 20px; box-shadow: 0 2px 12px var(--shadow);
+}
+.demo-card .demo-title {
+  font-size: 0.92rem; font-weight: 700; color: var(--accent);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.demo-card .demo-desc { font-size: 0.85rem; color: var(--text2); }
+.feature-tag {
+  display: inline-block; font-size: 0.72rem; padding: 2px 8px;
+  border-radius: 4px; margin: 2px 4px 2px 0;
+  background: rgba(8,145,178,0.1); color: var(--teal); font-weight: 600;
+}
+/* EDGE CASE TABLE */
+.edge-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; font-size: 0.88rem; }
+.edge-table thead { background: var(--table-header); color: #fff; }
+.edge-table th { padding: 12px 16px; text-align: left; font-weight: 600; }
+.edge-table td { padding: 10px 16px; border-bottom: 1px solid var(--table-border); }
+.edge-table tbody tr:nth-child(even) { background: var(--table-alt); }
+.edge-table td:first-child { font-weight: 700; color: var(--accent); text-align: center; width: 50px; }
+/* TABS */
+.tab-nav { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.tab-btn {
+  padding: 10px 20px; border: none; background: none;
+  color: var(--text2); font-size: 0.9rem; cursor: pointer;
+  border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap;
+  font-weight: 600;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+/* FOOTER */
+.footer {
+  text-align: center; padding: 40px 20px; color: var(--text2);
+  font-size: 0.85rem; border-top: 1px solid var(--border);
+}
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2rem; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .section-header h2 { font-size: 1.4rem; }
+  section { padding: 40px 16px; }
+  .process-table { font-size: 0.78rem; }
+  .process-table th, .process-table td { padding: 8px 10px; }
+}
+/* SCROLL INDICATOR */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 200;
+  background: linear-gradient(90deg, var(--grad1), var(--grad2));
+  transition: width .1s;
+}
+/* TOOLTIP */
+.info-tip {
+  display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); color: #fff; text-align: center;
+  font-size: 0.7rem; line-height: 18px; cursor: help; margin-left: 4px;
+  position: relative;
+}
+.info-tip:hover::after {
+  content: attr(data-tip); position: absolute; bottom: 130%; left: 50%;
+  transform: translateX(-50%); background: var(--navy); color: #fff;
+  padding: 6px 12px; border-radius: 6px; font-size: 0.78rem;
+  white-space: nowrap; z-index: 10;
+}
+</style>
+</head>
+<body>
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-inner">
+  <div class="nav-brand">CS Logbook</div>
+  <a href="#problem">ปัญหา</a>
+  <a href="#objectives">วัตถุประสงค์</a>
+  <a href="#users">ผู้ใช้งาน</a>
+  <a href="#output">การแสดงผล</a>
+  <a href="#internship">ฝึกงาน</a>
+  <a href="#project">โครงงาน</a>
+  <a href="#thesis">ปริญญานิพนธ์</a>
+  <a href="#architecture">สถาปัตยกรรม</a>
+  <a href="#er">ER-Diagram</a>
+  <a href="#usecase">Use Case</a>
+  <a href="#demo-user">จัดการผู้ใช้</a>
+  <a href="#demo-intern">ระบบฝึกงาน</a>
+  <a href="#demo-project">ระบบโครงงาน</a>
+  <a href="#limitations">ข้อจำกัด</a>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+</div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <span class="badge">Thesis Presentation — KMUTNB</span>
+  <h1>CS Logbook</h1>
+  <p class="subtitle">ระบบสมุดฝึกงานและติดตามความคืบหน้าปริญญานิพนธ์<br>สำหรับนักศึกษาวิทยาการคอมพิวเตอร์และสารสนเทศ</p>
+  <div class="authors">
+    <span>นิวัฒน์ เสียงใส — 6404062610294</span>
+    <span>ชินกฤต ศรีป่าน — 6404062630295</span>
+  </div>
+</header>
+
+<!-- 1. PROBLEM STATEMENT -->
+<section id="problem">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2>Problem Statement — ปัญหา</h2>
+  </div>
+  <div class="compare-grid">
+    <div class="card compare-card before">
+      <div class="compare-label">ก่อน (Before)</div>
+      <h3>ระบบเดิม — กระดาษ</h3>
+      <ul>
+        <li>นักศึกษาต้องปริ้นออกมาและนำส่งที่ภาควิชาเท่านั้น</li>
+        <li>เอกสารอาจสูญหายหรือเสียหาย</li>
+        <li>ไม่มีการติดตามสถานะเอกสาร</li>
+        <li>กระบวนการซับซ้อนต้องใช้เอกสารจำนวนมาก (คพ.01–คพ.05)</li>
+        <li>อาจารย์/เจ้าหน้าที่ต้องตรวจสอบเอกสารด้วยมือ</li>
+      </ul>
+    </div>
+    <div class="card compare-card after">
+      <div class="compare-label">หลัง (After)</div>
+      <h3>CS Logbook — ดิจิทัล</h3>
+      <ul>
+        <li>ยื่นเอกสารออนไลน์ ติดตามสถานะแบบ Real-time</li>
+        <li>เอกสารปลอดภัยบนระบบ ไม่สูญหาย</li>
+        <li>ติดตามสถานะทุกขั้นตอนผ่านระบบ</li>
+        <li>อนุมัติเอกสาร คำร้องต่าง ๆ ผ่านระบบออนไลน์</li>
+        <li>ลดภาระงานเจ้าหน้าที่และอาจารย์</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 2. OBJECTIVES -->
+<section id="objectives">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2>วัตถุประสงค์</h2>
+  </div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon" style="background:rgba(37,99,235,0.1);color:var(--accent);">🌐</div>
+      <h3>พัฒนา Web Application</h3>
+      <p>สำหรับการติดตามการฝึกงาน โครงงานพิเศษ สำหรับนักศึกษาและบุคลากรของภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ (หลักสูตรปรับปรุง พ.ศ. 2564)</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(8,145,178,0.1);color:var(--teal);">🔗</div>
+      <h3>แพลตฟอร์มกลาง</h3>
+      <p>เชื่อมโยง นักศึกษา บุคลากรของภาควิชา และสถานประกอบการ เข้าด้วยกันในระบบเดียว</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(16,185,129,0.1);color:var(--success);">📋</div>
+      <h3>ดิจิทัลไลซ์กระบวนการ</h3>
+      <p>พัฒนาระบบที่มีกระบวนการที่ซับซ้อนและต้องใช้เอกสารจำนวนมากให้อยู่ในรูปแบบดิจิทัลแบบมีประสิทธิภาพ</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(245,158,11,0.1);color:var(--warning);">⚡</div>
+      <h3>อำนวยความสะดวก</h3>
+      <p>ต่อผู้ใช้งาน เช่น การติดตามสถานะ อนุมัติเอกสาร คำร้องต่าง ๆ ผ่านระบบออนไลน์</p>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 3. USERS -->
+<section id="users">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2>ผู้ใช้งานระบบ</h2>
+  </div>
+  <div class="role-grid">
+    <div class="role-card">
+      <div class="role-icon">👨‍💼</div>
+      <h4>เจ้าหน้าที่ภาควิชา ฯ</h4>
+      <ul>
+        <li>นำเข้าข้อมูลนักศึกษา (xlsx/CSV)</li>
+        <li>แก้ไขชื่อ-นามสกุล นักศึกษา</li>
+        <li>การเพิ่มกำหนดการ</li>
+        <li>เพิ่ม แก้ไขบัญชีผู้ใช้งาน</li>
+        <li>จัดการเอกสารคำร้อง</li>
+        <li>ตรวจสอบผลการประเมินของนักศึกษา</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🎓</div>
+      <h4>นักศึกษา</h4>
+      <ul>
+        <li>แก้ไขหน่วยกิตรวมทุกรายวิชาและหน่วยกิตวิชาภาคฯ</li>
+        <li>แก้ไขรหัสผ่านของนักศึกษา</li>
+        <li>ยื่นเอกสารและคำร้อง</li>
+        <li>บันทึกและแก้ไขบันทึกการปฏิบัติงานฝึกงาน / บันทึกการพบอาจารย์ที่ปรึกษา</li>
+        <li>ติดตามสถานะ คำร้องขอฝึกงาน การประเมินฝึกงาน คำร้องขอสอบโครงงานพิเศษ1 คำร้องขอทดสอบระบบ คำร้องขอสอบปริญญานิพนธ์</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">👨‍🏫</div>
+      <h4>อาจารย์</h4>
+      <ul>
+        <li>ยืนยันการบันทึกการพบอาจารย์ที่ปรึกษา</li>
+        <li>ตรวจสอบและอนุมัติคำขอสอบโครงงานพิเศษ1 (คพ.02)</li>
+        <li>ตรวจสอบและอนุมัติคำขอทดสอบระบบและหลักฐานการประเมิน</li>
+        <li>ตรวจสอบและอนุมัติคำขอสอบโครงงานพิเศษ 2 ปริญญานิพนธ์ (คพ.03)</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🏢</div>
+      <h4>ผู้ควบคุมงาน (สถานประกอบการ)</h4>
+      <ul>
+        <li>อนุมัติบันทึกผลการปฏิบัติงานการฝึกงาน</li>
+        <li>ประเมินผลการฝึกงานของนักศึกษา</li>
+      </ul>
+    </div>
+  </div>
+  <!-- USER ROLE CHART -->
+  <div class="chart-wrap" style="margin-top:24px;">
+    <h3 style="margin-bottom:16px;font-size:1rem;">สิทธิ์การใช้งานตามบทบาท</h3>
+    <canvas id="roleChart" height="280"></canvas>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 4. OUTPUT DISPLAY -->
+<section id="output">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2>การแสดงผล</h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:20px;">ข้อมูลที่ผู้ใช้แต่ละบทบาทสามารถเข้าถึงและดูได้ผ่านระบบ</p>
+  <div class="card-grid">
+    <div class="card">
+      <h3>🏢 เจ้าหน้าที่ภาควิชาฯ</h3>
+      <ul>
+        <li>ข้อมูลรายชื่อสถานประกอบการที่นักศึกษาฝึกงาน</li>
+        <li>ข้อมูลรายชื่อนักศึกษาฝึกงาน แสดงสถานะตั้งแต่ยื่นคำร้องถึงผ่านการขอคำร้องขอหนังสือรับรอง</li>
+        <li>ข้อมูลรายชื่อโครงงานพิเศษ แสดงสถานะตั้งแต่ยื่นเสนอหัวข้อโครงงานพิเศษถึง ผ่านการสอบปริญญานิพนธ์ และสถานะตรวจสอบเล่ม</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>👨‍🏫 อาจารย์ที่ปรึกษาโครงงานพิเศษ</h3>
+      <ul>
+        <li>สถานะเอกสารคำร้องจากนักศึกษา (รออนุมัติ อนุมัติแล้ว ปฏิเสธ)</li>
+        <li>รายละเอียดคำร้องและข้อมูลตั้งแต่การบันทึกพบอาจารย์ที่ปรึกษา คำร้องขอสอบโครงงานพิเศษ1 คำร้องขอสอบระบบ และคำร้องขอสอบปริญญานิพนธ์</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>📊 อาจารย์ที่มีสิทธิ์นำออกข้อมูล</h3>
+      <ul>
+        <li>รายชื่อกลุ่มเสนอหัวข้อโครงงานพิเศษ</li>
+        <li>รายชื่อกลุ่มสอบโครงงานพิเศษ</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🎓 นักศึกษา</h3>
+      <ul>
+        <li>แสดงรายชื่อสถานประกอบการที่นักศึกษาฝึกงาน</li>
+        <li>ชั่วโมงทำงานทั้งหมด วันทำงานทั้งหมด</li>
+        <li>สมุดบันทึกสรุปการฝึกงาน</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🏢 ผู้ควบคุมงาน</h3>
+      <ul>
+        <li>ดูรายละเอียดบันทึกประจำวันนักศึกษาฝึกงาน หัวข้องาน รายละเอียดงาน</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 5. INTERNSHIP PROCESS -->
+<section id="internship">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2>กระบวนการฝึกงาน <span style="font-size:0.85rem;color:var(--text2);font-weight:400;">(หลักสูตร 2564 ปีการศึกษา 2567)</span></h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:16px;">13 ขั้นตอน ตั้งแต่กรอกคำร้องจนได้รับหนังสือรับรอง พร้อม RACI Matrix ระบุผู้รับผิดชอบ</p>
+
+  <div style="overflow-x:auto;">
+  <table class="process-table">
+    <thead>
+      <tr><th>ลำดับ</th><th>กิจกรรม</th><th>เงื่อนไขที่ต้องผ่าน</th><th>นักศึกษา</th><th>เจ้าหน้าที่ภาควิชา</th><th>หัวหน้าภาควิชา</th><th>ผู้ควบคุมงาน</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>กรอกและยื่นคำร้องขอฝึกงาน (คพ.05) และเอกสารแสดงผลการเรียน</td><td>เป็นนักศึกษาที่มีชื่อในระบบ ชั้นปีที่ 3 ขึ้นไป หน่วยกิตรวมทุกรายวิชา จำนวณ 81 หน่วยกิตขึ้นไป</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td>อนุมัติคำร้องขอฝึกงาน (คพ.05)</td><td>นักศึกษากรอกและยื่นคำร้องขอฝึกงาน พร้อมเอกสารแสดงผลการเรียน</td><td></td><td class="check">✓</td><td class="check">✓</td><td></td></tr>
+      <tr><td>3</td><td>ได้รับหนังสือขอความอนุเคราะห์ฝึกงาน และแบบตอบรับเข้าฝึกงาน ดาวน์โหลดได้ผ่านระบบ</td><td>ได้รับการอนุมัติคำร้องขอฝึกงานจากเจ้าหน้าที่ภาควิชาฯ และอาจารย์หัวหน้าภาคฯ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>4</td><td>อัปโหลดหนังสือตอบรับนักศึกษาเข้าฝึกงาน</td><td>ได้รับการอนุมัติคำร้องขอฝึกงานจากเจ้าหน้าที่ภาควิชาฯ และอาจารย์หัวหน้าภาคฯ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>5</td><td>ตรวจสอบหนังสือตอบรับนักศึกษาเข้าฝึกงาน และอนุมัติหนังสือส่งตัวนักศึกษาเข้าฝึกงาน</td><td>นักศึกษาอัปโหลดหนังสือตอบรับเข้าฝึกงานจากทางสถานประกอบการแล้ว</td><td></td><td class="check">✓</td><td class="check">✓</td><td></td></tr>
+      <tr><td>6</td><td>ได้รับหนังสือส่งตัวนักศึกษาเข้าฝึกงาน ดาวน์โหลดผ่านระบบ</td><td>เจ้าหน้าที่ภาควิชาตรวจสอบและอนุมัติจากนั้น หน้าหัวหน้าภาควิชาจะสามารถตรวจสอบและอนุมัติ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>7</td><td>บันทึกข้อมูลสถานประกอบการ บันทึกลงเวลา ส่งรายละเอียดการปฏิบัติงาน ไปยังผู้ควบคุมงาน</td><td>ผ่านการอนุมัติคำร้องขอฝึกงาน จากเจ้าหน้าที่ และอาจารย์หัวหน้าภาค ฯ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>8</td><td>อนุมัติบันทึกรายละเอียดการปฏิบัติงาน ผ่านลิงค์จากอีเมล</td><td>นักศึกษาบันทึกรายละเอียดการปฏิบัติงานและส่งคำขออนุมัติบันทึกการปฏิบัติงาน</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>9</td><td>ส่งแบบประเมินให้ผู้ควบคุมงาน ผ่านลิงค์จากอีเมล</td><td>บันทึกการปฏิบัติงานได้รับการอนุมัติครบตามเวลาที่ภาควิชาฯ ได้กำหนดไว้ 240 ชั่วโมง</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>10</td><td>บันทึกแบบประเมินผลการฝึกงาน</td><td>นักศึกษาส่งแบบประเมินให้ผู้ควบคุมงานผ่านอีเมลสำเร็จ</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>11</td><td>ยื่นคำร้องขอหนังสือรับรองการฝึกงาน</td><td>บันทึกการปฏิบัติงานอนุมัติครบตามเวลาที่กำหนด และผู้ควบคุมงานประเมินผลการฝึกงานแล้ว</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>12</td><td>อนุมัติหนังสือรับรองการฝึกงาน</td><td>นักศึกษายื่นคำร้องขอหนังสือรับรองการฝึกงาน</td><td></td><td class="check">✓</td><td></td><td></td></tr>
+      <tr><td>13</td><td>ได้รับหนังสือรับรองการฝึกงาน ดาวน์โหลดผ่านระบบ</td><td>เจ้าหน้าที่ภาควิชาฯ อนุมัติหนังสือรับรองการฝึกงาน</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Mermaid: Internship Flow -->
+  <div class="mermaid-wrap" style="margin-top:24px;">
+    <h3 style="margin-bottom:16px;font-size:1rem;">Internship Workflow</h3>
+    <div class="mermaid">
+flowchart LR
+  A[กรอก คพ.05] --> B[อนุมัติคำร้อง]
+  B --> C[ดาวน์โหลดหนังสือ]
+  C --> D[อัปโหลดตอบรับ]
+  D --> E[อนุมัติหนังสือส่งตัว]
+  E --> F[ดาวน์โหลดหนังสือส่งตัว]
+  F --> G[บันทึกปฏิบัติงาน]
+  G --> H[ผู้ควบคุมอนุมัติ]
+  H --> I[ส่งแบบประเมิน]
+  I --> J[ผู้ควบคุมประเมิน]
+  J --> K[ขอหนังสือรับรอง]
+  K --> L[อนุมัติ]
+  L --> M[ดาวน์โหลดหนังสือรับรอง]
+  style A fill:#2563eb,color:#fff
+  style M fill:#10b981,color:#fff
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 6. PROJECT 1 PROCESS -->
+<section id="project">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2>กระบวนการโครงงานพิเศษ 1 <span style="font-size:0.85rem;color:var(--text2);font-weight:400;">(หลักสูตร 2564 ปีการศึกษา 2568)</span></h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:16px;">9 ขั้นตอน ตั้งแต่เสนอหัวข้อจนบันทึกผลสอบ</p>
+
+  <div style="overflow-x:auto;">
+  <table class="process-table">
+    <thead>
+      <tr><th>ลำดับ</th><th>กิจกรรม</th><th>เงื่อนไขที่ต้องผ่าน</th><th>นักศึกษา</th><th>เจ้าหน้าที่ภาควิชา</th><th>อาจารย์ที่มีสิทธิ์</th><th>อาจารย์ที่ปรึกษา</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>เสนอหัวข้อโครงงานพิเศษ</td><td>เป็นนักศึกษามีชื่อในระบบ ชั้นปีที่ 4 ขึ้นไป หน่วยกิตรวมทุกรายวิชาจำนวน 95 ขึ้นไป หน่วยกิตรายวิชาภาค จำนวน 57 ขึ้นไป</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td>ส่งออกรายชื่อเสนอหัวข้อโครงงานพิเศษ</td><td>ครบกำหนดเวลา เสนอหัวข้อโครงงานพิเศษ</td><td></td><td></td><td class="check">✓</td><td></td></tr>
+      <tr><td>3</td><td>บันทึกผลสอบหัวข้อโครงงานพิเศษ 1 และเลือกอาจารย์ที่ปรึกษาสำหรับโครงงานพิเศษที่ผ่านการสอบ</td><td>หลังจากมีการสอบเสนอหัวข้อโครงงานพิเศษ</td><td></td><td></td><td class="check">✓</td><td></td></tr>
+      <tr><td>4</td><td>บันทึกการพบอาจารย์ที่ปรึกษาหลัก/ร่วม โครงงานพิเศษ 1</td><td>ผ่านการบันทึกผลการสอบโครงงานพิเศษ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>5</td><td>ตรวจสอบและอนุมัติ บันทึกการพบอาจารย์ที่ปรึกษา</td><td>บันทึกรายละเอียดการพบอาจารย์ที่ปรึกษาหลัก/ร่วม</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>6</td><td>ยื่นคำร้องขอสอบโครงงานพิเศษ 1 (คพ.02)</td><td>บันทึกการพบอาจารย์ที่ปรึกษาตามจำนวนที่ภาควิชา ฯ กำหนด อยู่ในช่วงเวลากำหนดการ ยื่นคำร้องขอสอบโครงงานพิเศษ 1</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>7</td><td>ตรวจสอบอนุมัติ คำขอสอบโครงงานพิเศษ1 (คพ.02)</td><td>นักศึกษายื่นคำร้องขอสอบโครงงานพิเศษ1</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>8</td><td>ตรวจสอบและอนุมัติคำขอสอบโครงงานพิเศษ1 (คพ.02)</td><td>อนุมัติคำร้องขอสอบโครงงานพิเศษ1 จากอาจารย์ที่ปรึกษาหลัก / ร่วม</td><td></td><td class="check">✓</td><td></td><td></td></tr>
+      <tr><td>9</td><td>บันทึกผลการสอบโครงงานพิเศษ 1</td><td>ผ่านช่วงเวลาการสอบโครงงานพิเศษ1</td><td></td><td class="check">✓</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="mermaid-wrap" style="margin-top:24px;">
+    <h3 style="margin-bottom:16px;font-size:1rem;">Project 1 Workflow</h3>
+    <div class="mermaid">
+flowchart LR
+  A[เสนอหัวข้อ] --> B[ส่งออกรายชื่อ]
+  B --> C[บันทึกผลสอบหัวข้อ]
+  C --> D[พบอาจารย์ที่ปรึกษา]
+  D --> E[อาจารย์อนุมัติ]
+  E --> F[ยื่น คพ.02]
+  F --> G[อาจารย์อนุมัติ คพ.02]
+  G --> H[เจ้าหน้าที่อนุมัติ]
+  H --> I[บันทึกผลสอบ]
+  style A fill:#2563eb,color:#fff
+  style I fill:#10b981,color:#fff
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 7. THESIS PROCESS -->
+<section id="thesis">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2>กระบวนการปริญญานิพนธ์ <span style="font-size:0.85rem;color:var(--text2);font-weight:400;">(หลักสูตร 2564 ปีการศึกษา 2567)</span></h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:16px;">17 ขั้นตอน ต่อเนื่องจากโครงงานพิเศษ 1 จนสอบปริญญานิพนธ์</p>
+
+  <div style="overflow-x:auto;">
+  <table class="process-table">
+    <thead>
+      <tr><th>ลำดับ</th><th>กิจกรรม</th><th>เงื่อนไขที่ต้องผ่าน</th><th>นักศึกษา</th><th>เจ้าหน้าที่ภาควิชา</th><th>อาจารย์ที่มีสิทธิ์</th><th>อาจารย์ที่ปรึกษา</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>10</td><td>บันทึกการพบอาจารย์ที่ปรึกษาหลัก/ร่วม โครงงานพิเศษ 2</td><td>บันทึกผ่านการสอบโครงงานพิเศษ1 โดยเจ้าหน้าที่ภาควิชา ฯ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>11</td><td>ยื่นคำร้องขอทดสอบระบบ 30 วัน (คพ.04) (ภายในวันที่ 31 ตุลาคม 2568 15:59 น)</td><td>ผ่านการสอบโครงงานพิเศษ 1 อยู่ในช่วงเวลาที่กำหนดจากภาควิชาฯ</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>12</td><td>ตรวจสอบอนุมัติคำขอทดสอบระบบ</td><td>นักศึกษายื่นคำร้องขอทดสอบระบบ</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>13</td><td>ตรวจสอบและอนุมัติสอบคำขอทดสอบระบบ</td><td>อาจารย์ที่ปรึกษาหลัก/ร่วม อนุมัติคำร้องขอทดสอบระบบ</td><td></td><td></td><td class="check">✓</td><td></td></tr>
+      <tr><td>14</td><td>ยื่นคำร้องขอสอบปริญญานิพนธ์ (คพ.03)</td><td>ได้รับการอนุมัติทดสอบระบบ 30 วัน อัปโหลดหลักฐานการประเมิน อนุมัติบันทึกการพบอาจารย์ที่ปรึกษาหลัก/ร่วม 4 ครั้ง</td><td class="check">✓</td><td></td><td></td><td></td></tr>
+      <tr><td>15</td><td>ตรวจสอบอนุมัติ คำขอสอบปริญญานิพนธ์ (คพ.03)</td><td>นักศึกษายื่นคำร้องขอสอบปริญญานิพนธ์</td><td></td><td></td><td></td><td class="check">✓</td></tr>
+      <tr><td>16</td><td>ตรวจสอบอนุมัติ คำร้องขอสอบปริญญานิพนธ์ คพ.03</td><td>ผ่านการอนุมัติจากอาจารย์ที่ปรึกษาหลัก/ร่วม</td><td></td><td></td><td class="check">✓</td><td></td></tr>
+      <tr><td>17</td><td>บันทึกผลสอบปริญญานิพนธ์ และ สถานะเล่มเอกสาร</td><td>ผ่านช่วงเวลาการสอบปริญญานิพนธ์</td><td></td><td class="check">✓</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="mermaid-wrap" style="margin-top:24px;">
+    <h3 style="margin-bottom:16px;font-size:1rem;">Thesis Workflow (ต่อจากโครงงานพิเศษ 1)</h3>
+    <div class="mermaid">
+flowchart LR
+  A[พบอาจารย์ โครงงาน2] --> B[ขอทดสอบระบบ คพ.04]
+  B --> C[อาจารย์อนุมัติ]
+  C --> D[เจ้าหน้าที่อนุมัติ]
+  D --> E[ยื่น คพ.03 สอบปริญญานิพนธ์]
+  E --> F[อาจารย์อนุมัติ คพ.03]
+  F --> G[เจ้าหน้าที่อนุมัติ]
+  G --> H[บันทึกผลสอบ + สถานะเล่ม]
+  style A fill:#2563eb,color:#fff
+  style H fill:#10b981,color:#fff
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 8. SYSTEM ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2>ภาพรวมการทำงานของระบบ</h2>
+  </div>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+flowchart TB
+  CSV["📄 CSV / Excel"] -->|Import| WEB["🖥️ Web Application<br/>(Next.js)"]
+  WEB -->|requests| SERVER["⚙️ Server<br/>(Node.js / Express)"]
+  SERVER -->|response| WEB
+  SERVER -->|requests| DB["🗄️ Database<br/>(MySQL)"]
+  DB -->|response| SERVER
+  SERVER -->|ส่งแจ้งเตือน| EMAIL["📧 Email<br/>(SMTP)"]
+  EMAIL -->|แจ้งเตือนผู้ใช้งาน| WEB
+  style WEB fill:#2563eb,color:#fff
+  style SERVER fill:#0891b2,color:#fff
+  style DB fill:#1e3a5f,color:#fff
+  style EMAIL fill:#f59e0b,color:#fff
+  style CSV fill:#64748b,color:#fff
+    </div>
+  </div>
+  <div class="card-grid" style="margin-top:20px;">
+    <div class="card">
+      <h3>🖥️ Frontend</h3>
+      <p>Next.js 16 (App Router) + React 19 + TanStack Query v5 — ใช้ SSO ของ KMUTNB ในการล็อคอิน</p>
+    </div>
+    <div class="card">
+      <h3>⚙️ Backend</h3>
+      <p>Node.js + Express — RESTful API, JWT Authentication, RBAC Authorization, Sequelize ORM</p>
+    </div>
+    <div class="card">
+      <h3>🗄️ Database</h3>
+      <p>MySQL 8.0 — 30+ ตาราง, รองรับ UTF-8mb4, timezone Asia/Bangkok</p>
+    </div>
+    <div class="card">
+      <h3>📧 Email</h3>
+      <p>Gmail SMTP — ส่งแจ้งเตือนผู้ใช้งาน ลิงค์อนุมัติ แบบประเมิน</p>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 9. ER-DIAGRAM -->
+<section id="er">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2>ER-Diagram</h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:16px;">แผนภาพความสัมพันธ์ของข้อมูลในระบบ (Entity Relationship Diagram)</p>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+erDiagram
+  users ||--o{ students : "has"
+  users ||--o{ teachers : "has"
+  curriculums ||--o{ students : "belongs_to"
+  curriculums ||--o{ academics : "has"
+  students ||--o{ documents : "submits"
+  students ||--o{ internship_documents : "has"
+  students ||--o{ project_members : "participates"
+  teachers ||--o{ documents : "reviews"
+  documents ||--o{ internship_documents : "links"
+  documents ||--o{ project_documents : "links"
+  internship_documents ||--o{ internship_logbooks : "has"
+  internship_documents ||--o{ internship_evaluations : "has"
+  project_documents ||--o{ project_test_requests : "has"
+  project_documents ||--o{ project_defense_requests : "has"
+  project_members ||--o{ meetings : "attends"
+  meetings ||--o{ meeting_logs : "has"
+  documents ||--o{ approval_tokens : "generates"
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px;">
+    <h3>ตารางหลักในระบบ</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+      <span class="feature-tag">users</span>
+      <span class="feature-tag">students</span>
+      <span class="feature-tag">teachers</span>
+      <span class="feature-tag">curriculums</span>
+      <span class="feature-tag">academics</span>
+      <span class="feature-tag">documents</span>
+      <span class="feature-tag">internship_documents</span>
+      <span class="feature-tag">internship_logbooks</span>
+      <span class="feature-tag">internship_evaluations</span>
+      <span class="feature-tag">project_documents</span>
+      <span class="feature-tag">project_members</span>
+      <span class="feature-tag">project_test_requests</span>
+      <span class="feature-tag">project_defense_requests</span>
+      <span class="feature-tag">meetings</span>
+      <span class="feature-tag">meeting_logs</span>
+      <span class="feature-tag">approval_tokens</span>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 10. USE CASE -->
+<section id="usecase">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Use Case Diagram</h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:16px;">แผนภาพ Use Case แสดงการโต้ตอบระหว่างผู้ใช้กับระบบ แบ่งเป็น 3 ระบบย่อย</p>
+
+  <!-- Tabs for subsystems -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('uc-user')">ระบบจัดการผู้ใช้งาน</button>
+    <button class="tab-btn" onclick="showTab('uc-intern')">ระบบฝึกงาน</button>
+    <button class="tab-btn" onclick="showTab('uc-project')">ระบบโครงงานพิเศษ</button>
+  </div>
+
+  <div class="tab-content active" id="uc-user">
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TB
+  subgraph ระบบจัดการผู้ใช้งาน
+    UC1["ล็อกอิน"]
+    UC2["ตรวจสอบสิทธิ์"]
+    UC3["นำเข้าข้อมูลผู้ใช้งาน<br/>โดย Excel, CSV"]
+    UC4["จัดการสิทธิ์"]
+    UC1 -.->|include| UC2
+  end
+  ADMIN["👨‍💼 เจ้าหน้าที่<br/>ภาควิชาฯ"] --> UC1
+  ADMIN --> UC3
+  ADMIN --> UC4
+  STUDENT["🎓 นักศึกษา"] --> UC1
+  TEACHER["👨‍🏫 อาจารย์"] --> UC1
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="uc-intern">
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TB
+  subgraph ระบบฝึกงาน
+    UC1["ยื่นคำร้องขอฝึกงาน"]
+    UC2["อนุมัติบันทึกการปฏิบัติงาน"]
+    UC3["ประเมินนักศึกษาฝึกงาน"]
+    UC4["ตรวจสอบ/อนุมัติ<br/>เอกสารหรือคำร้อง"]
+    UC5["ส่งรายงานการปฏิบัติงาน"]
+    UC6["ยื่นคำร้องขอหนังสือ<br/>รับรองการฝึกงาน"]
+    UC7["บันทึกการปฏิบัติงาน"]
+  end
+  STUDENT["🎓 นักศึกษา"] --> UC1
+  STUDENT --> UC5
+  STUDENT --> UC6
+  STUDENT --> UC7
+  ADMIN["👨‍💼 เจ้าหน้าที่"] --> UC4
+  TEACHER["👨‍🏫 อาจารย์<br/>(หัวหน้าภาค)"] --> UC4
+  SUPERVISOR["🏢 ผู้ควบคุมงาน"] --> UC2
+  SUPERVISOR --> UC3
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="uc-project">
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TB
+  subgraph ระบบโครงงานพิเศษ
+    UC1["เสนอหัวข้อโครงงานพิเศษ"]
+    UC2["ตรวจสอบ/อนุมัติ<br/>บันทึกการพบ"]
+    UC3["นำออกข้อมูลรายชื่อ<br/>นักศึกษา"]
+    UC4["สร้างคำร้อง<br/>(ทดสอบระบบ, โครงงาน,<br/>ปริญญานิพนธ์)"]
+    UC5["อนุมัติคำร้อง<br/>(ทดสอบระบบ, โครงงาน,<br/>ปริญญานิพนธ์)"]
+    UC6["บันทึกผลสอบหัวข้อโครงงาน,<br/>โครงงานพิเศษ 1 และ<br/>ปริญญานิพนธ์"]
+    UC7["บันทึก/แก้ไขการพบ<br/>อาจารย์ที่ปรึกษา"]
+  end
+  STUDENT["🎓 นักศึกษา"] --> UC1
+  STUDENT --> UC4
+  STUDENT --> UC7
+  ADMIN["👨‍💼 เจ้าหน้าที่"] --> UC6
+  TEACHER_AUTH["👨‍🏫 อาจารย์<br/>(มีสิทธิ์)"] --> UC3
+  TEACHER_AUTH --> UC5
+  TEACHER_ADV["👨‍🏫 อาจารย์<br/>(ที่ปรึกษา)"] --> UC2
+  TEACHER_ADV --> UC5
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 11. DEMO: USER MANAGEMENT -->
+<section id="demo-user">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>ระบบจัดการผู้ใช้งาน — Demo</h2>
+  </div>
+  <p style="color:var(--text2);margin-bottom:20px;">หน้าจอหลักของระบบ แบ่งตามบทบาทผู้ใช้</p>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-title">🔐 ล็อคอิน</div>
+      <div class="demo-desc">ล็อคอินผ่าน ICT Account (SSO ของ KMUTNB) เข้าสู่ระบบอัตโนมัติ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">SSO</span><span class="feature-tag">JWT</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📊 Dashboard เจ้าหน้าที่</div>
+      <div class="demo-desc">ภาพรวมจำนวนนักศึกษา ฝึกงาน โครงงาน งานที่ต้องดำเนินการ สถานะเอกสาร กำหนดการใกล้ถึง</div>
+      <div style="margin-top:8px;"><span class="feature-tag">สถิติ</span><span class="feature-tag">Action Items</span><span class="feature-tag">Deadline</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">🎓 Dashboard นักศึกษา</div>
+      <div class="demo-desc">สถานะการฝึกงาน สถานะโครงงานพิเศษ ทางลัดสำคัญ กำหนดการใกล้ถึง</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Logbook</span><span class="feature-tag">Progress</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">👨‍🏫 Dashboard อาจารย์</div>
+      <div class="demo-desc">นักศึกษาที่ปรึกษา โครงงานระหว่างดำเนินการ งานที่รออนุมัติ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Approval Queue</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📥 นำเข้าข้อมูลผู้ใช้ (CSV/Excel)</div>
+      <div class="demo-desc">อัปโหลดรายชื่อนักศึกษา ตั้งค่าหลักสูตร/ปีการศึกษา ตรวจสอบข้อมูลก่อนนำเข้า</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Bulk Import</span><span class="feature-tag">Validation</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">🔑 จัดการสิทธิ์</div>
+      <div class="demo-desc">เพิ่ม/แก้ไขอาจารย์ กำหนดตำแหน่ง เปิดสิทธิ์การนำออกข้อมูล/สอบโครงงานพิเศษ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">RBAC</span><span class="feature-tag">Permissions Toggle</span></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 12. DEMO: INTERNSHIP -->
+<section id="demo-intern">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>ระบบฝึกงาน — Demo</h2>
+  </div>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-title">📝 ยื่นคำร้องขอฝึกงาน</div>
+      <div class="demo-desc">กรอก คพ.05 พร้อมเอกสารแสดงผลการเรียน ระบบตรวจสอบเงื่อนไขอัตโนมัติ แสดง Stepper 8 ขั้นตอน</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Stepper</span><span class="feature-tag">Auto-validation</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">✅ ตรวจสอบ อนุมัติเอกสารหรือคำขอ</div>
+      <div class="demo-desc">เจ้าหน้าที่ตรวจสอบเอกสารคำร้อง แสดงสถิติรอตรวจสอบ/อนุมัติแล้ว/ปฏิเสธ กรองตามสถานะ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Status Filter</span><span class="feature-tag">Batch Actions</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📓 บันทึกการปฏิบัติงาน</div>
+      <div class="demo-desc">บันทึกรายวัน: วันที่ เวลาเข้า/ออก สถานที่ หัวข้องาน รายละเอียด สิ่งที่เรียนรู้ ทักษะพิเศษ ส่งอนุมัติต่อผู้ควบคุมงาน</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Daily Log</span><span class="feature-tag">Timeline</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📊 ดูบันทึกสรุปการฝึกงาน</div>
+      <div class="demo-desc">สรุปผลการฝึกงาน: วันทำงานทั้งหมด ชั่วโมงทำงาน ความคืบหน้า 240 ชม. ข้อมูลรายสัปดาห์ ทักษะ ความสำเร็จ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Progress Ring</span><span class="feature-tag">Weekly Stats</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📋 ส่งรายงานการปฏิบัติงาน / อนุมัติ</div>
+      <div class="demo-desc">นักศึกษาส่งรายการปฏิบัติงานเพื่ออนุมัติ ผู้ควบคุมงานอนุมัติผ่านลิงค์อีเมล ตั้งค่าอนุมัติทั้งหมด/ไม่อนุมัติรายการ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Email Link</span><span class="feature-tag">Bulk Approve</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">⭐ ประเมินผลนักศึกษาฝึกงาน</div>
+      <div class="demo-desc">แบบประเมิน 5 หมวด (100 คะแนน): ระเบียบวินัย, พฤติกรรม, ผลงาน, ทักษะ, มนุษยสัมพันธ์ — ผ่าน ≥ 70 คะแนน</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Star Rating</span><span class="feature-tag">Auto Scoring</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📜 ยื่นคำร้องขอหนังสือรับรองการฝึกงาน</div>
+      <div class="demo-desc">ตรวจเงื่อนไข: ≥240 ชม. + ผ่านประเมิน → ส่งคำขอ → เจ้าหน้าที่ตรวจสอบ 3-5 วัน → หนังสือรับรอง PDF อัตโนมัติ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Auto PDF</span><span class="feature-tag">Condition Check</span></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 13. DEMO: PROJECT -->
+<section id="demo-project">
+  <div class="section-header">
+    <div class="section-num">13</div>
+    <h2>ระบบโครงงานพิเศษ — Demo</h2>
+  </div>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-title">💡 เสนอหัวข้อโครงงานพิเศษ</div>
+      <div class="demo-desc">แผงสรุปโครงงาน: โครงงานพิเศษ & ปริญญานิพนธ์, เสนอหัวข้อ, บันทึกการพบอาจารย์, ส่งเอกสารสอบ, ทดสอบระบบ 30 วัน, ยื่น คพ.03</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Workflow Cards</span><span class="feature-tag">Progress Panel</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📤 นำออกข้อมูลรายชื่อนักศึกษา</div>
+      <div class="demo-desc">อาจารย์ที่มีสิทธิ์สามารถ export รายชื่อหัวข้อโครงงานพิเศษ พร้อมกรองปี/ภาคเรียน/สถานะ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Export</span><span class="feature-tag">Filter</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📊 บันทึกผลการสอบ</div>
+      <div class="demo-desc">เจ้าหน้าที่บันทึกผลสอบ: ผ่าน/ปรับปรุง/ไม่ผ่าน เลือกอาจารย์ที่ปรึกษา กำหนด Progress %</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Exam Results</span><span class="feature-tag">Advisor Assignment</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📝 บันทึก/แก้ไขการพบอาจารย์ที่ปรึกษา</div>
+      <div class="demo-desc">บันทึกการพบ: วันที่ประชุม หัวข้อ สรุปการประชุม → ส่งอนุมัติ → อาจารย์ยืนยัน ดูจำนวนครั้ง/สถานะ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Meeting Log</span><span class="feature-tag">Scheduling</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">✅ ตรวจสอบอนุมัติ บันทึกการเข้าพบ</div>
+      <div class="demo-desc">อาจารย์ตรวจสอบรายละเอียดการประชุม กรองตามปี/ภาค/สถานะ อนุมัติ/ขอปรับปรุง</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Approval Queue</span><span class="feature-tag">Filter</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📋 สร้างคำร้อง (โครงงานพิเศษ)</div>
+      <div class="demo-desc">สร้าง คพ.02 (สอบโครงงาน1): กรอกวันที่ ข้อมูลสมาชิก อาจารย์ที่ปรึกษา → ส่งอนุมัติ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Form Builder</span><span class="feature-tag">Auto-fill</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">🔍 อนุมัติคำขอ (โครงงาน)</div>
+      <div class="demo-desc">อาจารย์/เจ้าหน้าที่ตรวจสอบคำร้อง แสดงสถานะรออนุมัติ/อนุมัติแล้ว/ขอปรับปรุง ดำเนินการอนุมัติ/ปฏิเสธ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Multi-step Approval</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">🧪 สร้างคำร้องขอ (ทดสอบระบบ)</div>
+      <div class="demo-desc">คพ.04 ทดสอบระบบ 30 วัน: กำหนดช่วงวันที่ รายละเอียดเพิ่มเติม อัปโหลดไฟล์ PDF ทดสอบระบบ</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Date Range</span><span class="feature-tag">PDF Upload</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">🎓 สร้างคำร้องขอ (สอบปริญญานิพนธ์)</div>
+      <div class="demo-desc">คพ.03 สอบโครงงานพิเศษ 2: ตรวจเงื่อนไขอัตโนมัติ (ทดสอบระบบผ่าน + อัปโหลดหลักฐาน + พบอาจารย์ 4 ครั้ง) บันทึกข้อมูลสมาชิก</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Pre-condition Check</span><span class="feature-tag">Auto-verify</span></div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-title">📑 อนุมัติคำขอ (ปริญญานิพนธ์)</div>
+      <div class="demo-desc">อาจารย์ที่ปรึกษาอนุมัติ → เจ้าหน้าที่ตรวจสอบ → ส่งออกข้อมูล → ตรวจสอบเล่มเอกสาร</div>
+      <div style="margin-top:8px;"><span class="feature-tag">Workflow Chain</span><span class="feature-tag">Document Tracking</span></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- 14. LIMITATIONS & EDGE CASES -->
+<section id="limitations">
+  <div class="section-header">
+    <div class="section-num">14</div>
+    <h2>ข้อจำกัดของระบบ & Edge Cases</h2>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h3 style="margin-bottom:12px;">⚠️ ข้อจำกัดของระบบ</h3>
+    <div style="color:var(--text2);">
+      <p><strong>การส่งแจ้งเตือนอีเมล</strong></p>
+      <ul style="margin-top:8px;">
+        <li>ผู้ให้บริการ Email server มีค่าใช้จ่ายสูง</li>
+        <li>Gmail SMTP : มีการจำกัดการส่งอีเมลได้ประมาณ 150 ฉบับต่อวัน</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom:16px;">Edge Cases ที่ระบบรองรับ</h3>
+  <div style="overflow-x:auto;">
+  <table class="edge-table">
+    <thead>
+      <tr><th>ลำดับ</th><th>กรณี (Case)</th><th>หมายเหตุ / วิธีจัดการ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>ยังไม่มีการอนุมัติคำขอ</td><td>—</td></tr>
+      <tr><td>2</td><td>นักศึกษากรอกหรืออัปโหลดรายละเอียดมาผิด</td><td>เจ้าหน้าที่สามารถปฏิเสธ คำขอนั้น เพื่อให้นักศึกษาส่งคำร้อง คพ.05 มาใหม่ได้</td></tr>
+      <tr><td>3</td><td>ยกเลิกฝึกงานกลางคัน</td><td>โดยให้นักศึกษาแจ้งเจ้าหน้าที่</td></tr>
+      <tr><td>4</td><td>คู่โปรเจคข้ามชั้นปี</td><td>—</td></tr>
+      <tr><td>5</td><td>ขอสอบโครงงานพิเศษ อาจารย์ปฏิเสธ 1 คน (กรณีมีที่ปรึกษาร่วม)</td><td>ต้องปรึกษากับอาจารย์เพื่อทำการกดอนุมัติ ในคำขอ</td></tr>
+      <tr><td>6</td><td>ทดสอบระบบ หากอาจารย์ ปฏิเสธ 1 คน (กรณีมีที่ปรึกษาร่วม)</td><td>จะต้องส่งคำร้องไปใหม่</td></tr>
+      <tr><td>7</td><td>ขอสอบปริญญานิพนธ์ อาจารย์ปฏิเสธ 1 คน (กรณีมีที่ปรึกษาร่วม)</td><td>ต้องปรึกษากับอาจารย์เพื่อทำการกดอนุมัติ ในคำขอ</td></tr>
+      <tr><td>8</td><td>คู่โปรเจครีไทค์</td><td>สามารถดำเนินโครงงานต่อไปได้</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- PROCESS STATS CHART -->
+<section id="stats" style="padding-bottom:40px;">
+  <div class="section-header">
+    <div class="section-num">📊</div>
+    <h2>สรุปภาพรวมกระบวนการ</h2>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="processChart" height="300"></canvas>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>CS Logbook — ระบบสมุดฝึกงานและติดตามความคืบหน้าปริญญานิพนธ์</p>
+  <p style="margin-top:4px;">King Mongkut's University of Technology North Bangkok</p>
+  <p style="margin-top:4px;opacity:0.6;">นิวัฒน์ เสียงใส & ชินกฤต ศรีป่าน</p>
+</footer>
+
+<script>
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.querySelector('.theme-toggle').textContent = isDark ? '🌙' : '☀️';
+  // Re-init mermaid for theme
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark ? 'default' : 'dark',
+    flowchart: { useMaxWidth: true, htmlLabels: true }
+  });
+}
+
+// Scroll progress
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('scrollProgress').style.width = pct + '%';
+});
+
+// Active nav
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -60% 0px' });
+sections.forEach(s => observer.observe(s));
+
+// Fade-in
+const fadeObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('section').forEach(s => fadeObserver.observe(s));
+
+// Tabs
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  // Re-render mermaid in newly visible tab
+  const container = document.getElementById(id);
+  const mermaidDivs = container.querySelectorAll('.mermaid[data-processed]');
+  // For tabs that haven't been rendered yet
+  mermaid.run({ nodes: container.querySelectorAll('.mermaid:not([data-processed])') });
+}
+
+// Mermaid init
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+  er: { useMaxWidth: true }
+});
+
+// Charts
+window.addEventListener('load', () => {
+  // Role permissions chart
+  const roleCtx = document.getElementById('roleChart');
+  if (roleCtx) {
+    new Chart(roleCtx, {
+      type: 'bar',
+      data: {
+        labels: ['เจ้าหน้าที่ภาควิชา', 'นักศึกษา', 'อาจารย์', 'ผู้ควบคุมงาน'],
+        datasets: [{
+          label: 'จำนวนฟังก์ชันการใช้งาน',
+          data: [6, 6, 4, 2],
+          backgroundColor: ['#2563eb', '#0891b2', '#f59e0b', '#10b981'],
+          borderRadius: 8,
+          barThickness: 50
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#e2e8f022' }, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Process steps chart
+  const processCtx = document.getElementById('processChart');
+  if (processCtx) {
+    new Chart(processCtx, {
+      type: 'bar',
+      data: {
+        labels: ['ฝึกงาน', 'โครงงานพิเศษ 1', 'ปริญญานิพนธ์'],
+        datasets: [
+          { label: 'นักศึกษา', data: [7, 3, 2], backgroundColor: '#0891b2', borderRadius: 6 },
+          { label: 'เจ้าหน้าที่', data: [2, 2, 1], backgroundColor: '#2563eb', borderRadius: 6 },
+          { label: 'อาจารย์/หัวหน้าภาค', data: [2, 3, 4], backgroundColor: '#f59e0b', borderRadius: 6 },
+          { label: 'ผู้ควบคุมงาน', data: [2, 0, 0], backgroundColor: '#10b981', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'จำนวนขั้นตอนแยกตามผู้รับผิดชอบ', font: { size: 14, weight: '600' } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#e2e8f022' } }
+        }
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
