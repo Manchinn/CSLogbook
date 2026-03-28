@@ -14,6 +14,7 @@ const {
 } = require('../models');
 const { UPLOAD_CONFIG } = require('../config/uploadConfig');
 const logger = require('../utils/logger');
+const { getCurrentAcademicYear } = require('../utils/studentUtils');
 const notificationService = require('./notificationService');
 const projectDocumentService = require('./projectDocumentService');
 const deadlineAutoAssignService = require('./deadlineAutoAssignService');
@@ -388,7 +389,8 @@ class DocumentService {
      */
     async getDocuments(filters = {}, pagination = {}, userId = null, userRole = null) {
         try {
-            const { type, status, search, academicYear, semester } = filters;
+            const { type, status, search, semester } = filters;
+            let { academicYear } = filters;
             const { limit = 50, offset = 0 } = pagination;
 
             // สร้าง query condition พื้นฐาน
@@ -398,6 +400,11 @@ class DocumentService {
             const staffRoles = ['admin', 'teacher', 'head', 'staff'];
             if (userId && !staffRoles.includes(userRole)) {
                 whereCondition.userId = userId;
+            }
+
+            // Default to current academic year for admin/teacher/staff when not specified
+            if (!academicYear && staffRoles.includes(userRole)) {
+                academicYear = await getCurrentAcademicYear();
             }
 
             if (type && type !== 'all') {

@@ -1189,7 +1189,7 @@ class ProjectDefenseRequestService {
         project: request.project
       });
       
-      const deadlineTag = createDeadlineTag(deadlineStatus);
+      const deadlineTag = createDeadlineTag(deadlineStatus, request.submittedLate, request.submissionDelayMinutes);
       
       // Attach deadline status to request data before serialization
       request._deadlineStatus = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   listAdminProjectDocuments,
@@ -12,6 +12,7 @@ import {
   type AdminProjectDocument,
 } from "@/lib/services/adminProjectDocumentsService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAcademicYears } from "@/hooks/useAcademicYears";
 import { labelStatus } from "@/lib/utils/statusLabels";
 import styles from "@/styles/shared/admin-queue.module.css";
 
@@ -42,10 +43,20 @@ function canSelectRow(document: AdminProjectDocument) {
 
 export default function AdminProjectDocumentsPage() {
   const queryClient = useQueryClient();
+  const { data: academicYears = [] } = useAcademicYears();
+  const [academicYear, setAcademicYear] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Default to active academic year once loaded
+  useEffect(() => {
+    if (!academicYear && academicYears.length > 0) {
+      const active = academicYears.find((y) => y.status === "active");
+      if (active) setAcademicYear(String(active.academicYear));
+    }
+  }, [academicYear, academicYears]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selected, setSelected] = useState<AdminProjectDocument | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,10 +69,11 @@ export default function AdminProjectDocumentsPage() {
     () => ({
       status: status || undefined,
       search: search.trim() || undefined,
+      academicYear: academicYear || undefined,
       limit: pageSize,
       offset: (page - 1) * pageSize,
     }),
-    [page, pageSize, search, status],
+    [academicYear, page, pageSize, search, status],
   );
 
   const documentsQuery = useQuery({
@@ -117,6 +129,8 @@ export default function AdminProjectDocumentsPage() {
   const onReset = () => {
     setSearch("");
     setStatus("pending");
+    const active = academicYears.find((y) => y.status === "active");
+    setAcademicYear(active ? String(active.academicYear) : "");
     setPage(1);
     setSelectedIds([]);
   };
@@ -222,6 +236,14 @@ export default function AdminProjectDocumentsPage() {
               <option value="pending">รอตรวจสอบ</option>
               <option value="approved">อนุมัติ</option>
               <option value="rejected">ปฏิเสธ</option>
+            </select>
+            <select className={styles.select} value={academicYear} onChange={(e) => { setAcademicYear(e.target.value); setPage(1); }}>
+              <option value="">ทุกปีการศึกษา</option>
+              {academicYears.map((y) => (
+                <option key={y.academicYear} value={y.academicYear}>
+                  {y.academicYear}{y.status === "active" ? " (ปัจจุบัน)" : ""}
+                </option>
+              ))}
             </select>
             <div className={styles.buttonRow}>
               <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={handleBulkReview} disabled={!selectedIds.length || isBulkBusy}>

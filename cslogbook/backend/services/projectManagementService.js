@@ -12,6 +12,7 @@ const {
 } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
+const { getCurrentAcademicYear } = require('../utils/studentUtils');
 const workflowService = require('./workflowService');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -339,9 +340,12 @@ class ProjectManagementService {
         limit = 20
       } = filters;
 
+      // Default to current active academic year when not specified
+      const effectiveAcademicYear = academicYear || await getCurrentAcademicYear();
+
       const where = {};
       if (status) where.status = status;
-      if (academicYear) where.academicYear = academicYear;
+      if (effectiveAcademicYear) where.academicYear = effectiveAcademicYear;
       if (semester) where.semester = semester;
 
       const offset = (page - 1) * limit;

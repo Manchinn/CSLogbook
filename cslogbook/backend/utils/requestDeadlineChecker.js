@@ -214,8 +214,28 @@ async function checkSystemTestRequestDeadline(request) {
  * @param {Object} deadlineStatus - ผลจาก check*Deadline functions
  * @returns {Object|null} { color, text, tooltip } หรือ null ถ้าไม่มี tag
  */
-function createDeadlineTag(deadlineStatus) {
+function createDeadlineTag(deadlineStatus, fallbackSubmittedLate = false, fallbackDelayMinutes = null) {
   if (!deadlineStatus || !deadlineStatus.hasDeadline) {
+    // Fallback: ถ้าไม่มี ImportantDeadline record แต่มีข้อมูล submittedLate จาก DB
+    if (fallbackSubmittedLate) {
+      const minutesLate = fallbackDelayMinutes || 0;
+      const hoursLate = Math.floor(minutesLate / 60);
+      const daysLate = Math.floor(hoursLate / 24);
+
+      let lateText = '';
+      if (daysLate > 0) {
+        lateText = `${daysLate} วัน`;
+      } else if (hoursLate > 0) {
+        lateText = `${hoursLate} ชั่วโมง`;
+      }
+
+      return {
+        color: 'warning',
+        text: 'ส่งล่าช้า',
+        tooltip: lateText ? `ส่งช้า ${lateText}` : 'ส่งหลังกำหนด',
+        type: 'late'
+      };
+    }
     return null;
   }
 

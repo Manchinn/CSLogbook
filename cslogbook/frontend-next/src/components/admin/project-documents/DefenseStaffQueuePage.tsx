@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DEFENSE_TYPE_THESIS,
@@ -13,6 +13,7 @@ import {
   useAdminDefenseQueue,
   useAdminDefenseQueueMutations,
 } from "@/hooks/useAdminDefenseQueue";
+import { useAcademicYears } from "@/hooks/useAcademicYears";
 import styles from "@/styles/shared/admin-queue.module.css";
 import local from "./DefenseStaffQueuePage.local.module.css";
 
@@ -66,10 +67,19 @@ type DefenseStaffQueuePageProps = {
 
 export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProps) {
   const { user } = useAuth();
+  const { data: academicYearOptions = [] } = useAcademicYears();
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
+
+  // Default to active academic year once loaded
+  useEffect(() => {
+    if (!academicYear && academicYearOptions.length > 0) {
+      const active = academicYearOptions.find((y) => y.status === "active");
+      if (active) setAcademicYear(String(active.academicYear));
+    }
+  }, [academicYear, academicYearOptions]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<DefenseQueueRecord | null>(null);
@@ -208,7 +218,8 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             onClick={() => {
               setStatus("all");
               setSearch("");
-              setAcademicYear("");
+              const active = academicYearOptions.find((y) => y.status === "active");
+              setAcademicYear(active ? String(active.academicYear) : "");
               setSemester("");
               setPage(1);
             }}

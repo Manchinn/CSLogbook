@@ -659,9 +659,9 @@ class ProjectSystemTestService {
       const deadlineStatus = await checkSystemTestRequestDeadline(
         this.serialize(record)
       );
-      
-      const deadlineTag = createDeadlineTag(deadlineStatus);
-      
+
+      const deadlineTag = createDeadlineTag(deadlineStatus, record.submittedLate, record.submissionDelayMinutes);
+
       // Attach deadline status to record data before serialization
       record._deadlineStatus = {
         ...deadlineStatus,
@@ -709,7 +709,7 @@ class ProjectSystemTestService {
         const deadlineStatus = await checkSystemTestRequestDeadline(
           this.serialize(record)
         );
-        const deadlineTag = createDeadlineTag(deadlineStatus);
+        const deadlineTag = createDeadlineTag(deadlineStatus, record.submittedLate, record.submissionDelayMinutes);
         record._deadlineStatus = {
           ...deadlineStatus,
           tag: deadlineTag
