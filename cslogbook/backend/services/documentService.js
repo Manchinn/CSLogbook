@@ -120,33 +120,82 @@ class DocumentService {
                 }
             }
 
-            // บันทึกข้อมูลลงฐานข้อมูล
-            const document = await Document.create({
-                userId,
-                documentType,
-                category,
-                documentName: documentName || (fileData?.originalname) || fileData?.filename || 'unnamed',
-                filePath: fileData.path,
-                fileName: fileData.filename,
-                mimeType: fileData.mimetype,
-                fileSize: fileData.size,
-                status: 'pending',
-                importantDeadlineId: finalDeadlineId || null,
-                submittedAt,
-                isLate,
-                lateMinutes,
-                dueDate: dueDate || null,
-                // 🆕 Google Classroom-style late tracking
-                submittedLate: isLate,
-                submissionDelayMinutes: lateMinutes
+            // ตรวจสอบว่ามีเอกสารประเภทเดียวกันที่ถูก reject อยู่หรือไม่ — ถ้ามี ให้ resubmit โดยอัปเดตเอกสารเดิม
+            const resolvedDocName = documentName || (fileData?.originalname) || fileData?.filename || 'unnamed';
+            const rejectedDocument = await Document.findOne({
+                where: {
+                    userId,
+                    documentType,
+                    category,
+                    documentName: resolvedDocName,
+                    status: 'rejected',
+                },
+                order: [['created_at', 'DESC']],
             });
 
-            logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);
+            let document;
+            if (rejectedDocument) {
+                // --- Resubmit: อัปเดตเอกสารเดิมที่ถูก reject เพื่อเก็บ audit trail ---
+                try {
+                    await DocumentLog.create({
+                        documentId: rejectedDocument.documentId,
+                        userId: userId,
+                        actionType: 'update',
+                        previousStatus: 'rejected',
+                        newStatus: 'pending',
+                        comment: 'นักศึกษาส่งเอกสารใหม่หลังถูกปฏิเสธ (resubmit)'
+                    });
+                } catch (logErr) {
+                    logger.warn('Unable to create DocumentLog for resubmission:', logErr.message);
+                }
+
+                await rejectedDocument.update({
+                    filePath: fileData.path,
+                    fileName: fileData.filename,
+                    mimeType: fileData.mimetype,
+                    fileSize: fileData.size,
+                    status: 'pending',
+                    importantDeadlineId: finalDeadlineId || null,
+                    submittedAt,
+                    isLate,
+                    lateMinutes,
+                    dueDate: dueDate || null,
+                    submittedLate: isLate,
+                    submissionDelayMinutes: lateMinutes,
+                    reviewerId: null,
+                    reviewDate: null,
+                });
+
+                document = rejectedDocument;
+                logger.info(`Document resubmitted (updated existing ${document.documentId}) by user ${userId}`);
+            } else {
+                // --- First-time submission: สร้างเอกสารใหม่ ---
+                document = await Document.create({
+                    userId,
+                    documentType,
+                    category,
+                    documentName: resolvedDocName,
+                    filePath: fileData.path,
+                    fileName: fileData.filename,
+                    mimeType: fileData.mimetype,
+                    fileSize: fileData.size,
+                    status: 'pending',
+                    importantDeadlineId: finalDeadlineId || null,
+                    submittedAt,
+                    isLate,
+                    lateMinutes,
+                    dueDate: dueDate || null,
+                    submittedLate: isLate,
+                    submissionDelayMinutes: lateMinutes
+                });
+
+                logger.info(`Document uploaded successfully: ${document.id} by user ${userId}`);
+            }
 
             return {
-                documentId: document.id,
+                documentId: document.documentId || document.id,
                 fileUrl: `/uploads/${fileData.filename}`,
-                message: 'อัปโหลดไฟล์สำเร็จ',
+                message: rejectedDocument ? 'ส่งเอกสารใหม่สำเร็จ' : 'อัปโหลดไฟล์สำเร็จ',
                 isLate,
                 lateMinutes
             };
@@ -896,6 +945,8 @@ class DocumentService {
                 throw new Error('ไม่พบเอกสาร');
             }
 
+            const previousStatus = document.status;
+
             // บันทึกเหตุผลลง reviewComment (คอลัมน์จริงในตาราง documents)
             await document.update({
                 status: 'rejected',
@@ -903,6 +954,20 @@ class DocumentService {
                 reviewerId: reviewerId,
                 reviewDate: new Date()
             });
+
+            // บันทึก DocumentLog เพื่อเก็บ audit trail ของการ reject
+            try {
+                await DocumentLog.create({
+                    documentId: documentId,
+                    userId: reviewerId,
+                    actionType: 'reject',
+                    previousStatus: previousStatus,
+                    newStatus: 'rejected',
+                    comment: reason || 'ไม่ได้ระบุเหตุผล'
+                });
+            } catch (logErr) {
+                logger.warn('Unable to create DocumentLog for rejection:', logErr.message);
+            }
 
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
 

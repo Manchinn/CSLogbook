@@ -4,6 +4,7 @@ const {
   InternshipDocument,
   Student,
   User,
+  DocumentLog,
 } = require("../../models");
 const { sequelize } = require("../../config/database");
 const {
@@ -217,7 +218,8 @@ class InternshipDocumentService {
         classroom,
       } = formData;
 
-      const existingDocument = await Document.findOne({
+      // ตรวจสอบว่ามีคำร้อง CS05 ที่รอการพิจารณาอยู่หรือไม่
+      const existingPending = await Document.findOne({
         where: {
           userId,
           documentName: "CS05",
@@ -225,9 +227,26 @@ class InternshipDocumentService {
         },
       });
 
-      if (existingDocument) {
+      if (existingPending) {
         throw new Error("คุณมีคำร้อง CS05 ที่รอการพิจารณาอยู่แล้ว");
       }
+
+      // ตรวจสอบว่ามีคำร้อง CS05 ที่ถูกปฏิเสธอยู่หรือไม่ — ถ้ามี ให้ resubmit โดยอัปเดตเอกสารเดิม
+      const rejectedDocument = await Document.findOne({
+        where: {
+          userId,
+          documentName: "CS05",
+          status: "rejected",
+        },
+        include: [
+          {
+            model: InternshipDocument,
+            as: "internshipDocument",
+            required: false,
+          },
+        ],
+        order: [["created_at", "DESC"]],
+      });
 
       const isLate = deadlineInfo?.isLate === true;
       const minutesLateFromDeadlineInfo = deadlineInfo?.deadlineInfo?.minutesLate;
@@ -243,47 +262,131 @@ class InternshipDocumentService {
       const importantDeadlineId =
         deadlineInfo?.applicableDeadline?.id ?? deadlineInfo?.deadlineInfo?.id ?? null;
 
-      const document = await Document.create(
-        {
-          userId,
-          documentType: "INTERNSHIP",
-          documentName: "CS05",
-          category: "proposal",
-          status: "pending",
-          filePath: fileData.path,
-          fileName: fileData.filename,
-          fileSize: fileData.size,
-          mimeType: fileData.mimetype,
-          isLate,
-          lateMinutes,
-          submittedLate,
-          submissionDelayMinutes,
-          importantDeadlineId,
-          submittedAt: new Date()
-        },
-        { transaction }
-      );
+      let document;
+      let internshipDoc;
 
-      const internshipDoc = await InternshipDocument.create(
-        {
-          documentId: document.documentId,
-          companyName,
-          companyAddress,
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
-          status: "pending",
-          internshipPosition,
-          contactPersonName,
-          contactPersonPosition,
-          supervisorName: null,
-          supervisorPosition: null,
-          supervisorPhone: null,
-          supervisorEmail: null,
-          academicYear: await getCurrentAcademicYear(),
-          semester: await getCurrentSemester(),
-        },
-        { transaction }
-      );
+      if (rejectedDocument) {
+        // --- Resubmit: อัปเดตเอกสารเดิมที่ถูก reject เพื่อเก็บ audit trail ---
+        // บันทึก log ของการ resubmit
+        await DocumentLog.create(
+          {
+            documentId: rejectedDocument.documentId,
+            userId: userId,
+            actionType: "update",
+            previousStatus: "rejected",
+            newStatus: "pending",
+            comment: "นักศึกษาส่งเอกสารใหม่หลังถูกปฏิเสธ (resubmit)",
+          },
+          { transaction }
+        );
+
+        await rejectedDocument.update(
+          {
+            status: "pending",
+            filePath: fileData.path,
+            fileName: fileData.filename,
+            fileSize: fileData.size,
+            mimeType: fileData.mimetype,
+            isLate,
+            lateMinutes,
+            submittedLate,
+            submissionDelayMinutes,
+            importantDeadlineId,
+            submittedAt: new Date(),
+            // เคลียร์ review fields เพื่อให้พร้อมตรวจใหม่
+            reviewerId: null,
+            reviewDate: null,
+            // เก็บ reviewComment (เหตุผลการ reject) ไว้ใน DocumentLog แล้ว — ไม่ต้องเคลียร์
+          },
+          { transaction }
+        );
+
+        document = rejectedDocument;
+
+        // อัปเดต InternshipDocument ที่เชื่อมกับเอกสารเดิม
+        if (rejectedDocument.internshipDocument) {
+          await rejectedDocument.internshipDocument.update(
+            {
+              companyName,
+              companyAddress,
+              startDate: new Date(startDate),
+              endDate: new Date(endDate),
+              status: "pending",
+              internshipPosition,
+              contactPersonName,
+              contactPersonPosition,
+            },
+            { transaction }
+          );
+          internshipDoc = rejectedDocument.internshipDocument;
+        } else {
+          internshipDoc = await InternshipDocument.create(
+            {
+              documentId: rejectedDocument.documentId,
+              companyName,
+              companyAddress,
+              startDate: new Date(startDate),
+              endDate: new Date(endDate),
+              status: "pending",
+              internshipPosition,
+              contactPersonName,
+              contactPersonPosition,
+              supervisorName: null,
+              supervisorPosition: null,
+              supervisorPhone: null,
+              supervisorEmail: null,
+              academicYear: await getCurrentAcademicYear(),
+              semester: await getCurrentSemester(),
+            },
+            { transaction }
+          );
+        }
+
+        logger.info(`CS05 resubmitted (updated existing document ${document.documentId}) by user ${userId}`);
+      } else {
+        // --- First-time submission: สร้างเอกสารใหม่ ---
+        document = await Document.create(
+          {
+            userId,
+            documentType: "INTERNSHIP",
+            documentName: "CS05",
+            category: "proposal",
+            status: "pending",
+            filePath: fileData.path,
+            fileName: fileData.filename,
+            fileSize: fileData.size,
+            mimeType: fileData.mimetype,
+            isLate,
+            lateMinutes,
+            submittedLate,
+            submissionDelayMinutes,
+            importantDeadlineId,
+            submittedAt: new Date()
+          },
+          { transaction }
+        );
+
+        internshipDoc = await InternshipDocument.create(
+          {
+            documentId: document.documentId,
+            companyName,
+            companyAddress,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            status: "pending",
+            internshipPosition,
+            contactPersonName,
+            contactPersonPosition,
+            supervisorName: null,
+            supervisorPosition: null,
+            supervisorPhone: null,
+            supervisorEmail: null,
+            academicYear: await getCurrentAcademicYear(),
+            semester: await getCurrentSemester(),
+          },
+          { transaction }
+        );
+      }
 
       const student = await Student.findOne(
         {
