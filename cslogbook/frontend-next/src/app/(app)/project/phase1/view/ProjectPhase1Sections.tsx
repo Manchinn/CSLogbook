@@ -133,9 +133,17 @@ export function AcknowledgeNotice({ showAck, ackLoading, examFailReason, onOpen 
 
   return (
     <section className={styles.noticeDanger}>
-      <p className={styles.noticeTitle}>ผลสอบหัวข้อ: ไม่ผ่าน</p>
+      <p className={styles.noticeTitle}>ผลการสอบหัวข้อโครงงานพิเศษ: ไม่ผ่าน</p>
       <p className={styles.noticeBody}>คุณต้องรับทราบผลเพื่อให้ระบบเก็บหัวข้อนี้</p>
       {examFailReason ? <p className={styles.noticeReason}>เหตุผล: {examFailReason}</p> : null}
+      <div className={styles.noticeGuidance}>
+        <p className={styles.noticeGuidanceTitle}>ขั้นตอนถัดไป:</p>
+        <ul className={styles.noticeList}>
+          <li>ปรับปรุงหัวข้อตามข้อเสนอแนะของคณะกรรมการ</li>
+          <li>ยื่นคำขอสอบหัวข้อใหม่ได้ในภาคเรียนถัดไป</li>
+          <li>ติดต่ออาจารย์ที่ปรึกษาเพื่อวางแผนการดำเนินงาน</li>
+        </ul>
+      </div>
       <div className={styles.noticeActions}>
         <button
           type="button"
@@ -476,6 +484,14 @@ export function AcknowledgeModal({
         <div className={styles.modalBody}>
           <p>เมื่อรับทราบผล หัวข้อจะถูกเก็บถาวร และไม่สามารถย้อนกลับได้</p>
           {examFailReason ? <p className={styles.modalHint}>เหตุผล: {examFailReason}</p> : null}
+          <div className={styles.modalGuidance}>
+            <p className={styles.modalGuidanceTitle}>ขั้นตอนถัดไป:</p>
+            <ul className={styles.modalGuidanceList}>
+              <li>ปรับปรุงหัวข้อตามข้อเสนอแนะของคณะกรรมการ</li>
+              <li>ยื่นคำขอสอบหัวข้อใหม่ได้ในภาคเรียนถัดไป</li>
+              <li>ติดต่ออาจารย์ที่ปรึกษาเพื่อวางแผนการดำเนินงาน</li>
+            </ul>
+          </div>
         </div>
         <div className={styles.modalActions}>
           <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={ackLoading}>

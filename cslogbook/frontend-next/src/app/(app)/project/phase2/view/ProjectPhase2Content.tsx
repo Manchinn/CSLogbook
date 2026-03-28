@@ -12,7 +12,7 @@ import type { StudentDeadlineDetail } from "@/lib/services/studentService";
 import { DEFAULT_DEADLINE_KEYWORD_FILTER, getDeadlineBaseTime, getEffectiveDeadline, isDeadlineMatch } from "@/lib/project/deadlineUtils";
 import { getPhase2GateReasons } from "@/lib/project/phase2Gate";
 import { phase2Steps, type ProjectStep } from "./projectPhase2Steps";
-import { MeetingLogbookSection, Phase2GateNotice, StepGrid, SummaryCards } from "./ProjectPhase2Sections";
+import { MeetingLogbookSection, Phase2GateNotice, StepGrid, SummaryCards, ThesisFailNotice } from "./ProjectPhase2Sections";
 import styles from "./phase2.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -357,6 +357,8 @@ export default function ProjectPhase2Content() {
       ) : (
         <>
           <SummaryCards cards={cardSummary} />
+
+          <ThesisFailNotice thesisExamResult={workflow?.thesisExamResult} />
 
           <Phase2GateNotice eligibilityLoading={eligibilityLoading} phase2GateReasons={phase2GateReasons} />
 

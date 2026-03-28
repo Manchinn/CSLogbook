@@ -61,6 +61,29 @@ export function Phase2GateNotice({ eligibilityLoading, phase2GateReasons }: Phas
   );
 }
 
+type ThesisFailNoticeProps = {
+  thesisExamResult?: string | null;
+};
+
+export function ThesisFailNotice({ thesisExamResult }: ThesisFailNoticeProps) {
+  if (thesisExamResult !== "FAIL") return null;
+
+  return (
+    <section className={styles.noticeDanger}>
+      <p className={styles.noticeTitle}>ผลการสอบปริญญานิพนธ์: ไม่ผ่าน</p>
+      <p className={styles.noticeBody}>กรุณาตรวจสอบประเภทเกรดที่ได้รับจากอาจารย์ที่ปรึกษา และดำเนินการตามขั้นตอนด้านล่าง</p>
+      <div className={styles.noticeGuidance}>
+        <p className={styles.noticeGuidanceTitle}>ขั้นตอนถัดไป:</p>
+        <ul className={styles.noticeList}>
+          <li>เกรด I (Incomplete) — แก้ไขเล่มตามข้อเสนอแนะและส่งก่อนวันกำหนด ไม่ต้องสอบใหม่</li>
+          <li>เกรด IP (In Progress) — ต้องสอบใหม่ในภาคเรียนถัดไป (ไม่ต้องลงทะเบียนซ้ำ)</li>
+          <li>ติดต่ออาจารย์ที่ปรึกษาเพื่อยืนยันว่าได้รับเกรดประเภทใด</li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 type StepStatus = {
   label: string;
   tone: "default" | "info" | "success" | "warning" | "danger";

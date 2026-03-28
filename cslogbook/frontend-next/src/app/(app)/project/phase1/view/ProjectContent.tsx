@@ -29,6 +29,7 @@ import {
   MeetingLogbookSection,
   Phase2GateNotice,
   SummaryCards,
+  ThesisFailNotice,
 } from "../../phase2/view/ProjectPhase2Sections";
 import styles from "./phase1.module.css";
 
@@ -771,6 +772,10 @@ export default function ProjectContent() {
 
       {showPhaseContent && phase2Unlocked && (
         <SummaryCards cards={cardSummaryPhase2} />
+      )}
+
+      {showPhaseContent && phase2Unlocked && (
+        <ThesisFailNotice thesisExamResult={workflow?.thesisExamResult} />
       )}
 
       {showPhaseContent && (
