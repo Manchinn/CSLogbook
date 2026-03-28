@@ -208,14 +208,21 @@ const rejectDocument = async (req, res) => {
         });
     } catch (error) {
         logger.error('Error rejecting document:', error);
-        
+
         if (error.message === 'ไม่พบเอกสาร') {
             return res.status(404).json({
                 success: false,
                 message: error.message
             });
         }
-        
+
+        if (error.message === 'เอกสารนี้ถูกปฏิเสธแล้ว') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'เกิดข้อผิดพลาดในการปฏิเสธเอกสาร'
@@ -448,6 +455,9 @@ const rejectCertificateRequest = async (req, res) => {
 
         if (!remarks || !remarks.trim()) {
             return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลการปฏิเสธ' });
+        }
+        if (remarks.trim().length < 5 || remarks.trim().length > 1000) {
+            return res.status(400).json({ success: false, message: 'เหตุผลการปฏิเสธต้องมีความยาว 5-1000 ตัวอักษร' });
         }
 
         const result = await documentService.rejectCertificateRequest(

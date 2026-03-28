@@ -222,8 +222,11 @@ exports.reject = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body || {};
 
-    if (!reason) {
+    if (!reason || !reason.trim()) {
       return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลการปฏิเสธ' });
+    }
+    if (reason.trim().length < 5 || reason.trim().length > 1000) {
+      return res.status(400).json({ success: false, message: 'เหตุผลการปฏิเสธต้องมีความยาว 5-1000 ตัวอักษร' });
     }
 
     const doc = await loadCS05(id);
@@ -251,6 +254,7 @@ exports.reject = async (req, res) => {
     });
 
     // แจ้งเตือน notification
+    let notificationSent = false;
     try {
       const notificationService = require('../../services/notificationService');
       await notificationService.createAndNotify(doc.userId, {
@@ -264,11 +268,12 @@ exports.reject = async (req, res) => {
           targetUrl: '/project/documents'
         }
       });
+      notificationSent = true;
     } catch (notifyErr) {
       logger.warn('Notification failed (CS05 reject):', notifyErr.message);
     }
 
-    return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ' });
+    return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ', notificationSent });
   } catch (error) {
     console.error('CP05 reject error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

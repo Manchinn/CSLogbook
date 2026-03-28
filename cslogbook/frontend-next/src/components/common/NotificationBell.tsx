@@ -68,10 +68,8 @@ export default function NotificationBell() {
       if (!item.isRead) {
         markAsRead.mutate(item.notificationId);
       }
-      if (item.metadata?.targetUrl) {
-        setOpen(false);
-        router.push(item.metadata.targetUrl);
-      }
+      setOpen(false);
+      router.push(item.metadata?.targetUrl || '/dashboard');
     },
     [markAsRead, router]
   );

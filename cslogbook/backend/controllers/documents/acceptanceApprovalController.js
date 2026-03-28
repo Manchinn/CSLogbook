@@ -307,8 +307,11 @@ exports.reject = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body || {};
-    if (!reason) {
+    if (!reason || !reason.trim()) {
       return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลการปฏิเสธ' });
+    }
+    if (reason.trim().length < 5 || reason.trim().length > 1000) {
+      return res.status(400).json({ success: false, message: 'เหตุผลการปฏิเสธต้องมีความยาว 5-1000 ตัวอักษร' });
     }
     const doc = await loadAcceptance(id);
     const prevStatus = doc.status;
@@ -325,6 +328,7 @@ exports.reject = async (req, res) => {
       comment: reason,
     });
     // แจ้งเตือน notification
+    let notificationSent = false;
     try {
       const notificationService = require('../../services/notificationService');
       await notificationService.createAndNotify(doc.userId, {
@@ -338,10 +342,11 @@ exports.reject = async (req, res) => {
           targetUrl: '/internship/documents'
         }
       });
+      notificationSent = true;
     } catch (notifyErr) {
       logger.warn('Notification failed (Acceptance reject):', notifyErr.message);
     }
-    return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ' });
+    return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ', notificationSent });
   } catch (error) {
     console.error('Acceptance reject error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });

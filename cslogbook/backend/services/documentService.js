@@ -942,11 +942,15 @@ class DocumentService {
             const document = await Document.findByPk(documentId);
 
             if (!document) {
-                throw new Error('ไม่พบเอกสาร');
+                const notFoundErr = new Error('ไม่พบเอกสาร');
+                notFoundErr.statusCode = 404;
+                throw notFoundErr;
             }
 
             if (document.status === 'rejected') {
-                throw new Error('เอกสารนี้ถูกปฏิเสธแล้ว');
+                const alreadyRejectedErr = new Error('เอกสารนี้ถูกปฏิเสธแล้ว');
+                alreadyRejectedErr.statusCode = 400;
+                throw alreadyRejectedErr;
             }
 
             const previousStatus = document.status;
@@ -976,6 +980,7 @@ class DocumentService {
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
 
             // ส่ง notification แจ้งนักศึกษา
+            let notificationSent = false;
             if (document.userId) {
                 try {
                     await notificationService.createAndNotify(document.userId, {
@@ -993,6 +998,7 @@ class DocumentService {
                                 : '/project/documents'
                         }
                     });
+                    notificationSent = true;
                 } catch (notifErr) {
                     logger.warn('Notification failed (document reject):', notifErr.message);
                 }
@@ -1000,7 +1006,8 @@ class DocumentService {
 
             return {
                 message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
-                reviewComment: document.reviewComment
+                reviewComment: document.reviewComment,
+                notificationSent
             };
         } catch (error) {
             logger.error('Error rejecting document:', error);

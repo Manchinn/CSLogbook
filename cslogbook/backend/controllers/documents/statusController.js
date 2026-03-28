@@ -57,6 +57,9 @@ const statusController = {
             if (!reason || !reason.trim()) {
                 return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลการปฏิเสธ' });
             }
+            if (reason.trim().length < 5 || reason.trim().length > 1000) {
+                return res.status(400).json({ success: false, message: 'เหตุผลการปฏิเสธต้องมีความยาว 5-1000 ตัวอักษร' });
+            }
 
             const result = await documentService.rejectDocument(
                 id,
