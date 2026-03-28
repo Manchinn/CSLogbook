@@ -129,6 +129,7 @@ class ProjectSystemTestService {
         note: data.staffDecisionNote || null
       },
       evidence: buildFileInfo(data.evidenceFilePath, data.evidenceFileName),
+      evidenceDriveLink: data.evidenceDriveLink || null,
       evidenceSubmittedAt: data.evidenceSubmittedAt,
       submittedBy: submittedBy.studentId ? {
         studentId: submittedBy.studentId,
@@ -451,9 +452,12 @@ class ProjectSystemTestService {
     }
   }
 
-  async uploadEvidence(projectId, actor, fileMeta) {
-    if (!fileMeta || !fileMeta.path) {
-      throw new Error('กรุณาอัปโหลดไฟล์หลักฐานการประเมิน (PDF)');
+  async uploadEvidence(projectId, actor, fileMeta, { evidenceDriveLink } = {}) {
+    if ((!fileMeta || !fileMeta.path) && !evidenceDriveLink) {
+      throw new Error('กรุณาอัปโหลดไฟล์หลักฐานการประเมิน (PDF) หรือระบุลิงก์ Google Drive');
+    }
+    if (evidenceDriveLink && !/^https?:\/\//.test(evidenceDriveLink)) {
+      throw new Error('ลิงก์ Google Drive ต้องเริ่มต้นด้วย http:// หรือ https://');
     }
 
     const t = await sequelize.transaction();
@@ -483,13 +487,19 @@ class ProjectSystemTestService {
         });
       }
 
-      const relativePath = buildRelativePath(fileMeta.path);
-      await record.update({
+      const relativePath = fileMeta?.path ? buildRelativePath(fileMeta.path) : null;
+      const updateData = {
         status: 'evidence_submitted',
-        evidenceFilePath: relativePath,
-        evidenceFileName: fileMeta.originalname || null,
         evidenceSubmittedAt: new Date()
-      }, { transaction: t });
+      };
+      if (relativePath) {
+        updateData.evidenceFilePath = relativePath;
+        updateData.evidenceFileName = fileMeta.originalname || null;
+      }
+      if (evidenceDriveLink) {
+        updateData.evidenceDriveLink = evidenceDriveLink;
+      }
+      await record.update(updateData, { transaction: t });
 
       await t.commit();
       logger.info('upload system test evidence', { projectId: project.projectId, studentId: actor.studentId });

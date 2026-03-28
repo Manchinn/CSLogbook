@@ -21,6 +21,7 @@ export type SystemTestRequest = {
   studentNote?: string | null;
   requestFile?: ProjectFile | null;
   evidence?: ProjectFile | null;
+  evidenceDriveLink?: string | null;
   evidenceSubmittedAt?: string | null;
   submittedLate?: boolean | null;
   timeline?: {
@@ -223,9 +224,19 @@ export async function submitSystemTestRequest(
   );
 }
 
-export async function uploadSystemTestEvidence(token: string, projectId: number, file: File) {
+export async function uploadSystemTestEvidence(
+  token: string,
+  projectId: number,
+  file: File | null,
+  options?: { driveLink?: string }
+) {
   const formData = new FormData();
-  formData.append("evidenceFile", file);
+  if (file) {
+    formData.append("evidenceFile", file);
+  }
+  if (options?.driveLink) {
+    formData.append("evidenceDriveLink", options.driveLink);
+  }
 
   return apiFetch<{ success: boolean; data?: SystemTestRequest; message?: string }>(
     `/projects/${projectId}/system-test/request/evidence`,

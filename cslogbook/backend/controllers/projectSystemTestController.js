@@ -50,7 +50,8 @@ module.exports = {
   uploadEvidence(req, res) {
     const projectId = req.params.id;
     const fileMeta = req.file || null;
-    return buildResponse(res, projectSystemTestService.uploadEvidence(projectId, req.user, fileMeta));
+    const evidenceDriveLink = req.body?.evidenceDriveLink || null;
+    return buildResponse(res, projectSystemTestService.uploadEvidence(projectId, req.user, fileMeta, { evidenceDriveLink }));
   },
 
   advisorQueue(req, res) {

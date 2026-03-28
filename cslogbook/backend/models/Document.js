@@ -65,6 +65,11 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'file_path'
         },
+        driveLink: {
+            type: DataTypes.STRING(500),
+            allowNull: true,
+            field: 'drive_link'
+        },
         status: {
             type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected', 'supervisor_evaluated','acceptance_approved','referral_ready','referral_downloaded', 'completed', 'cancelled'),
             defaultValue: 'draft'

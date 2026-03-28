@@ -143,6 +143,11 @@ module.exports = (sequelize) => {
       allowNull: true,
       field: 'evidence_submitted_at'
     },
+    evidenceDriveLink: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      field: 'evidence_drive_link'
+    },
     // 🆕 Google Classroom-style late tracking
     submittedLate: {
       type: DataTypes.BOOLEAN,

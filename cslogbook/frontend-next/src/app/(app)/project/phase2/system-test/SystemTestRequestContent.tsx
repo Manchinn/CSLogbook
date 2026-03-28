@@ -49,6 +49,7 @@ export default function SystemTestRequestContent() {
   });
   const [requestFile, setRequestFile] = useState<File | null>(null);
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidenceDriveLink, setEvidenceDriveLink] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const queriesEnabled = hydrated && Boolean(token);
@@ -184,12 +185,24 @@ export default function SystemTestRequestContent() {
   };
 
   const handleUploadEvidence = async () => {
-    if (!token || !project?.projectId || !evidenceFile) return;
+    if (!token || !project?.projectId) return;
+    if (!evidenceFile && !evidenceDriveLink.trim()) return;
+    if (evidenceDriveLink.trim() && !/^https?:\/\//.test(evidenceDriveLink.trim())) {
+      setErrorMessage("ลิงก์ Google Drive ต้องเริ่มต้นด้วย http:// หรือ https://");
+      return;
+    }
+    setErrorMessage(null);
     setUploading(true);
     try {
-      const response = await uploadSystemTestEvidence(token, project.projectId, evidenceFile);
+      const response = await uploadSystemTestEvidence(
+        token,
+        project.projectId,
+        evidenceFile,
+        { driveLink: evidenceDriveLink.trim() || undefined }
+      );
       setRequest(response.data ?? null);
       setEvidenceFile(null);
+      setEvidenceDriveLink("");
     } finally {
       setUploading(false);
     }
@@ -385,27 +398,48 @@ export default function SystemTestRequestContent() {
       <section className={styles.card}>
         <h3 className={styles.sectionTitle}>อัปโหลดหลักฐานการประเมิน</h3>
         <p className={styles.cardHint}>อัปโหลดได้เมื่อเจ้าหน้าที่อนุมัติคำขอแล้ว</p>
-        <div className={styles.fieldRow}>
-          <label htmlFor="system-test-evidence" className={styles.fieldLabel}>
-            แนบหลักฐาน (PDF)
-          </label>
-          <input
-            type="file"
-            id="system-test-evidence"
-            accept="application/pdf"
-            onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
-            disabled={!canUploadEvidence}
-          />
+        <div className={styles.form}>
+          <div className={styles.field}>
+            <label htmlFor="system-test-evidence">แนบหลักฐาน (PDF)</label>
+            <input
+              type="file"
+              id="system-test-evidence"
+              accept="application/pdf"
+              onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+              disabled={!canUploadEvidence}
+            />
+            {evidenceFile ? <p className={styles.fieldHint}>เลือกไฟล์: {evidenceFile.name}</p> : null}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="system-test-drive-link">ลิงก์ Google Drive (ทางเลือก — สำหรับไฟล์ขนาดใหญ่)</label>
+            <input
+              type="url"
+              id="system-test-drive-link"
+              placeholder="https://drive.google.com/..."
+              value={evidenceDriveLink}
+              onChange={(event) => setEvidenceDriveLink(event.target.value)}
+              disabled={!canUploadEvidence}
+            />
+          </div>
+        </div>
+        <div className={styles.actions}>
           <button
             type="button"
             className={styles.secondaryButton}
             onClick={handleUploadEvidence}
-            disabled={!canUploadEvidence || uploading || !evidenceFile}
+            disabled={!canUploadEvidence || uploading || (!evidenceFile && !evidenceDriveLink.trim())}
           >
             {uploading ? "กำลังอัปโหลด..." : "อัปโหลดหลักฐาน"}
           </button>
         </div>
-        {evidenceFile ? <p className={styles.fieldHint}>เลือกไฟล์: {evidenceFile.name}</p> : null}
+        {request?.evidenceDriveLink ? (
+          <p className={styles.fieldHint}>
+            ลิงก์ Google Drive:{" "}
+            <a href={request.evidenceDriveLink} target="_blank" rel="noreferrer" className={styles.link}>
+              {request.evidenceDriveLink}
+            </a>
+          </p>
+        ) : null}
       </section>
 
       <RejectionDetailModal

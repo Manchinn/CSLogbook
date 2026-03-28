@@ -37,6 +37,7 @@ export type AdminSystemTestQueueRecord = {
     name: string | null;
     url: string | null;
   } | null;
+  evidenceDriveLink: string | null;
   evidenceSubmittedAt: string | null;
   advisorDecision: {
     teacherId: number | null;
@@ -175,6 +176,7 @@ function normalizeQueueRecord(value: unknown): AdminSystemTestQueueRecord {
     },
     requestFile: normalizeFile(raw.requestFile),
     evidence: normalizeFile(raw.evidence),
+    evidenceDriveLink: toStringOrNull(raw.evidenceDriveLink),
     evidenceSubmittedAt: toStringOrNull(raw.evidenceSubmittedAt),
     advisorDecision: normalizeDecision(raw.advisorDecision),
     coAdvisorDecision: normalizeDecision(raw.coAdvisorDecision),

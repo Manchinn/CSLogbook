@@ -472,6 +472,14 @@ export function SystemTestStaffQueuePage() {
                     ) : (
                       <p className={styles.subText}>ยังไม่มีหลักฐาน</p>
                     )}
+                    {activeRecord?.evidenceDriveLink ? (
+                      <p className={styles.subText} style={{ marginTop: "0.25rem" }}>
+                        ลิงก์ Google Drive:{" "}
+                        <a href={activeRecord.evidenceDriveLink} target="_blank" rel="noreferrer">
+                          {activeRecord.evidenceDriveLink}
+                        </a>
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </section>
