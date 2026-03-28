@@ -64,15 +64,15 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
-| 59 | 03-28 | Rejection flow full audit: 19 bugs fixed (6 commits) — malformed code, validation, audit trail, permissions, transaction safety, enum mismatch, UI notices, notification fallback. Re-audit verified all fixes + found 2 new edge cases (idempotency message, race condition). |
+| 59 | 03-28 | Rejection flow full audit (19 bugs, 6 commits) + demo issues (BUG-01 default year filter, BUG-02 late request visibility, FEATURE-01 Google Drive link, UX-01 grade I/IP guidance) — 10 commits total |
 
 ### Pending
 
 - **Demo issues (2026-03-26)** — `.github/instructions/issues-demo-2026-03-26.md`
-  - BUG-01 (High): ข้อมูลปีการศึกษาเก่าปนกับปัจจุบัน — default filter ไม่กรอง active year
-  - BUG-02 (High): คำขอสอบส่งล่าช้าไม่แสดงในหน้า admin — filter ตาม deadline ซ่อน request
-  - FEATURE-01 (Medium): เพิ่มฟิลด์ Google Drive link สำหรับเอกสารขนาดใหญ่
-  - UX-01 (Medium): ชี้แจงกระบวนการเกรด I/IP หลังสอบไม่ผ่าน
+  - ~~BUG-01 (High)~~ ✅ Fixed `e1b8fd3e`
+  - ~~BUG-02 (High)~~ ✅ Fixed `e1b8fd3e`
+  - ~~FEATURE-01 (Medium)~~ ✅ Fixed `59287fa8` (migration pending: `npm run migrate`)
+  - ~~UX-01 (Medium)~~ ✅ Fixed `8e4b4f9f`
   - NON-CODE (High): SSL/Domain — รอประสานงานอาจารย์
 - Staging regression testing — `docs/STAGING_TEST_PLAN.md`
 - Student result pages (out of scope — intentional stubs)
