@@ -253,30 +253,149 @@ GROUP BY status;
 
 ---
 
+## วิธี Upload Excel ไป VPS (ผ่าน GitHub Actions)
+
+เนื่องจาก SSH จาก local ไม่ถึง VPS โดยตรง ใช้ GitHub Actions เป็นตัวกลาง:
+
+### ขั้นตอนที่ทำแล้ว (2026-03-28)
+
+```
+[x] 1. สร้าง branch `import-data` พร้อม Excel 4 ไฟล์ใน `import-data/`
+[x] 2. สร้าง workflow `.github/workflows/upload-import-data.yml`
+[x] 3. Push branch → GitHub Actions จะ:
+        - SCP ไฟล์ไป VPS `/home/deploy-cslogbook/uploads/`
+        - Copy เข้า backend container `/app/uploads/imports/`
+```
+
+### ตรวจสอบ workflow
+
+- ดูสถานะ: https://github.com/Manchinn/CSLogbook/actions
+- Workflow: "Upload Import Excel Files to VPS"
+- ถ้า fail ให้ดู log ใน Actions tab
+
+---
+
+## ขั้นตอนบน VPS (หลัง Excel อยู่ใน container แล้ว)
+
+### Step 1: Push master เพื่อ deploy code ล่าสุด (migration + seed scripts)
+
+```bash
+# จาก local
+git checkout master
+git push origin master
+# รอ CI/CD deploy เสร็จ (ดู GitHub Actions)
+```
+
+### Step 2: SSH เข้า VPS
+
+```bash
+# จาก local (ถ้า SSH ได้) หรือใช้ VPS provider console
+ssh cslogbook-vps
+# หรือ
+ssh -i ~/.ssh/github_actions_cslogbook deploy-cslogbook@119.59.124.67
+```
+
+### Step 3: ตรวจว่า Excel อยู่ใน container
+
+```bash
+CONTAINER=$(docker ps --filter "name=backend" --format '{{.Names}}' | head -1)
+docker exec $CONTAINER ls -lh /app/uploads/imports/
+# ต้องเห็น 4 ไฟล์ .xlsx
+```
+
+### Step 4: ตรวจ teacher_code ใน production DB
+
+```bash
+docker exec $CONTAINER node -e "
+  const db = require('./config/database');
+  db.sequelize.query('SELECT teacher_code FROM teachers WHERE teacher_code IS NOT NULL')
+    .then(([r]) => { r.forEach(t => console.log(t.teacher_code)); process.exit(0); })
+"
+# ต้องเห็น: TSR, PRV, KSB, GDP, SWK, AWS, NKS, KAB, ART, ENS, YCK, CHR, SSP, ADP, NJR, SRS
+```
+
+### Step 5: Run internship seed
+
+```bash
+docker exec $CONTAINER npx sequelize-cli db:seed \
+  --seed 20260328210000-import-internship-2567-2568.js
+```
+
+**ตรวจผล:**
+```bash
+docker exec $CONTAINER node -e "
+  const db = require('./config/database');
+  db.sequelize.query(\"SELECT status, COUNT(*) as cnt FROM documents WHERE file_path LIKE 'internship/import-cert-2567/%' GROUP BY status\")
+    .then(([r]) => { console.log(r); process.exit(0); })
+"
+# ต้องเห็น: [ { status: 'approved', cnt: N } ]
+```
+
+### Step 6: Run project seed
+
+```bash
+docker exec $CONTAINER npx sequelize-cli db:seed \
+  --seed 20260328200000-import-project-exam-2568-s2.js
+```
+
+**ตรวจผล:**
+```bash
+docker exec $CONTAINER node -e "
+  const db = require('./config/database');
+  db.sequelize.query(\"SELECT COUNT(*) as cnt FROM project_documents WHERE project_name_th LIKE '[IMPORT_PROJECT_EXAM_2568_S2_v1]%'\")
+    .then(([r]) => { console.log('Projects:', r[0].cnt); process.exit(0); })
+"
+```
+
+### Step 7: ตรวจ duplicates
+
+```bash
+docker exec $CONTAINER node -e "
+  const db = require('./config/database');
+  db.sequelize.query(\"SELECT REPLACE(project_name_th, '[IMPORT_PROJECT_EXAM_2568_S2_v1] ', '') as name, COUNT(*) as cnt FROM project_documents WHERE project_name_th LIKE '[IMPORT_PROJECT_EXAM_2568_S2_v1]%' GROUP BY name HAVING cnt > 1\")
+    .then(([r]) => { console.log('Duplicates:', r.length === 0 ? 'NONE (OK)' : r); process.exit(0); })
+"
+```
+
+### Step 8: ลบ Excel files (ข้อมูลส่วนบุคคล)
+
+```bash
+# ลบจาก container
+docker exec $CONTAINER rm -rf /app/uploads/imports/
+
+# ลบจาก VPS host
+rm -rf ~/uploads/*.xlsx
+
+# ลบ branch import-data จาก GitHub (จาก local)
+git push origin --delete import-data
+git branch -D import-data
+```
+
+---
+
 ## Checklist สำหรับ Production
 
 ```
-[ ] 1. Push code ไป master (CI/CD จะ build + migrate อัตโนมัติ)
-[ ] 2. SSH เข้า production server
-[ ] 3. วาง Excel files ไว้บน server (เช่น /home/deploy/imports/)
-[ ] 4. แก้ EXCEL_PATH ใน seeder ให้ตรงกับ path บน server
-[ ] 5. ตรวจ teacher_code ใน production DB ว่ามีครบ
-[ ] 6. ตรวจ student_code — ถ้าขาดให้สร้าง user+student ก่อน
-[ ] 7. Run internship seed ก่อน:
-      NODE_ENV=production npx sequelize-cli db:seed --seed 20260328210000-import-internship-2567-2568.js
-[ ] 8. ตรวจผล: status = approved, แสดงใน /internship-companies
-[ ] 9. Run project seed:
-      NODE_ENV=production npx sequelize-cli db:seed --seed 20260328200000-import-project-exam-2568-s2.js
+[ ] 1. Push branch `import-data` (GitHub Actions upload Excel ไป VPS)
+[ ] 2. ตรวจ workflow สำเร็จ: https://github.com/Manchinn/CSLogbook/actions
+[ ] 3. Push master (CI/CD deploy code + migration)
+[ ] 4. SSH เข้า VPS / ใช้ VPS console
+[ ] 5. ตรวจ Excel อยู่ใน container: docker exec $CONTAINER ls /app/uploads/imports/
+[ ] 6. ตรวจ teacher_code ครบ
+[ ] 7. Run internship seed
+[ ] 8. ตรวจผล: status = approved, นับ records
+[ ] 9. Run project seed
 [ ] 10. ตรวจผล: ไม่มี duplicates, members ถูกต้อง
-[ ] 11. ลบ Excel files ออกจาก server (ข้อมูลส่วนบุคคล)
+[ ] 11. ลบ Excel จาก container + VPS + ลบ branch import-data
 ```
 
 ---
 
 ## ลำดับการรัน (สำคัญ)
 
-1. **Migration** ก่อน (ผ่าน CI/CD)
-2. **Internship seed** ก่อน project (ไม่มี dependency แต่แนะนำลำดับนี้)
-3. **Project seed** ทีหลัง
-4. **ตรวจผล** ทั้ง 2 ชุด
-5. **ลบ Excel** หลัง import เสร็จ
+1. **GitHub Actions upload Excel** ก่อน (branch import-data)
+2. **CI/CD deploy** code + migration (push master)
+3. **Internship seed** ก่อน project
+4. **Project seed** ทีหลัง
+5. **ตรวจผล** ทั้ง 2 ชุด
+6. **ลบ Excel + branch** หลัง import เสร็จ

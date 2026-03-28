@@ -31,9 +31,11 @@ const { QueryTypes } = require('sequelize');
 // ====================================================
 // CONFIG — แก้ path ถ้า Excel อยู่คนละที่
 // ====================================================
-const BASE_UPLOAD_DIR = path.resolve(
-  process.env.USERPROFILE || process.env.HOME,
-  'OneDrive/เอกสาร'
+// Docker container: /app/uploads/imports/, Local dev: ~/OneDrive/เอกสาร/
+const BASE_UPLOAD_DIR = process.env.IMPORT_DIR || (
+  require('fs').existsSync('/app/uploads/imports')
+    ? '/app/uploads/imports'
+    : path.resolve(process.env.USERPROFILE || process.env.HOME, 'OneDrive/เอกสาร')
 );
 
 const FILE_CERT   = path.join(BASE_UPLOAD_DIR, 'ใบรับรองฝึกงาน ประจำปี 2567.docx.xlsx');

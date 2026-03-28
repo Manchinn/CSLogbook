@@ -26,10 +26,13 @@ const { QueryTypes } = require('sequelize');
 // ====================================================
 // CONFIG — แก้ path ถ้า Excel อยู่คนละที่
 // ====================================================
-const EXCEL_PATH = path.resolve(
-  process.env.USERPROFILE || process.env.HOME,
-  'OneDrive/เอกสาร/รายชื่อยื่นขอทดลองโครงงาน ประจำภาค 2-2568.xlsx'
+// Docker container: /app/uploads/imports/, Local dev: ~/OneDrive/เอกสาร/
+const IMPORT_DIR = process.env.IMPORT_DIR || (
+  require('fs').existsSync('/app/uploads/imports')
+    ? '/app/uploads/imports'
+    : path.resolve(process.env.USERPROFILE || process.env.HOME, 'OneDrive/เอกสาร')
 );
+const EXCEL_PATH = path.join(IMPORT_DIR, 'รายชื่อยื่นขอทดลองโครงงาน ประจำภาค 2-2568.xlsx');
 
 const ACADEMIC_YEAR = 2568;
 const SEMESTER = 2;
