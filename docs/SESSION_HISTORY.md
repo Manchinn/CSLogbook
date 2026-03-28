@@ -63,7 +63,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 55 | 03-22 | SurveyBanner responsive fix: เพิ่ม media query ≤540px — banner stack column, ปุ่ม full-width, modal padding ลด |
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
-| 58 | 03-27 | Dead code audit (ลบ 10 ไฟล์ -650 lines), fix CRLF/PDF rewrite loop, rejection flow: เพิ่ม RejectionNotice+Modal 5 หน้า, backend notification 4 services, backend unit tests (7 passed) + e2e tests (5 specs) |
+| 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
 
 ### Pending
 
