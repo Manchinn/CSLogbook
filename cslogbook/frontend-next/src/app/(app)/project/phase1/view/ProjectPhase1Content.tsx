@@ -429,7 +429,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
         "danger"
       );
     } else if (project1Status) {
-      if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+      if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
         setStatus("topic-exam", "คำขอถูกส่งกลับ", "danger");
       } else if (["staff_verified", "scheduled"].includes(project1Status)) {
         setStatus("topic-exam", "รอวันสอบ", "info");
@@ -466,7 +466,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
     if (!project1Status) {
       setStatus("exam-submit", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
       setStatus("exam-submit", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled", "completed"].includes(project1Status)) {
       setStatus("exam-submit", "ส่งเรียบร้อย", "success");
@@ -478,7 +478,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
 
     if (!project1Status) {
       setStatus("exam-day", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
       setStatus("exam-day", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled"].includes(project1Status)) {
       setStatus("exam-day", "รอวันสอบ", "info");
@@ -493,7 +493,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
     } else if (thesisDefenseRequest?.status === "completed") {
       setStatus("phase2-overview", "เสร็จสิ้นปริญญานิพนธ์", "success");
     } else if (thesisDefenseRequest) {
-      if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
+      if (["advisor_rejected", "staff_rejected", "cancelled"].includes(thesisDefenseRequest.status || "")) {
         setStatus("phase2-overview", "คำขอสอบ 2 ถูกส่งกลับ", "danger");
       } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
         setStatus("phase2-overview", "รอสอบปริญญานิพนธ์", "info");
@@ -528,7 +528,7 @@ export default function ProjectPhase1Content({}: ProjectPhase1ContentProps) {
       setStatus("thesis-defense-request", "รอปลดล็อก", "warning");
     } else if (!thesisDefenseRequest) {
       setStatus("thesis-defense-request", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(thesisDefenseRequest.status || "")) {
       setStatus("thesis-defense-request", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
       setStatus("thesis-defense-request", "รอสอบปริญญานิพนธ์", "info");

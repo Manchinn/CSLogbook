@@ -196,8 +196,9 @@ section.visible { opacity: 1; transform: translateY(0); }
   font-weight: 600;
 }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.tab-content { display: none; visibility: hidden; }
+.tab-content.active { display: block; visibility: visible; }
+.tab-content.mermaid-init { display: block !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; }
 /* FOOTER */
 .footer {
   text-align: center; padding: 40px 20px; color: var(--text2);
@@ -699,19 +700,28 @@ erDiagram
     <div class="mermaid-wrap">
       <div class="mermaid">
 flowchart TB
-  subgraph ระบบจัดการผู้ใช้งาน
-    UC1["ล็อกอิน"]
-    UC2["ตรวจสอบสิทธิ์"]
-    UC3["นำเข้าข้อมูลผู้ใช้งาน<br/>โดย Excel, CSV"]
-    UC4["จัดการสิทธิ์"]
+  subgraph SYS1["User Management"]
+    UC1["Login"]
+    UC2["Check Permission"]
+    UC3["Import Users\nExcel / CSV"]
+    UC4["Manage Roles"]
     UC1 -.->|include| UC2
   end
-  ADMIN["👨‍💼 เจ้าหน้าที่<br/>ภาควิชาฯ"] --> UC1
+  ADMIN["Admin\nStaff"] --> UC1
   ADMIN --> UC3
   ADMIN --> UC4
-  STUDENT["🎓 นักศึกษา"] --> UC1
-  TEACHER["👨‍🏫 อาจารย์"] --> UC1
+  STUDENT["Student"] --> UC1
+  TEACHER["Teacher"] --> UC1
       </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h3 style="font-size:0.95rem;">คำอธิบาย</h3>
+      <ul style="font-size:0.88rem;color:var(--text2);margin-top:8px;">
+        <li><strong>Login (ล็อกอิน)</strong> — เข้าสู่ระบบผ่าน ICT Account SSO</li>
+        <li><strong>Check Permission (ตรวจสอบสิทธิ์)</strong> — ระบบตรวจสอบบทบาทอัตโนมัติ</li>
+        <li><strong>Import Users (นำเข้าข้อมูลผู้ใช้)</strong> — อัปโหลด Excel/CSV รายชื่อนักศึกษา</li>
+        <li><strong>Manage Roles (จัดการสิทธิ์)</strong> — กำหนดสิทธิ์อาจารย์ เปิด/ปิด permissions</li>
+      </ul>
     </div>
   </div>
 
@@ -719,24 +729,34 @@ flowchart TB
     <div class="mermaid-wrap">
       <div class="mermaid">
 flowchart TB
-  subgraph ระบบฝึกงาน
-    UC1["ยื่นคำร้องขอฝึกงาน"]
-    UC2["อนุมัติบันทึกการปฏิบัติงาน"]
-    UC3["ประเมินนักศึกษาฝึกงาน"]
-    UC4["ตรวจสอบ/อนุมัติ<br/>เอกสารหรือคำร้อง"]
-    UC5["ส่งรายงานการปฏิบัติงาน"]
-    UC6["ยื่นคำร้องขอหนังสือ<br/>รับรองการฝึกงาน"]
-    UC7["บันทึกการปฏิบัติงาน"]
+  subgraph SYS2["Internship System"]
+    I1["Submit Internship\nRequest"]
+    I2["Approve Work Log"]
+    I3["Evaluate Student"]
+    I4["Review & Approve\nDocuments"]
+    I5["Submit Work Report"]
+    I6["Request\nCertificate"]
+    I7["Record Daily Log"]
   end
-  STUDENT["🎓 นักศึกษา"] --> UC1
-  STUDENT --> UC5
-  STUDENT --> UC6
-  STUDENT --> UC7
-  ADMIN["👨‍💼 เจ้าหน้าที่"] --> UC4
-  TEACHER["👨‍🏫 อาจารย์<br/>(หัวหน้าภาค)"] --> UC4
-  SUPERVISOR["🏢 ผู้ควบคุมงาน"] --> UC2
-  SUPERVISOR --> UC3
+  STD["Student"] --> I1
+  STD --> I5
+  STD --> I6
+  STD --> I7
+  ADM["Admin Staff"] --> I4
+  TCH["Teacher\nDept. Head"] --> I4
+  SUP["Supervisor\nCompany"] --> I2
+  SUP --> I3
       </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h3 style="font-size:0.95rem;">คำอธิบาย</h3>
+      <ul style="font-size:0.88rem;color:var(--text2);margin-top:8px;">
+        <li><strong>Submit Internship Request (ยื่นคำร้องขอฝึกงาน)</strong> — กรอก คพ.05</li>
+        <li><strong>Record Daily Log (บันทึกการปฏิบัติงาน)</strong> — บันทึกรายวัน เวลาเข้า/ออก</li>
+        <li><strong>Approve Work Log (อนุมัติบันทึก)</strong> — ผู้ควบคุมงานอนุมัติผ่านอีเมล</li>
+        <li><strong>Evaluate Student (ประเมิน)</strong> — แบบประเมิน 100 คะแนน 5 หมวด</li>
+        <li><strong>Request Certificate (ขอหนังสือรับรอง)</strong> — หลังครบ 240 ชม. + ผ่านประเมิน</li>
+      </ul>
     </div>
   </div>
 
@@ -744,24 +764,34 @@ flowchart TB
     <div class="mermaid-wrap">
       <div class="mermaid">
 flowchart TB
-  subgraph ระบบโครงงานพิเศษ
-    UC1["เสนอหัวข้อโครงงานพิเศษ"]
-    UC2["ตรวจสอบ/อนุมัติ<br/>บันทึกการพบ"]
-    UC3["นำออกข้อมูลรายชื่อ<br/>นักศึกษา"]
-    UC4["สร้างคำร้อง<br/>(ทดสอบระบบ, โครงงาน,<br/>ปริญญานิพนธ์)"]
-    UC5["อนุมัติคำร้อง<br/>(ทดสอบระบบ, โครงงาน,<br/>ปริญญานิพนธ์)"]
-    UC6["บันทึกผลสอบหัวข้อโครงงาน,<br/>โครงงานพิเศษ 1 และ<br/>ปริญญานิพนธ์"]
-    UC7["บันทึก/แก้ไขการพบ<br/>อาจารย์ที่ปรึกษา"]
+  subgraph SYS3["Project System"]
+    P1["Propose Topic"]
+    P2["Review Meeting\nLogs"]
+    P3["Export Student\nList"]
+    P4["Create Request\nExam / Test / Thesis"]
+    P5["Approve Request\nExam / Test / Thesis"]
+    P6["Record Exam\nResults"]
+    P7["Log Advisor\nMeetings"]
   end
-  STUDENT["🎓 นักศึกษา"] --> UC1
-  STUDENT --> UC4
-  STUDENT --> UC7
-  ADMIN["👨‍💼 เจ้าหน้าที่"] --> UC6
-  TEACHER_AUTH["👨‍🏫 อาจารย์<br/>(มีสิทธิ์)"] --> UC3
-  TEACHER_AUTH --> UC5
-  TEACHER_ADV["👨‍🏫 อาจารย์<br/>(ที่ปรึกษา)"] --> UC2
-  TEACHER_ADV --> UC5
+  STD2["Student"] --> P1
+  STD2 --> P4
+  STD2 --> P7
+  ADM2["Admin Staff"] --> P6
+  TAUTH["Teacher\nAuthorized"] --> P3
+  TAUTH --> P5
+  TADV["Teacher\nAdvisor"] --> P2
+  TADV --> P5
       </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h3 style="font-size:0.95rem;">คำอธิบาย</h3>
+      <ul style="font-size:0.88rem;color:var(--text2);margin-top:8px;">
+        <li><strong>Propose Topic (เสนอหัวข้อ)</strong> — นักศึกษาเสนอหัวข้อโครงงานพิเศษ</li>
+        <li><strong>Log Advisor Meetings (บันทึกการพบอาจารย์)</strong> — บันทึกรายละเอียดการประชุม</li>
+        <li><strong>Create Request (สร้างคำร้อง)</strong> — คพ.02 สอบโครงงาน, คพ.04 ทดสอบระบบ, คพ.03 ปริญญานิพนธ์</li>
+        <li><strong>Export Student List (นำออกข้อมูล)</strong> — อาจารย์ที่มีสิทธิ์ export รายชื่อ</li>
+        <li><strong>Record Exam Results (บันทึกผลสอบ)</strong> — เจ้าหน้าที่บันทึกผ่าน/ไม่ผ่าน</li>
+      </ul>
     </div>
   </div>
 </section>
@@ -1020,19 +1050,27 @@ function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   event.target.classList.add('active');
-  // Re-render mermaid in newly visible tab
-  const container = document.getElementById(id);
-  const mermaidDivs = container.querySelectorAll('.mermaid[data-processed]');
-  // For tabs that haven't been rendered yet
-  mermaid.run({ nodes: container.querySelectorAll('.mermaid:not([data-processed])') });
 }
 
-// Mermaid init
+// Mermaid init — render ALL tabs visible first, then hide non-active
 mermaid.initialize({
-  startOnLoad: true,
+  startOnLoad: false,
   theme: 'default',
   flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
   er: { useMaxWidth: true }
+});
+
+// Show all tab-content temporarily so Mermaid can measure/render
+document.addEventListener('DOMContentLoaded', async () => {
+  // Make hidden tabs temporarily visible off-screen for mermaid
+  const hiddenTabs = document.querySelectorAll('.tab-content:not(.active)');
+  hiddenTabs.forEach(t => t.classList.add('mermaid-init'));
+
+  // Run mermaid on ALL diagrams
+  await mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+
+  // Remove temp class — hide non-active tabs again
+  hiddenTabs.forEach(t => t.classList.remove('mermaid-init'));
 });
 
 // Charts

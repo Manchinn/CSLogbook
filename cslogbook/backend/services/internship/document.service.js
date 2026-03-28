@@ -31,6 +31,7 @@ class InternshipDocumentService {
         status: [
           "pending",
           "approved",
+          "rejected",
           "acceptance_pending",
           "acceptance_approved",
           "supervisor_approved",

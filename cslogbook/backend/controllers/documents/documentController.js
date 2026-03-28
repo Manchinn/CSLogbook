@@ -442,6 +442,36 @@ const approveCertificateRequest = async (req, res) => {
 const rejectCertificateRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
+        const { remarks } = req.body;
+        const processorId = req.user.userId;
+
+        if (!remarks || !remarks.trim()) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลการปฏิเสธ' });
+        }
+
+        const result = await documentService.rejectCertificateRequest(
+            requestId,
+            processorId,
+            remarks
+        );
+
+        res.json({
+            success: true,
+            message: 'ปฏิเสธคำขอเรียบร้อยแล้ว',
+            data: result,
+        });
+    } catch (error) {
+        logger.error('Error rejecting certificate request:', error);
+
+        const statusCode = error.message.includes('ไม่พบ') ? 404 :
+                          error.message.includes('ได้รับการดำเนินการแล้ว') ? 400 : 500;
+
+        res.status(statusCode).json({
+            success: false,
+            message: error.message || 'ไม่สามารถปฏิเสธคำขอได้',
+        });
+    }
+};
 
 // Placeholder (ยังไม่ได้เปิดใช้ใน routes) สำหรับประวัติเอกสาร
 const getDocumentHistory = async (req, res) => {
@@ -450,35 +480,6 @@ const getDocumentHistory = async (req, res) => {
 
 // Alias สำหรับความเข้ากันได้เดิม submitDocument -> uploadDocument
 const submitDocument = (req, res, next) => uploadDocument(req, res, next);
-        const { remarks } = req.body;
-        const processorId = req.user.userId;
-
-        const result = await documentService.rejectCertificateRequest(
-            requestId, 
-            processorId, 
-            remarks
-        );
-
-        res.json({
-            success: true,
-            message: 'ปฏิเสธคำขอเรียบร้อยแล้ว',
-
-    getDocumentHistory,
-    submitDocument,
-            data: result,
-        });
-    } catch (error) {
-        logger.error('Error rejecting certificate request:', error);
-        
-        const statusCode = error.message.includes('ไม่พบ') ? 404 :
-                          error.message.includes('ได้รับการดำเนินการแล้ว') ? 400 : 500;
-        
-        res.status(statusCode).json({
-            success: false,
-            message: error.message || 'ไม่สามารถปฏิเสธคำขอได้',
-        });
-    }
-};
 
 /**
  * ดาวน์โหลดหนังสือรับรองสำหรับ Admin

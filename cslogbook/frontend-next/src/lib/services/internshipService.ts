@@ -45,6 +45,8 @@ export type CS05Document = {
   transcriptFilename?: string | null;
   classroom?: string | null;
   phoneNumber?: string | null;
+  rejectionReason?: string | null;
+  reviewComment?: string | null;
 };
 
 export async function getCurrentCS05(token: string) {

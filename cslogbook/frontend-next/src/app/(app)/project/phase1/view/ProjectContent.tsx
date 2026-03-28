@@ -432,7 +432,7 @@ export default function ProjectContent() {
       completed: "บันทึกผลสอบแล้ว",
       cancelled: "คำขอถูกยกเลิก",
       advisor_rejected: "อาจารย์ไม่อนุมัติ",
-      staff_returned: "เจ้าหน้าที่ส่งกลับ",
+      staff_rejected: "เจ้าหน้าที่ส่งกลับ",
     };
     return mapping[thesisDefenseRequest.status ?? ""] ?? "กำลังดำเนินการ";
   }, [thesisDefenseRequest]);
@@ -560,7 +560,7 @@ export default function ProjectContent() {
         "danger"
       );
     } else if (project1Status) {
-      if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+      if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
         setStatus("topic-exam", "คำขอถูกส่งกลับ", "danger");
       } else if (["staff_verified", "scheduled"].includes(project1Status)) {
         setStatus("topic-exam", "รอวันสอบ", "info");
@@ -597,7 +597,7 @@ export default function ProjectContent() {
 
     if (!project1Status) {
       setStatus("exam-submit", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
       setStatus("exam-submit", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled", "completed"].includes(project1Status)) {
       setStatus("exam-submit", "ส่งเรียบร้อย", "success");
@@ -609,7 +609,7 @@ export default function ProjectContent() {
 
     if (!project1Status) {
       setStatus("exam-day", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(project1Status)) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(project1Status)) {
       setStatus("exam-day", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled"].includes(project1Status)) {
       setStatus("exam-day", "รอวันสอบ", "info");
@@ -643,7 +643,7 @@ export default function ProjectContent() {
       setStatus("thesis-defense-request", "รอปลดล็อก", "warning");
     } else if (!thesisDefenseRequest) {
       setStatus("thesis-defense-request", "ยังไม่ยื่นคำขอ", "default");
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status || "")) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(thesisDefenseRequest.status || "")) {
       setStatus("thesis-defense-request", "คำขอถูกส่งกลับ", "danger");
     } else if (["staff_verified", "scheduled"].includes(thesisDefenseRequest.status || "")) {
       setStatus("thesis-defense-request", "รอสอบโครงงานพิเศษ 2", "info");

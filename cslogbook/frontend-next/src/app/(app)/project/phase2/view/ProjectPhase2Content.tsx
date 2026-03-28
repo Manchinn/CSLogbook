@@ -247,7 +247,7 @@ export default function ProjectPhase2Content() {
       completed: "บันทึกผลสอบแล้ว",
       cancelled: "คำขอถูกยกเลิก",
       advisor_rejected: "อาจารย์ไม่อนุมัติ",
-      staff_returned: "เจ้าหน้าที่ส่งกลับ",
+      staff_rejected: "เจ้าหน้าที่ส่งกลับ",
     };
     return mapping[thesisDefenseRequest.status ?? ""] ?? "กำลังดำเนินการ";
   }, [thesisDefenseRequest]);
@@ -270,7 +270,7 @@ export default function ProjectPhase2Content() {
 
     if (!thesisDefenseRequest) {
       result["thesis-defense"] = { label: "ยังไม่ยื่นคำขอ", tone: "default" };
-    } else if (["advisor_rejected", "staff_returned", "cancelled"].includes(thesisDefenseRequest.status ?? "")) {
+    } else if (["advisor_rejected", "staff_rejected", "cancelled"].includes(thesisDefenseRequest.status ?? "")) {
       result["thesis-defense"] = { label: thesisStatusLabel, tone: "danger" };
     } else if (thesisDefenseRequest.status === "completed") {
       result["thesis-defense"] = { label: thesisStatusLabel, tone: "success" };

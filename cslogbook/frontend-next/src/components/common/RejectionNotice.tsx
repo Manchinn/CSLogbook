@@ -1,10 +1,9 @@
 import styles from "@/styles/requestPage.module.css";
 
-const REJECTION_STATUSES = ["advisor_rejected", "staff_returned", "staff_rejected", "rejected"];
+const REJECTION_STATUSES = ["advisor_rejected", "staff_rejected", "rejected"];
 
 const STATUS_LABELS: Record<string, string> = {
   advisor_rejected: "อาจารย์ส่งคำขอกลับแล้ว",
-  staff_returned: "เจ้าหน้าที่ส่งคำขอกลับแล้ว",
   staff_rejected: "เจ้าหน้าที่ส่งคำขอกลับแล้ว",
   rejected: "คำขอถูกปฏิเสธ",
 };

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RejectionDetailModal } from "@/components/common/RejectionDetailModal";
+import { RejectionNotice } from "@/components/common/RejectionNotice";
 import { approvalStatusLabel } from "@/lib/utils/statusLabels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -124,6 +126,9 @@ export default function InternshipLogbookView() {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const openRejectionModal = useCallback(() => setRejectionModalOpen(true), []);
+  const closeRejectionModal = useCallback(() => setRejectionModalOpen(false), []);
 
   const guard: GuardMessage | null = useMemo(() => {
     if (!hydrated) {
@@ -435,7 +440,30 @@ export default function InternshipLogbookView() {
             <Link className={styles.primaryButton} href="/internship-registration">ไปหน้าลงทะเบียนฝึกงาน</Link>
           </div>
         </section>
-      ) : (
+      ) : null}
+
+      {cs05Status === "rejected" ? (
+        <>
+          <RejectionNotice
+            status="rejected"
+            details={cs05?.rejectionReason ?? cs05?.reviewComment ?? null}
+            message="หนังสือคำร้องขอฝึกงานไม่ได้รับการอนุมัติ กรุณาตรวจสอบเหตุผลและแก้ไขแล้วส่งใหม่"
+            actionText="กรุณาแก้ไขคำร้องแล้วยื่นใหม่ที่หน้าลงทะเบียนฝึกงาน"
+            onViewDetails={cs05?.rejectionReason || cs05?.reviewComment ? openRejectionModal : undefined}
+          />
+          <RejectionDetailModal
+            isOpen={rejectionModalOpen}
+            onClose={closeRejectionModal}
+            title="รายละเอียดการปฏิเสธหนังสือคำร้องขอฝึกงาน"
+            rejectorName="เจ้าหน้าที่/อาจารย์"
+            rejectedAt={null}
+            reason={cs05?.rejectionReason ?? cs05?.reviewComment ?? null}
+            guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วยื่นคำร้องใหม่ที่หน้าลงทะเบียนฝึกงาน"
+          />
+        </>
+      ) : null}
+
+      {!guard ? (
         <>
           <section className={styles.sectionCard}>
             <div className={styles.sectionHeader}>
@@ -801,7 +829,7 @@ export default function InternshipLogbookView() {
             </div>
           ) : null}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

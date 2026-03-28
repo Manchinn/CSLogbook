@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Phase2GateWarning } from "@/components/common/Phase2GateWarning";
+import { RejectionDetailModal } from "@/components/common/RejectionDetailModal";
 import { RejectionNotice } from "@/components/common/RejectionNotice";
 import { RequestTimeline, type TimelineItem } from "@/components/common/RequestTimeline";
 import { useAuth } from "@/contexts/AuthContext";
@@ -114,6 +115,30 @@ export default function SystemTestRequestContent() {
     return items;
   }, [request?.timeline]);
 
+  const rejectionInfo = useMemo(() => {
+    if (!request) return null;
+    const status = request.status ?? "";
+    if (status === "advisor_rejected" && request.advisorDecision) {
+      return {
+        note: request.advisorDecision.note ?? null,
+        name: request.advisorDecision.name ?? "อาจารย์ที่ปรึกษา",
+        decidedAt: request.advisorDecision.decidedAt ?? request.updatedAt ?? null,
+      };
+    }
+    if (status === "staff_rejected" && request.staffDecision) {
+      return {
+        note: request.staffDecision.note ?? null,
+        name: "เจ้าหน้าที่ภาควิชา",
+        decidedAt: request.updatedAt ?? null,
+      };
+    }
+    return null;
+  }, [request]);
+
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const openRejectionModal = useCallback(() => setRejectionModalOpen(true), []);
+  const closeRejectionModal = useCallback(() => setRejectionModalOpen(false), []);
+
   const dateRangeDays = useMemo(() => {
     if (!form.startDate || !form.endDate) return null;
     const s = new Date(form.startDate);
@@ -190,7 +215,10 @@ export default function SystemTestRequestContent() {
 
       <RejectionNotice
         status={allowNewRequest && request ? String(request.status ?? "") : ""}
+        details={rejectionInfo?.note ?? null}
         message="กรุณาตรวจสอบหมายเหตุในรายละเอียดการอนุมัติ และแก้ไขข้อมูลแล้วส่งใหม่ได้เลย"
+        actionText="กรุณาแก้ไขข้อมูลแล้วส่งคำขอทดสอบระบบใหม่"
+        onViewDetails={rejectionInfo ? openRejectionModal : undefined}
       />
 
       {errorMessage ? (
@@ -379,6 +407,16 @@ export default function SystemTestRequestContent() {
         </div>
         {evidenceFile ? <p className={styles.fieldHint}>เลือกไฟล์: {evidenceFile.name}</p> : null}
       </section>
+
+      <RejectionDetailModal
+        isOpen={rejectionModalOpen}
+        onClose={closeRejectionModal}
+        title="รายละเอียดการปฏิเสธคำขอทดสอบระบบ"
+        rejectorName={rejectionInfo?.name ?? "-"}
+        rejectedAt={rejectionInfo?.decidedAt ? String(rejectionInfo.decidedAt) : null}
+        reason={rejectionInfo?.note ?? null}
+        guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอทดสอบระบบใหม่"
+      />
     </div>
   );
 }

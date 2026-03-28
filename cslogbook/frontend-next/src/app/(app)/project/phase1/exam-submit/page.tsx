@@ -33,7 +33,7 @@ const statusLabels: Record<string, string> = {
   completed: "บันทึกผลสอบเรียบร้อย",
   cancelled: "คำขอถูกยกเลิก",
   advisor_rejected: "อาจารย์ไม่อนุมัติ",
-  staff_returned: "เจ้าหน้าที่ส่งกลับ",
+  staff_rejected: "เจ้าหน้าที่ส่งกลับ",
 };
 
 const approvalMeta: Record<string, { label: string; tone: "default" | "success" | "danger" }> = {
