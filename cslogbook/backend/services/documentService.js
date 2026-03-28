@@ -938,8 +938,10 @@ class DocumentService {
      * ปฏิเสธเอกสาร
      */
     async rejectDocument(documentId, reviewerId, reason = null) {
+        const { sequelize } = require('../config/database');
+        const transaction = await sequelize.transaction();
         try {
-            const document = await Document.findByPk(documentId);
+            const document = await Document.findByPk(documentId, { lock: true, transaction });
 
             if (!document) {
                 const notFoundErr = new Error('ไม่พบเอกสาร');
@@ -961,7 +963,7 @@ class DocumentService {
                 reviewComment: reason || 'ไม่ได้ระบุเหตุผล',
                 reviewerId: reviewerId,
                 reviewDate: new Date()
-            });
+            }, { transaction });
 
             // บันทึก DocumentLog เพื่อเก็บ audit trail ของการ reject
             try {
@@ -972,14 +974,15 @@ class DocumentService {
                     previousStatus: previousStatus,
                     newStatus: 'rejected',
                     comment: reason || 'ไม่ได้ระบุเหตุผล'
-                });
+                }, { transaction });
             } catch (logErr) {
                 logger.warn('Unable to create DocumentLog for rejection:', logErr.message);
             }
 
+            await transaction.commit();
             logger.info(`Document rejected: ${documentId} by ${reviewerId}`);
 
-            // ส่ง notification แจ้งนักศึกษา
+            // ส่ง notification แจ้งนักศึกษา (นอก transaction — ไม่ควร rollback ถ้า notification fail)
             let notificationSent = false;
             if (document.userId) {
                 try {
@@ -1010,6 +1013,9 @@ class DocumentService {
                 notificationSent
             };
         } catch (error) {
+            if (!transaction.finished) {
+                await transaction.rollback();
+            }
             logger.error('Error rejecting document:', error);
             throw error;
         }
@@ -1718,8 +1724,15 @@ class DocumentService {
                 throw new Error('ไม่พบคำขอหนังสือรับรอง');
             }
 
+            if (request.status === 'rejected') {
+                const err = new Error('คำขอนี้ถูกปฏิเสธแล้ว');
+                err.statusCode = 400;
+                throw err;
+            }
             if (request.status !== 'pending') {
-                throw new Error('คำขอนี้ได้รับการดำเนินการแล้ว');
+                const err = new Error('คำขอนี้ได้รับการดำเนินการแล้ว');
+                err.statusCode = 400;
+                throw err;
             }
 
             // อัปเดตสถานะ
