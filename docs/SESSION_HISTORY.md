@@ -64,14 +64,14 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
-| 59 | 03-28 | Rejection flow full audit (19 bugs, 6 commits) + demo issues (BUG-01 default year filter, BUG-02 late request visibility, FEATURE-01 Google Drive link, UX-01 grade I/IP guidance) — 10 commits total |
+| 59 | 03-28 | Rejection flow audit (19 bugs fixed, 6 commits) + demo issues (BUG-01 year filter, BUG-02 late badge, FEATURE-01 Drive link, UX-01 grade I/IP) + 25 automated tests — 12 commits, 32 tests pass |
 
 ### Pending
 
 - **Demo issues (2026-03-26)** — `.github/instructions/issues-demo-2026-03-26.md`
   - ~~BUG-01 (High)~~ ✅ Fixed `e1b8fd3e`
   - ~~BUG-02 (High)~~ ✅ Fixed `e1b8fd3e`
-  - ~~FEATURE-01 (Medium)~~ ✅ Fixed `59287fa8` (migration pending: `npm run migrate`)
+  - ~~FEATURE-01 (Medium)~~ ✅ Fixed `59287fa8` (migration applied on local dev ✅, prod via CI/CD)
   - ~~UX-01 (Medium)~~ ✅ Fixed `8e4b4f9f`
   - NON-CODE (High): SSL/Domain — รอประสานงานอาจารย์
 - Staging regression testing — `docs/STAGING_TEST_PLAN.md`
@@ -1253,6 +1253,10 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `7daf6d61` | B6, B8-B11, F5 | Medium — permission, response format, idempotency, admin view, targetUrl, timestamp type |
 | `705e39da` | B12-B14, F10 | Low — notificationSent flag, reason length, status codes, notification fallback |
 | `95bf51ad` | NEW-1, NEW-2 | Re-audit fixes — certificate idempotency message, rejectDocument transaction safety |
+| `e1b8fd3e` | BUG-01, BUG-02 | Default year filter (backend+frontend), late request badge fallback |
+| `59287fa8` | FEATURE-01 | Google Drive link — migration, model, service, frontend upload+display |
+| `8e4b4f9f` | UX-01 | Grade I/IP guidance — AcknowledgeNotice/Modal phase 1, ThesisFailNotice phase 2 |
+| `c2d6e736` | Tests | 25 automated tests (rejection, year filter, late badge, drive link) — 32 total pass |
 
 #### Bug Details
 

@@ -159,7 +159,7 @@ Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (59 sessions)
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
-| 59 | 03-28 | Rejection flow audit (19 bugs fixed) + demo issues: BUG-01 year filter, BUG-02 late request, FEATURE-01 Drive link, UX-01 grade I/IP guidance |
+| 59 | 03-28 | Rejection audit (19 bugs), demo issues (BUG-01/02, FEATURE-01, UX-01), 25 automated tests — 12 commits, 32 tests pass |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch bugs |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams ใน agent-experiment, คู่มือส่ง Notion |
 | 56 | 03-25 | Permissions cleanup, memory consolidation, project directory audit, Claude Code architecture walkthrough |
