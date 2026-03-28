@@ -64,10 +64,16 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
-| 59 | 03-28 | Rejection flow full audit (3 parallel agents): 18 bugs found, 17 fixed across 4 commits — B1 malformed rejectCertificateRequest, B2-B3 missing validation, B5 rejection audit trail (resubmit updates existing doc + DocumentLog), B6 cp05Reviewer permission narrowed, B8 response format, B9 idempotency, B10 getCS05ById rejectionReason, B11 targetUrl per doc type, B12 notificationSent flag, B13 reason length 5-1000, B14 status codes, F1-F3 RejectionNotice+Modal on 3 pages, F4 staff_returned→staff_rejected enum, F5 rejection timestamp type, F10 notification fallback /dashboard |
+| 59 | 03-28 | Rejection flow full audit: 19 bugs fixed (6 commits) — malformed code, validation, audit trail, permissions, transaction safety, enum mismatch, UI notices, notification fallback. Re-audit verified all fixes + found 2 new edge cases (idempotency message, race condition). |
 
 ### Pending
 
+- **Demo issues (2026-03-26)** — `.github/instructions/issues-demo-2026-03-26.md`
+  - BUG-01 (High): ข้อมูลปีการศึกษาเก่าปนกับปัจจุบัน — default filter ไม่กรอง active year
+  - BUG-02 (High): คำขอสอบส่งล่าช้าไม่แสดงในหน้า admin — filter ตาม deadline ซ่อน request
+  - FEATURE-01 (Medium): เพิ่มฟิลด์ Google Drive link สำหรับเอกสารขนาดใหญ่
+  - UX-01 (Medium): ชี้แจงกระบวนการเกรด I/IP หลังสอบไม่ผ่าน
+  - NON-CODE (High): SSL/Domain — รอประสานงานอาจารย์
 - Staging regression testing — `docs/STAGING_TEST_PLAN.md`
 - Student result pages (out of scope — intentional stubs)
 
@@ -1236,7 +1242,7 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 
 ### Session 59 (claude, 2026-03-28) — Rejection Flow Full Audit & Fix
 
-**Approach:** Spawned 3 parallel agents (backend services, frontend UI, routes/tests) to audit the entire rejection flow. Found 18 bugs across HIGH/MEDIUM/LOW severity. Fixed 17 in 4 commits (5 were false positives — already working).
+**Approach:** Spawned 3 parallel agents (backend services, frontend UI, routes/tests) to audit the entire rejection flow. Found 18 bugs across HIGH/MEDIUM/LOW severity. Fixed 17 in 4 commits. Re-audit (3 more agents) verified all fixes + found 2 new edge cases → fixed in commit 6. Total: 19 bugs fixed, 5 false positives.
 
 #### Commits
 
@@ -1246,6 +1252,7 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `1b046524` | B5 | Rejection audit trail — resubmit updates existing doc + DocumentLog |
 | `7daf6d61` | B6, B8-B11, F5 | Medium — permission, response format, idempotency, admin view, targetUrl, timestamp type |
 | `705e39da` | B12-B14, F10 | Low — notificationSent flag, reason length, status codes, notification fallback |
+| `95bf51ad` | NEW-1, NEW-2 | Re-audit fixes — certificate idempotency message, rejectDocument transaction safety |
 
 #### Bug Details
 
@@ -1269,6 +1276,8 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | F4 | MEDIUM | Frontend | `staff_returned` ไม่มีใน DB ENUM | เปลี่ยนเป็น `staff_rejected` ทุกที่ (6 files) |
 | F5 | MEDIUM | Frontend | Rejection date ใช้ `updatedAt` แทน timestamp จริง | เพิ่ม `approvedAt` ใน type + ใช้ใน modal |
 | F10 | LOW | Frontend | Notification click ไม่ทำอะไรถ้าไม่มี targetUrl | Fallback ไป `/dashboard` |
+| NEW-1 | MEDIUM | Backend | `rejectCertificateRequest` error message ไม่แยก rejected vs approved | เพิ่ม explicit check + statusCode |
+| NEW-2 | MEDIUM | Backend | `rejectDocument` ไม่มี transaction — race condition concurrent reject | เพิ่ม transaction + row lock |
 
 #### False Positives (ไม่ต้องแก้)
 
