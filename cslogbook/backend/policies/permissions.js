@@ -26,7 +26,12 @@ module.exports = {
       'teacher:head_of_department'
     ],
     cp05Staff: ['admin', 'teacher:support'],
-    cp05Reviewer: ['admin', 'teacher'],
+    cp05Reviewer: [
+      'admin',
+      'teacher:position:หัวหน้าภาควิชา',
+      'teacher:head_of_department',
+      'teacher:support'
+    ],
     acceptanceHead: [
       'admin',
       'teacher:position:หัวหน้าภาควิชา',

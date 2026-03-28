@@ -52,6 +52,8 @@ function statusLabel(status: string | null | undefined): StatusLabel {
       return { text: "รอการดำเนินการ", tone: "warning" };
     case "not_requested":
       return { text: "ยังไม่ส่งคำขอ", tone: "muted" };
+    case "rejected":
+      return { text: "ไม่อนุมัติ", tone: "danger" as const };
     default:
       return { text: status || "ไม่ทราบสถานะ", tone: "info" };
   }

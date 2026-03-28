@@ -364,7 +364,7 @@ export default function ExamSubmitPage() {
           onClose={closeRejectionModal}
           title="รายละเอียดการปฏิเสธคำขอสอบ"
           rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
-          rejectedAt={request?.updatedAt ? String(request.updatedAt) : null}
+          rejectedAt={rejectedApproval?.approvedAt ? String(rejectedApproval.approvedAt) : request?.updatedAt ? String(request.updatedAt) : null}
           reason={rejectedApproval?.note ? String(rejectedApproval.note) : null}
           guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบโครงงานพิเศษใหม่"
         />

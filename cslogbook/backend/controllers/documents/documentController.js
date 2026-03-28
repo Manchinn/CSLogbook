@@ -203,7 +203,8 @@ const rejectDocument = async (req, res) => {
 
         res.json({
             success: true,
-            ...result
+            message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
+            data: result
         });
     } catch (error) {
         logger.error('Error rejecting document:', error);

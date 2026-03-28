@@ -495,6 +495,7 @@ class InternshipDocumentService {
       startDate: internshipDoc?.startDate,
       endDate: internshipDoc?.endDate,
       status: document.status,
+      rejectionReason: document.status === 'rejected' ? document.reviewComment : undefined,
       createdAt: document.created_at,
       owner: {
         student: {

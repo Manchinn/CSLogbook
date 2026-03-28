@@ -945,6 +945,10 @@ class DocumentService {
                 throw new Error('ไม่พบเอกสาร');
             }
 
+            if (document.status === 'rejected') {
+                throw new Error('เอกสารนี้ถูกปฏิเสธแล้ว');
+            }
+
             const previousStatus = document.status;
 
             // บันทึกเหตุผลลง reviewComment (คอลัมน์จริงในตาราง documents)
@@ -983,7 +987,9 @@ class DocumentService {
                             documentType: document.documentType || null,
                             action: 'rejected',
                             targetUrl: document.documentType === 'INTERNSHIP'
-                                ? '/internship-registration'
+                                ? (['ACCEPTANCE_LETTER', 'REFERRAL_LETTER'].includes(document.documentName)
+                                    ? '/internship-registration/flow'
+                                    : '/internship-registration')
                                 : '/project/documents'
                         }
                     });
