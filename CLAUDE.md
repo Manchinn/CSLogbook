@@ -154,16 +154,16 @@ Interactive HTML diagrams in `docs/visual/`:
 
 ## Session History
 
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (58 sessions)
+Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (59 sessions)
 
 **Recent (last 5):**
 | # | Date | Summary |
 |---|---|---|
+| 59 | 03-28 | Rejection flow full audit: 3 parallel agents → 18 bugs found, 17 fixed (4 commits) — malformed code, validation, audit trail, permissions, enum mismatch, UI notices, notification fallback |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch bugs |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams ใน agent-experiment, คู่มือส่ง Notion |
 | 56 | 03-25 | Permissions cleanup, memory consolidation, project directory audit, Claude Code architecture walkthrough |
 | 55 | 03-22 | SurveyBanner responsive fix |
-| 54 | 03-22 | Fix admin document detail: internship วันที่ส่ง/ข้อมูลฝึกงาน fallback, certificates คะแนนรวม overallScore/fullScore |
 
 ---
 

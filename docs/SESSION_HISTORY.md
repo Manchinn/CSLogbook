@@ -1,6 +1,6 @@
 # Session History — CSLogbook
 
-Detailed session logs moved from CLAUDE.md to reduce token usage.
+Detailed session logs moved from CLAUDE.md to reduce token usage (59 sessions).
 Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 
 ---
@@ -64,6 +64,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
+| 59 | 03-28 | Rejection flow full audit (3 parallel agents): 18 bugs found, 17 fixed across 4 commits — B1 malformed rejectCertificateRequest, B2-B3 missing validation, B5 rejection audit trail (resubmit updates existing doc + DocumentLog), B6 cp05Reviewer permission narrowed, B8 response format, B9 idempotency, B10 getCS05ById rejectionReason, B11 targetUrl per doc type, B12 notificationSent flag, B13 reason length 5-1000, B14 status codes, F1-F3 RejectionNotice+Modal on 3 pages, F4 staff_returned→staff_rejected enum, F5 rejection timestamp type, F10 notification fallback /dashboard |
 
 ### Pending
 
@@ -1230,3 +1231,74 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | ไฟล์ | รายละเอียด |
 |------|-----------|
 | `frontend-next/src/components/dashboard/SurveyBanner.module.css` | **EDIT** — เพิ่ม `@media (max-width: 540px)` สำหรับ banner, actions, modal |
+
+---
+
+### Session 59 (claude, 2026-03-28) — Rejection Flow Full Audit & Fix
+
+**Approach:** Spawned 3 parallel agents (backend services, frontend UI, routes/tests) to audit the entire rejection flow. Found 18 bugs across HIGH/MEDIUM/LOW severity. Fixed 17 in 4 commits (5 were false positives — already working).
+
+#### Commits
+
+| Commit | Bugs | Description |
+|---|---|---|
+| `97d80145` | B1-B3, F1-F4 | Critical/High fixes — malformed code, missing validation, rejection notices, enum mismatch |
+| `1b046524` | B5 | Rejection audit trail — resubmit updates existing doc + DocumentLog |
+| `7daf6d61` | B6, B8-B11, F5 | Medium — permission, response format, idempotency, admin view, targetUrl, timestamp type |
+| `705e39da` | B12-B14, F10 | Low — notificationSent flag, reason length, status codes, notification fallback |
+
+#### Bug Details
+
+| # | Severity | Area | Issue | Fix |
+|---|---|---|---|---|
+| B1 | CRITICAL | Backend | `rejectCertificateRequest` มี function declarations ข้างใน response JSON | ย้ายออกนอก function |
+| B2 | HIGH | Backend | `statusController.rejectDocument` ไม่ validate reason | เพิ่ม 400 check |
+| B3 | HIGH | Backend | `rejectCertificateRequest` ไม่ validate remarks | เพิ่ม 400 check |
+| B5 | HIGH | Backend | Resubmit สร้าง record ใหม่ — rejection reason หาย | Update rejected doc แทน + DocumentLog |
+| B6 | MEDIUM | Backend | `cp05Reviewer` กว้างเกินไป (all teachers) | จำกัดเฉพาะหัวหน้าภาค + support |
+| B8 | MEDIUM | Backend | `rejectDocument` response spread unpredictable | ใช้ `{ success, message, data }` |
+| B9 | MEDIUM | Backend | ไม่มี idempotency check — reject ซ้ำได้ | เพิ่ม check status === 'rejected' |
+| B10 | MEDIUM | Backend | `getCS05ById()` ไม่ return rejectionReason | เพิ่ม field เหมือน `getCurrentCS05()` |
+| B11 | MEDIUM | Backend | Notification targetUrl generic ทุก internship doc | แยก URL ตาม documentName |
+| B12 | LOW | Backend | Notification failure swallowed silently | เพิ่ม `notificationSent` flag ใน response |
+| B13 | LOW | Backend | ไม่มี length validation สำหรับ reason | เพิ่ม 5-1000 chars ใน 4 controllers |
+| B14 | LOW | Backend | Status code ไม่สม่ำเสมอ (validation → 500) | Fix ให้ validation return 400 |
+| F1 | HIGH | Frontend | System Test — RejectionNotice ไม่มี details/modal | Wire RejectionDetailModal |
+| F2 | HIGH | Frontend | Internship Certificate — RejectionNotice import แต่ไม่ใช้ | เพิ่ม RejectionNotice + Modal |
+| F3 | HIGH | Frontend | Internship Logbook — ไม่แสดง rejection reason | เพิ่ม RejectionNotice + Modal |
+| F4 | MEDIUM | Frontend | `staff_returned` ไม่มีใน DB ENUM | เปลี่ยนเป็น `staff_rejected` ทุกที่ (6 files) |
+| F5 | MEDIUM | Frontend | Rejection date ใช้ `updatedAt` แทน timestamp จริง | เพิ่ม `approvedAt` ใน type + ใช้ใน modal |
+| F10 | LOW | Frontend | Notification click ไม่ทำอะไรถ้าไม่มี targetUrl | Fallback ไป `/dashboard` |
+
+#### False Positives (ไม่ต้องแก้)
+
+| # | Reason |
+|---|---|
+| B4 | Service layer ส่ง notification อยู่แล้ว (agent ตรวจเฉพาะ controller) |
+| F6 | Meeting log rejection reason แสดงอยู่แล้ว (line 664-668) |
+| F7 | DecisionModal บังคับ note ก่อน reject — friction เพียงพอ |
+| F8 | `actionText` มีอยู่แล้วจาก F1 fix |
+| F9 | `"rejected"` case มีอยู่แล้วจาก F2 fix |
+
+#### ไฟล์ที่เปลี่ยน (20 files)
+
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `backend/controllers/documents/documentController.js` | **EDIT** — B1 ย้าย stray functions, B3 remarks validation, B8 response format, B14 status codes |
+| `backend/controllers/documents/statusController.js` | **EDIT** — B2 reason validation, B13 length check |
+| `backend/controllers/documents/cp05ApprovalController.js` | **EDIT** — B12 notificationSent, B13 length check |
+| `backend/controllers/documents/acceptanceApprovalController.js` | **EDIT** — B12 notificationSent, B13 length check |
+| `backend/policies/permissions.js` | **EDIT** — B6 narrow cp05Reviewer |
+| `backend/services/documentService.js` | **EDIT** — B5 audit trail + resubmit, B9 idempotency, B11 targetUrl, B12 notificationSent, B14 statusCode |
+| `backend/services/internship/document.service.js` | **EDIT** — B5 CS05 resubmit, B10 rejectionReason, getCurrentCS05 status filter |
+| `frontend-next/src/components/common/RejectionNotice.tsx` | **EDIT** — F4 remove staff_returned |
+| `frontend-next/src/components/common/NotificationBell.tsx` | **EDIT** — F10 fallback /dashboard |
+| `frontend-next/src/app/(app)/project/phase2/system-test/SystemTestRequestContent.tsx` | **EDIT** — F1 wire RejectionDetailModal |
+| `frontend-next/src/app/(app)/internship/certificate/InternshipCertificateView.tsx` | **EDIT** — F2 RejectionNotice + F9 status label |
+| `frontend-next/src/app/(app)/internship/logbook/InternshipLogbookView.tsx` | **EDIT** — F3 RejectionNotice |
+| `frontend-next/src/app/(app)/project/phase1/exam-submit/page.tsx` | **EDIT** — F4 enum, F5 timestamp |
+| `frontend-next/src/app/(app)/project/phase1/view/ProjectContent.tsx` | **EDIT** — F4 staff_returned→staff_rejected |
+| `frontend-next/src/app/(app)/project/phase1/view/ProjectPhase1Content.tsx` | **EDIT** — F4 staff_returned→staff_rejected |
+| `frontend-next/src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx` | **EDIT** — F4 staff_returned→staff_rejected |
+| `frontend-next/src/lib/services/internshipService.ts` | **EDIT** — rejectionReason type |
+| `frontend-next/src/lib/services/projectService.ts` | **EDIT** — F5 approvedAt type |
