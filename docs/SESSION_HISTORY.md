@@ -64,7 +64,8 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 56 | 03-25 | Permissions cleanup (167→24 wildcard rules), memory dream consolidation, project directory audit (cleanup 3 orphaned worktrees), Claude Code extension/memory architecture walkthrough |
 | 57 | 03-26 | CSLogbook Agent Teams: 3 multi-agent teams (cslog-feature/bugfix/migrate) ใน agent-experiment, คู่มือส่ง Notion |
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
-| 59 | 03-28 | Rejection flow audit (19 bugs fixed, 6 commits) + demo issues (BUG-01 year filter, BUG-02 late badge, FEATURE-01 Drive link, UX-01 grade I/IP) + 25 automated tests — 12 commits, 32 tests pass |
+| 59 | 03-28 | Rejection audit (19 bugs), demo issues (BUG-01/02, FEATURE-01, UX-01), 25 tests, data import (26 projects + 61 internship + 11 students created), seed script fixes, IMPORT_GUIDE, GitHub Actions upload workflow |
+| 60 | 03-28 | Production data import: seed scripts สำหรับโครงงาน 2568/2 (41 projects) + ฝึกงาน 2567/2568 (90 records) — ติดตั้ง Claude Code บน VPS, deploy via CI/CD, docker cp Excel files, รัน seed ผ่าน docker exec, เพิ่มสมาชิกขาด 3 คน, แก้ mysql utf8mb4 charset bug |
 
 ### Pending
 
@@ -1257,6 +1258,9 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `59287fa8` | FEATURE-01 | Google Drive link — migration, model, service, frontend upload+display |
 | `8e4b4f9f` | UX-01 | Grade I/IP guidance — AcknowledgeNotice/Modal phase 1, ThesisFailNotice phase 2 |
 | `c2d6e736` | Tests | 25 automated tests (rejection, year filter, late badge, drive link) — 32 total pass |
+| `a7bdebf2` | Seed fixes | Project grouping, internship status approved, QueryTypes, path, partial import |
+| `5b96c079` | Docs | IMPORT_GUIDE.md — production checklist |
+| `b7a262a8` | Docs + Seed | Auto-detect path in Docker, VPS step-by-step in guide |
 
 #### Bug Details
 
