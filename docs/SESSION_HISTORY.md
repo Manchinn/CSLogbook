@@ -66,7 +66,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
 | 59 | 03-28 | Rejection audit (19 bugs), demo issues (BUG-01/02, FEATURE-01, UX-01), 25 tests, data import (26 projects + 61 internship + 11 students created), seed script fixes, IMPORT_GUIDE, GitHub Actions upload workflow |
 | 60 | 03-28 | Production data import: seed scripts สำหรับโครงงาน 2568/2 (41 projects) + ฝึกงาน 2567/2568 (90 records) — ติดตั้ง Claude Code บน VPS, deploy via CI/CD, docker cp Excel files, รัน seed ผ่าน docker exec, เพิ่มสมาชิกขาด 3 คน, แก้ mysql utf8mb4 charset bug |
-| 61 | 03-30 | Admin document UX improvements (8 pages): inline expand→drawer (ผลสอบ), bulk actions (คพ.02/03+system test+certificates), default status alignment (6 pages), XLSX export ทุกหน้า (4 endpoints ใหม่), Thai label normalization — 8 commits, ~30 files, ~1170 insertions |
+| 61 | 03-30 | Admin document UX improvements (8 pages): inline expand→drawer (ผลสอบ), bulk actions (คพ.02/03+system test+certificates), default status alignment (6 pages), XLSX export ทุกหน้า (4 endpoints ใหม่), Thai label normalization, code review fixes (permission+headersSent+requestId+busyState), export filter fixes (defense hardcode removed, certificates search) — 11 commits, ~30 files |
 
 ### Pending
 
@@ -1375,4 +1375,21 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `projectDefenseRequestController.js` | เพิ่ม exportExamResults, rejectProject1Request |
 | `projectDefenseRequestService.js` | เพิ่ม rejectDefenseRequest, rejectProject1Request, rejectThesisRequest |
 | `projectSystemTestController.js` | เพิ่ม exportStaffQueue |
-| `documentController.js` | เพิ่ม exportDocuments, exportCertificateRequests |
+| `documentController.js` | เพิ่ม exportDocuments, exportCertificateRequests, เพิ่ม search param ใน exportCertificateRequests |
+| `documentService.js` | เพิ่ม search filter ใน getCertificateRequests (studentCode, firstName, lastName) |
+
+**Code review fixes (commit `c0276ae5`):**
+
+| Fix | รายละเอียด |
+|---|---|
+| Permission | export exam results: `examRecord` → `kp02Export` (อาจารย์จัดตาราง export ได้) |
+| headersSent | เพิ่ม `if (res.headersSent) return;` ใน catch block ทั้ง 4 export endpoints |
+| requestId | SystemTest bulk: ใช้ `requestId` แทน `projectId` เป็น selection key |
+| busyState | DefenseQueue: แยก `isBulkBusy` ออกจาก `exportQueue.isPending` |
+
+**Export filter fixes (commit `fb74cd2a`):**
+
+| Fix | รายละเอียด |
+|---|---|
+| Defense hardcode | ลบ `EXPORT_DEFAULT_STATUSES` hardcode — ให้ export ใช้ status ตาม UI filter |
+| Certificates search | เพิ่ม search param ตลอด stack: FE type → FE component → BE controller → BE service query |
