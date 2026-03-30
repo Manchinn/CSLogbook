@@ -150,7 +150,7 @@ export default function DocumentPipelinePage() {
           <button type="button" className={btn.button} onClick={() => loadData(year, semester, docType)} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
-          <button type="button" className={btn.button} disabled={pipeline.length === 0} onClick={() => exportDocumentPipeline({ year: year ? String(year) : undefined })}>
+          <button type="button" className={btn.button} disabled={pipeline.length === 0} onClick={() => exportDocumentPipeline({ year: year ? String(year) : undefined, semester: semester != null ? String(semester) : undefined })}>
             ส่งออก Excel
           </button>
         </div>

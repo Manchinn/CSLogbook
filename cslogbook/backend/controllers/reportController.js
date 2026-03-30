@@ -195,7 +195,7 @@ exports.exportEnrolledStudents = async (req, res, next) => {
 exports.exportProjectReport = async (req, res, next) => {
   try {
     const { year, semester } = req.query;
-    const { rows: projects } = await projectManagementService.getAllProjects({
+    const { projects } = await projectManagementService.getAllProjects({
       academicYear: year,
       semester,
       limit: 2000,

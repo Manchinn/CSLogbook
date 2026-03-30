@@ -85,7 +85,7 @@ export default function InternshipSupervisorsPage() {
           <button type="button" className={btn.button} onClick={() => loadData(year, semester)} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
-          <button type="button" className={btn.button} disabled={filtered.length === 0} onClick={() => exportSupervisorReport({ year: year ? String(year) : undefined })}>
+          <button type="button" className={btn.button} disabled={filtered.length === 0} onClick={() => exportSupervisorReport({ year: year ? String(year) : undefined, semester: semester != null ? String(semester) : undefined })}>
             ส่งออก Excel
           </button>
         </div>
