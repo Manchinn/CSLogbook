@@ -665,6 +665,7 @@ const exportDocuments = async (req, res) => {
         res.end();
     } catch (error) {
         logger.error('exportDocuments error', { error: error.message });
+        if (res.headersSent) return;
         res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
     }
 };
@@ -726,6 +727,7 @@ const exportCertificateRequests = async (req, res) => {
         res.end();
     } catch (error) {
         logger.error('exportCertificateRequests error', { error: error.message });
+        if (res.headersSent) return;
         res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
     }
 };

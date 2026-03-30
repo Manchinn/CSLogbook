@@ -124,7 +124,8 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
   const rows = useMemo(() => queueQuery.data?.rows ?? [], [queueQuery.data?.rows]);
   const total = queueQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const isBusy = verifyRequest.isPending || rejectRequest.isPending || exportQueue.isPending;
+  const isBulkBusy = verifyRequest.isPending || rejectRequest.isPending;
+  const isBusy = isBulkBusy || exportQueue.isPending;
 
   function canSelectRow(row: DefenseQueueRecord): boolean {
     return row.status === "advisor_approved";
@@ -315,8 +316,8 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
           >
             รีเซ็ตตัวกรอง
           </button>
-          <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => void handleExport()} disabled={!canExport || isBusy}>
-            ส่งออกข้อมูล
+          <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => void handleExport()} disabled={!canExport || exportQueue.isPending}>
+            {exportQueue.isPending ? "กำลังส่งออก..." : "ส่งออกข้อมูล"}
           </button>
         </div>
       </header>

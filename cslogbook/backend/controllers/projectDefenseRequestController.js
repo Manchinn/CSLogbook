@@ -363,6 +363,7 @@ module.exports = {
       res.end();
     } catch (error) {
       logger.error('exportExamResults error', { error: error.message });
+      if (res.headersSent) return;
       return res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
     }
   },

@@ -126,12 +126,12 @@ export function SystemTestStaffQueuePage() {
 
   // Bulk selection helpers
   const allSelectableRows = useMemo(() => rows.filter(canSelectRow), [rows]);
-  const isAllSelected = allSelectableRows.length > 0 && allSelectableRows.every((r) => selectedIds.includes(r.projectId));
+  const isAllSelected = allSelectableRows.length > 0 && allSelectableRows.every((r) => selectedIds.includes(r.requestId));
   const selectedCount = selectedIds.length;
 
-  const onToggleSelected = (projectId: number) => {
+  const onToggleSelected = (requestId: number) => {
     setSelectedIds((prev) =>
-      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId],
+      prev.includes(requestId) ? prev.filter((id) => id !== requestId) : [...prev, requestId],
     );
   };
 
@@ -139,7 +139,7 @@ export function SystemTestStaffQueuePage() {
     if (isAllSelected) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(allSelectableRows.map((r) => r.projectId));
+      setSelectedIds(allSelectableRows.map((r) => r.requestId));
     }
   };
 
@@ -191,13 +191,14 @@ export function SystemTestStaffQueuePage() {
     setBulkBusy(true);
     try {
       const results = await Promise.allSettled(
-        selectedIds.map((projectId) =>
-          submitDecision.mutateAsync({
-            projectId,
+        selectedIds.map((reqId) => {
+          const row = rows.find((r) => r.requestId === reqId);
+          return submitDecision.mutateAsync({
+            projectId: row?.projectId ?? 0,
             decision: "approve",
             note: bulkApproveNote.trim() || undefined,
-          }),
-        ),
+          });
+        }),
       );
       const failed = results.filter((r) => r.status === "rejected").length;
       const succeeded = results.length - failed;
@@ -221,13 +222,14 @@ export function SystemTestStaffQueuePage() {
     setBulkBusy(true);
     try {
       const results = await Promise.allSettled(
-        selectedIds.map((projectId) =>
-          submitDecision.mutateAsync({
-            projectId,
+        selectedIds.map((reqId) => {
+          const row = rows.find((r) => r.requestId === reqId);
+          return submitDecision.mutateAsync({
+            projectId: row?.projectId ?? 0,
             decision: "reject",
             note: bulkRejectNote.trim() || undefined,
-          }),
-        ),
+          });
+        }),
       );
       const failed = results.filter((r) => r.status === "rejected").length;
       const succeeded = results.length - failed;
@@ -455,7 +457,7 @@ export function SystemTestStaffQueuePage() {
               ) : (
                 rows.map((row) => {
                   const selectable = canSelectRow(row);
-                  const isChecked = selectedIds.includes(row.projectId);
+                  const isChecked = selectedIds.includes(row.requestId);
                   return (
                     <tr key={row.requestId}>
                       <td>
@@ -463,8 +465,8 @@ export function SystemTestStaffQueuePage() {
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => onToggleSelected(row.projectId)}
-                            title={`เลือกรายการ #${row.projectId}`}
+                            onChange={() => onToggleSelected(row.requestId)}
+                            title={`เลือกรายการ #${row.requestId}`}
                           />
                         ) : null}
                       </td>
