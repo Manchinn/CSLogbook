@@ -230,7 +230,52 @@ export function exportAdminInternshipDocuments(filters: DocumentFilters) {
 - Column headers เป็นภาษาไทย
 - Status/enum values แปลเป็นภาษาไทย (เหมือนที่ frontend ทำอยู่ใน CSV)
 
-### 4. Refactor Existing Exports (6 ตัว)
+### 4. Date Formatting — ใช้วันไทย (พ.ศ.) ทุก export
+
+**ปัญหา:** Backend exports ส่ง raw ISO string (เช่น `2026-03-30T07:00:00.000Z`) ไม่ได้ format
+**แก้ไข:** สร้าง helper `formatThaiDate(value)` ใน `excelExportBuilder.js` หรือ shared util
+
+```js
+const dayjs = require('dayjs');
+require('dayjs/locale/th');
+const buddhistEra = require('dayjs/plugin/buddhistEra');
+dayjs.extend(buddhistEra);
+
+function formatThaiDate(value) {
+  if (!value) return '-';
+  const d = dayjs(value);
+  if (!d.isValid()) return '-';
+  return d.locale('th').format('D MMM BBBB');  // e.g. "30 มี.ค. 2569"
+}
+```
+
+**Export ที่ต้องแก้ date format:**
+
+| Export | Date Fields | ก่อน | หลัง |
+| --- | --- | --- | --- |
+| `exportDocuments` | submittedAt | raw ISO (`created_at`) | `formatThaiDate()` |
+| `exportCertificateRequests` | requestedAt | raw ISO | `formatThaiDate()` |
+| `exportExamResults` | recordedAt | raw ISO | `formatThaiDate()` |
+| `exportStaffQueue` | submittedAt | raw ISO | `formatThaiDate()` |
+| Enrolled Students (ใหม่) | startDate, endDate | - | `formatThaiDate()` |
+| Academic Deadlines (ใหม่) | deadlineDate | - | `formatThaiDate()` |
+
+**หมายเหตุ:** `dayjs` + `buddhistEra` plugin มีอยู่ใน project แล้ว (ใช้ใน `projectDefenseRequestService.js`)
+
+### 5. ลบ column รหัสโครงงานพิเศษ (projectCode)
+
+**เหตุผล:** `projectCode` เป็น auto-generated system code (เช่น `PRJ2568-0007`) ไม่มีประโยชน์สำหรับผู้ใช้ในรายงาน
+
+**Export ที่ต้องลบ:**
+
+| Export | Controller | Column ที่ลบ |
+| --- | --- | --- |
+| `exportExamResults` | `projectDefenseRequestController.js` | `{ header: 'รหัสโครงงาน', key: 'code', width: 15 }` |
+| `exportStaffQueue` | `projectSystemTestController.js` | `{ header: 'รหัสโครงงาน', key: 'code', width: 15 }` |
+
+**Export ที่ไม่มี projectCode อยู่แล้ว (ไม่ต้องแก้):** topicExam, defenseVerificationList, project report
+
+### 6. Refactor Existing Exports (6 ตัว)
 
 แต่ละ controller function เปลี่ยนจาก inline ExcelJS → `ExcelExportBuilder`:
 
@@ -244,7 +289,7 @@ export function exportAdminInternshipDocuments(filters: DocumentFilters) {
 | `topicExamController.js` | `exportOverview()` | ~20 lines → ~5 lines |
 | `projectDefenseRequestService.js` | `exportStaffVerificationList()` | ใช้ Builder `.toBuffer()` |
 
-### 5. Frontend Service Refactor (6 ตัว + 5 ใหม่)
+### 7. Frontend Service Refactor (6 ตัว + 5 ใหม่)
 
 **Refactor existing (ลบ inline fetch/blob/extractFileName):**
 
@@ -260,7 +305,7 @@ export function exportAdminInternshipDocuments(filters: DocumentFilters) {
 - `reportService.ts` — `exportEnrolledStudents()`, `exportProjectReport()`, `exportDocumentPipeline()`, `exportSupervisorReport()`
 - `adminSettingsService.ts` — `exportAcademicDeadlines()`
 
-### 6. Frontend Page Changes (5 หน้า)
+### 8. Frontend Page Changes (5 หน้า)
 
 เปลี่ยนปุ่ม "ส่งออก CSV" → "ส่งออก Excel" และเรียก service function แทน `downloadCSV()`:
 
