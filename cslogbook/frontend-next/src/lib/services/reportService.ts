@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
+import { downloadExcelFile } from "@/lib/utils/excelDownload";
 import {
   getDeadlineAcademicYearsCompatibility,
   getDeadlineOverdueCompatibility,
@@ -481,5 +482,47 @@ export async function cancelProject(projectId: number, reason: string): Promise<
   await apiFetch(`/admin/projects/${projectId}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  });
+}
+
+// ---- Export Functions ----
+
+export function exportEnrolledStudents(filters: { year?: string; semester?: string } = {}) {
+  return downloadExcelFile({
+    endpoint: "/reports/internships/enrolled-students/export",
+    params: filters,
+    fallbackFilename: "รายงานฝึกงาน.xlsx",
+  });
+}
+
+export function exportProjectReport(filters: { year?: string; semester?: string } = {}) {
+  return downloadExcelFile({
+    endpoint: "/reports/projects/export",
+    params: filters,
+    fallbackFilename: "รายงานโครงงาน.xlsx",
+  });
+}
+
+export function exportDocumentPipeline(filters: { year?: string; semester?: string; documentType?: string } = {}) {
+  return downloadExcelFile({
+    endpoint: "/reports/documents/pipeline/export",
+    params: filters,
+    fallbackFilename: "Document-Pipeline.xlsx",
+  });
+}
+
+export function exportSupervisorReport(filters: { year?: string; semester?: string } = {}) {
+  return downloadExcelFile({
+    endpoint: "/reports/internships/supervisors/export",
+    params: filters,
+    fallbackFilename: "รายงานพี่เลี้ยง.xlsx",
+  });
+}
+
+export function exportAcademicDeadlines(filters: { academicYear?: string; semester?: string } = {}) {
+  return downloadExcelFile({
+    endpoint: "/admin/important-deadlines/export",
+    params: filters,
+    fallbackFilename: "กำหนดการสำคัญ.xlsx",
   });
 }
