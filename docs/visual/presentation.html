@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Presentation</title>
+<style>
+:root {
+  --bg: #0d1117; --s: #161b22; --b: #30363d; --t: #e6edf3; --tm: #8b949e;
+  --a: #4472C4; --a2: #CADCFC; --g: #3fb950; --o: #f0883e; --r: #f85149;
+  --p: #bc8cff; --navy: #1E2761;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--t); padding: 0; }
+
+/* ── Navigation ── */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: #0d111799; backdrop-filter: blur(12px); border-bottom: 1px solid var(--b); display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1.5rem; }
+.nav-title { font-size: 1rem; font-weight: 700; color: var(--a2); }
+.nav-controls { display: flex; align-items: center; gap: 1rem; }
+.nav-btn { background: var(--s); border: 1px solid var(--b); color: var(--t); padding: 0.35rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.15s; }
+.nav-btn:hover { background: var(--a); border-color: var(--a); }
+.nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.slide-counter { font-size: 0.85rem; color: var(--tm); min-width: 5rem; text-align: center; }
+.progress-bar { position: fixed; top: 44px; left: 0; right: 0; height: 2px; background: var(--b); z-index: 99; }
+.progress-fill { height: 100%; background: var(--a); transition: width 0.3s ease; }
+
+/* ── Slide viewer ── */
+.viewer { padding-top: 52px; }
+.slide-wrap { display: none; min-height: calc(100vh - 52px); padding: 2.5rem 1.5rem; }
+.slide-wrap.active { display: flex; align-items: flex-start; justify-content: center; }
+.slide { width: 100%; max-width: 900px; min-height: 520px; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 60px #00000060; position: relative; }
+
+/* ── Slide themes ── */
+.slide-dark { background: var(--navy); }
+.slide-light { background: #F8FAFF; color: #1E2761; }
+.slide-dark .label { color: var(--a2); }
+
+/* ── Left accent bar (light slides) ── */
+.accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--navy); }
+
+/* ── Headers ── */
+.slide-header { padding: 1.4rem 1.8rem 0.8rem 1.8rem; border-bottom: 1px solid #CADCFC; margin-bottom: 1.2rem; }
+.slide-header.light { border-bottom-color: #CADCFC; }
+.slide-title { font-size: 1.5rem; font-weight: 700; color: var(--navy); margin-bottom: 0.2rem; }
+.slide-sub { font-size: 0.85rem; color: #64748B; font-style: italic; }
+
+/* ── Cover slide ── */
+.cover-content { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 520px; padding: 2rem; text-align: center; }
+.cover-title { font-size: 4rem; font-weight: 700; color: #fff; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.cover-sub { font-size: 1.1rem; color: var(--a2); margin-bottom: 0.3rem; }
+.cover-dept { font-size: 0.9rem; color: var(--a2); opacity: 0.8; margin-bottom: 1.5rem; }
+.cover-divider { width: 120px; height: 2px; background: var(--a); margin: 0 auto 1.2rem; }
+.cover-meta { font-size: 0.8rem; color: #6677AA; }
+.cover-badge { display: inline-block; background: #162055; border: 1px solid var(--a); color: var(--a2); padding: 0.3rem 1rem; border-radius: 20px; font-size: 0.85rem; margin-top: 1.2rem; }
+
+/* ── Card grid ── */
+.card-grid { display: grid; gap: 1rem; padding: 0 1.5rem 1.5rem; }
+.card-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.card-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.card-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.card { border-radius: 10px; padding: 1.1rem; box-shadow: 0 2px 12px #00000015; }
+.card-header { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #1E2761; }
+.card-body { font-size: 0.85rem; color: #334155; line-height: 1.65; }
+.card-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+.card-dark { background: #1A1A2E; color: #CADCFC; }
+.card-dark .card-header { color: #CADCFC; }
+.card-dark .card-body { color: #94A3B8; }
+
+/* ── Two column ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; padding: 0 1.5rem 1.5rem; }
+.col-section { }
+.col-title { font-size: 0.85rem; font-weight: 700; color: var(--a); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.7rem; }
+
+/* ── Stat callouts ── */
+.stat-row { display: flex; gap: 0.8rem; padding: 0 1.5rem 1rem; }
+.stat-card { flex: 1; border-radius: 10px; padding: 1rem 0.8rem; text-align: center; box-shadow: 0 2px 10px #00000012; }
+.stat-num { font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 0.78rem; font-weight: 600; color: #1E2761; margin-top: 0.3rem; }
+.stat-sub { font-size: 0.7rem; color: #64748B; font-style: italic; }
+
+/* ── Flow diagram ── */
+.flow { display: flex; align-items: center; gap: 0; padding: 0 1.5rem; flex-wrap: nowrap; overflow-x: auto; }
+.flow-box { border-radius: 8px; padding: 0.7rem 0.5rem; text-align: center; font-size: 0.82rem; font-weight: 600; color: #1E2761; min-width: 100px; flex-shrink: 0; box-shadow: 0 2px 8px #00000015; border: 1.5px solid; }
+.flow-arrow { color: #4472C4; font-size: 1.2rem; padding: 0 0.2rem; flex-shrink: 0; }
+.flow-step { position: relative; }
+.step-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #1E2761; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+
+/* ── Bullet list ── */
+.bullet-list { list-style: none; padding: 0; }
+.bullet-list li { padding: 0.3rem 0; font-size: 0.88rem; color: #334155; border-bottom: 1px solid #F1F5F9; display: flex; gap: 0.5rem; }
+.bullet-list li:last-child { border: none; }
+.bullet-list li::before { content: "▸"; color: var(--a); flex-shrink: 0; }
+
+/* ── Tags ── */
+.tag { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; margin: 0.15rem; }
+
+/* ── Arch diagram ── */
+.arch-diagram { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 0.5rem; }
+.arch-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: 100%; }
+.arch-box { border-radius: 8px; padding: 0.45rem 1rem; text-align: center; font-size: 0.82rem; font-weight: 600; border: 1.5px solid; min-width: 140px; box-shadow: 0 2px 8px #00000015; }
+.arch-arrow { color: #64748B; font-size: 1rem; }
+.arch-label { font-size: 0.65rem; color: #64748B; font-style: italic; }
+
+/* ── Progress bar ── */
+.bar-row { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.55rem; }
+.bar-label { font-size: 0.82rem; color: #334155; min-width: 170px; }
+.bar-track { flex: 1; height: 14px; background: #E2E8F0; border-radius: 7px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 7px; }
+.bar-pct { font-size: 0.78rem; font-weight: 700; min-width: 38px; text-align: right; }
+
+/* ── Phase row ── */
+.phase-label { display: inline-block; background: var(--navy); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; margin-bottom: 0.4rem; }
+
+/* ── Q&A slide ── */
+.qa-content { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 0 1.5rem 1.5rem; }
+.qa-box { background: #162055; border: 1px solid #4472C4; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+.qa-big { font-size: 3.5rem; font-weight: 700; color: #fff; }
+.qa-line { width: 80px; height: 2px; background: #4472C4; margin: 0.8rem auto; }
+.qa-sub { font-size: 0.95rem; color: var(--a2); }
+
+/* ── Problem cards ── */
+.prob-card { border-radius: 10px; padding: 1rem 1.1rem; box-shadow: 0 2px 10px #00000015; margin-bottom: 0; }
+.prob-num { display: inline-block; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: 0.78rem; font-weight: 700; text-align: center; line-height: 26px; margin-right: 0.4rem; }
+.prob-title { font-size: 1rem; font-weight: 700; color: #1E2761; display: flex; align-items: center; margin-bottom: 0.55rem; }
+.prob-err { font-size: 0.82rem; color: #991B1B; margin-bottom: 0.4rem; }
+.prob-sol { font-size: 0.82rem; color: #065F46; }
+
+/* ── Tech grid ── */
+.tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; padding: 0 1.5rem 1.5rem; }
+.tech-card { border-radius: 8px; padding: 0.7rem 0.5rem 0.6rem; text-align: center; }
+.tech-name { font-size: 0.88rem; font-weight: 700; color: #fff; }
+.tech-sub { font-size: 0.7rem; color: #CADCFC; margin-top: 0.2rem; }
+
+/* ── Thumbnail strip at bottom ── */
+.thumb-strip { position: fixed; bottom: 0; left: 0; right: 0; background: #0d111799; backdrop-filter: blur(12px); border-top: 1px solid var(--b); display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; z-index: 100; }
+.thumb { flex-shrink: 0; width: 70px; height: 42px; border-radius: 5px; border: 1.5px solid var(--b); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; color: var(--tm); background: var(--s); transition: all 0.15s; overflow: hidden; position: relative; }
+.thumb:hover { border-color: var(--a); color: var(--a2); }
+.thumb.active-thumb { border-color: var(--a); background: #1E276122; color: var(--a2); }
+.thumb-num { position: absolute; bottom: 2px; right: 4px; font-size: 0.55rem; color: var(--tm); }
+
+@media (max-width: 700px) {
+  .card-grid-3, .card-grid-4 { grid-template-columns: 1fr 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+  .flow { gap: 0.1rem; }
+  .flow-box { min-width: 72px; font-size: 0.72rem; padding: 0.5rem 0.3rem; }
+  .cover-title { font-size: 2.8rem; }
+  .qa-content { grid-template-columns: 1fr; }
+  .tech-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-title">CSLogbook — Presentation</div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="goSlide(-1)" disabled>← ก่อนหน้า</button>
+    <div class="slide-counter" id="counter">1 / 16</div>
+    <button class="nav-btn" id="nextBtn" onclick="goSlide(1)">ถัดไป →</button>
+  </div>
+</nav>
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:6.25%"></div></div>
+
+<div class="viewer">
+
+<!-- ══ SLIDE 1: Cover ══════════════════════════════════════════════════════ -->
+<div class="slide-wrap active" data-slide="1">
+<div class="slide slide-dark">
+  <div style="position:absolute;top:0;left:0;right:0;height:5px;background:#4472C4"></div>
+  <div style="position:absolute;top:-60px;left:-60px;width:220px;height:220px;border-radius:50%;background:#4472C440"></div>
+  <div style="position:absolute;bottom:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:#2D3A8C50"></div>
+  <div class="cover-content" style="position:relative;z-index:1">
+    <div class="cover-title">CSLogbook</div>
+    <div class="cover-sub">ระบบจัดการกิจกรรมนักศึกษา</div>
+    <div class="cover-dept">ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ</div>
+    <div class="cover-divider"></div>
+    <div class="cover-meta">ปีการศึกษา 2568 · คณะวิทยาศาสตร์ประยุกต์ · มจพ.</div>
+    <div class="cover-badge">นำเสนอต่อคณะกรรมการ — 2026</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 2: ปัญหาและแรงจูงใจ ══════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="2">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">ปัญหาและแรงจูงใจ</div>
+    <div class="slide-sub">ก่อนมีระบบ CSLogbook — ภาควิชาเผชิญกับความท้าทายเหล่านี้</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#FEF3C7;border:1px solid #FDE68A">
+      <div class="card-icon">📋</div>
+      <div class="card-header">ติดตาม Logbook ยาก</div>
+      <div class="card-body">ไม่มีระบบกลาง นักศึกษาส่งงานผ่าน Email / กระดาษ ตรวจสอบย้อนหลังไม่ได้ อาจารย์ต้องจัดการเองทั้งหมด</div>
+    </div>
+    <div class="card" style="background:#FEE2E2;border:1px solid #FECACA">
+      <div class="card-icon">📄</div>
+      <div class="card-header">เอกสารกระจัดกระจาย</div>
+      <div class="card-body">หนังสือราชการทำแบบ manual ซ้ำซ้อน ใช้เวลานาน เกิดข้อผิดพลาดในการกรอกข้อมูลและการจัดส่ง</div>
+    </div>
+    <div class="card" style="background:#E0E7FF;border:1px solid #C7D2FE">
+      <div class="card-icon">🔔</div>
+      <div class="card-header">พลาด Deadline บ่อย</div>
+      <div class="card-body">ไม่มีการแจ้งเตือนอัตโนมัติ นักศึกษาและอาจารย์ต้องติดตามด้วยตัวเองตลอดเวลา ส่งงานไม่ทันกำหนด</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 3: วัตถุประสงค์ ══════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="3">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">วัตถุประสงค์ & Scope</div>
+  </div>
+  <div class="two-col" style="padding-left:1.6rem">
+    <div>
+      <div class="col-title">วัตถุประสงค์</div>
+      <ul class="bullet-list">
+        <li>พัฒนาระบบ digital จัดการโครงงาน (Project/Thesis) และฝึกงาน</li>
+        <li>ลดขั้นตอนเอกสาร ด้วยการสร้าง PDF หนังสือราชการอัตโนมัติ</li>
+        <li>เพิ่มประสิทธิภาพการติดตามความก้าวหน้า real-time</li>
+        <li>รองรับ workflow อนุมัติแบบหลายขั้นตอน (Multi-level approval)</li>
+        <li>ระบบแจ้งเตือน Email + Socket.io อัตโนมัติตาม deadline</li>
+      </ul>
+    </div>
+    <div>
+      <div class="col-title">กลุ่มผู้ใช้งาน</div>
+      <div class="card" style="background:#DBEAFE;border:1px solid #93C5FD;margin-bottom:0.7rem">
+        <div class="card-header" style="font-size:0.95rem">👨‍🎓 นักศึกษา</div>
+        <div class="card-body">ยื่นคำขอ, บันทึก Logbook, ดาวน์โหลดเอกสาร, ดูสถานะ workflow</div>
+      </div>
+      <div class="card" style="background:#D1FAE5;border:1px solid #6EE7B7;margin-bottom:0.7rem">
+        <div class="card-header" style="font-size:0.95rem">👨‍🏫 อาจารย์ / ที่ปรึกษา</div>
+        <div class="card-body">อนุมัติ workflow, ดู queue งาน, ประเมิน, จัดการนัดพบ</div>
+      </div>
+      <div class="card" style="background:#FEE2E2;border:1px solid #FCA5A5">
+        <div class="card-header" style="font-size:0.95rem">🏢 Admin / เจ้าหน้าที่</div>
+        <div class="card-body">จัดการระบบ, ออกเลขเอกสาร, ดู reports, ตั้งค่าปีการศึกษา</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 4: Architecture ══════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="4">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Architecture Overview</div>
+    <div class="slide-sub">ภาพรวมระบบ — ทุกส่วนทำงานร่วมกันอย่างไร</div>
+  </div>
+  <div class="two-col" style="padding-left:1.6rem">
+    <div>
+      <div class="col-title">องค์ประกอบหลัก</div>
+      <ul class="bullet-list">
+        <li>Login ผ่าน KMUTNB SSO (OAuth)</li>
+        <li>Nginx เป็น Reverse Proxy (port 80)</li>
+        <li>Frontend ↔ Backend: REST API + Socket.io</li>
+        <li>Backend ↔ MySQL ผ่าน Sequelize ORM</li>
+        <li>Deploy: Docker Compose บน VPS</li>
+        <li>CI/CD: GitHub Actions → SSH Deploy</li>
+      </ul>
+    </div>
+    <div>
+      <div class="arch-diagram">
+        <div class="arch-box" style="background:#FEF9C3;border-color:#F59E0B;color:#78350F">🔐 KMUTNB SSO</div>
+        <div class="arch-arrow">↓ <span class="arch-label">OAuth</span></div>
+        <div class="arch-box" style="background:#E0F2FE;border-color:#0284C7;color:#075985">🔀 Nginx Proxy</div>
+        <div style="display:flex;gap:1.5rem;align-items:flex-start;margin-top:0.2rem">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem">
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box" style="background:#D1FAE5;border-color:#059669;color:#065F46;min-width:120px">⚛️ Frontend<br><small>Next.js 16</small></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem">
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box" style="background:#EDE9FE;border-color:#7C3AED;color:#4C1D95;min-width:120px">🚀 Backend<br><small>Express</small></div>
+            <div class="arch-arrow">↓ <span class="arch-label">Sequelize</span></div>
+            <div class="arch-box" style="background:#FFEDD5;border-color:#EA580C;color:#7C2D12;min-width:120px">🗄️ MySQL 8.0</div>
+          </div>
+        </div>
+        <div style="margin-top:0.4rem;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:0.3rem 0.8rem;font-size:0.75rem;color:#1D4ED8;text-align:center">🐳 Docker Compose · CI/CD GitHub Actions</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 5: Tech Stack ═════════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="5">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Tech Stack</div>
+  </div>
+  <div class="tech-grid" style="padding-left:1.6rem">
+    <div class="tech-card" style="background:#1E2761"><div class="tech-name">Next.js 16</div><div class="tech-sub">Frontend Framework</div></div>
+    <div class="tech-card" style="background:#0EA5E9"><div class="tech-name">React 19</div><div class="tech-sub">UI Library</div></div>
+    <div class="tech-card" style="background:#2563EB"><div class="tech-name">TypeScript</div><div class="tech-sub">Type Safety</div></div>
+    <div class="tech-card" style="background:#EF4444"><div class="tech-name">TanStack Query</div><div class="tech-sub">Server State</div></div>
+    <div class="tech-card" style="background:#16A34A"><div class="tech-name">Node.js / Express</div><div class="tech-sub">Backend API</div></div>
+    <div class="tech-card" style="background:#52A9E0"><div class="tech-name">Sequelize 6</div><div class="tech-sub">ORM</div></div>
+    <div class="tech-card" style="background:#F59E0B"><div class="tech-name" style="color:#1E2761">MySQL 8.0</div><div class="tech-sub" style="color:#44537A">Database</div></div>
+    <div class="tech-card" style="background:#111827"><div class="tech-name">Socket.io</div><div class="tech-sub">Real-time</div></div>
+    <div class="tech-card" style="background:#0284C7"><div class="tech-name">Docker Compose</div><div class="tech-sub">Containerization</div></div>
+    <div class="tech-card" style="background:#009639"><div class="tech-name">Nginx</div><div class="tech-sub">Reverse Proxy</div></div>
+    <div class="tech-card" style="background:#374151"><div class="tech-name">GitHub Actions</div><div class="tech-sub">CI/CD</div></div>
+    <div class="tech-card" style="background:#7C3AED"><div class="tech-name">KMUTNB SSO</div><div class="tech-sub">Authentication</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 6: Database Design ═══════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="6">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Database Design</div>
+    <div class="slide-sub">30+ Sequelize Models · MySQL 8.0 UTF-8mb4 · 93+ migrations</div>
+  </div>
+  <div class="two-col" style="padding-left:1.6rem">
+    <div>
+      <div class="col-title">Design Principles</div>
+      <ul class="bullet-list">
+        <li>snake_case columns (created_at, student_id)</li>
+        <li>timestamps: true (created_at / updated_at)</li>
+        <li>Soft constraints via Sequelize associations</li>
+        <li>93+ migration files ควบคุม schema version</li>
+        <li>In-memory SQLite สำหรับ automated tests</li>
+        <li>UTF-8mb4 สำหรับภาษาไทย</li>
+      </ul>
+    </div>
+    <div>
+      <div class="col-title">Entity Relationships</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;font-size:0.8rem">
+        <div style="display:flex;gap:0.5rem">
+          <span class="tag" style="background:#1E2761;color:#fff">User</span>
+        </div>
+        <div style="color:#64748B;font-size:0.7rem">↙ ↘</div>
+        <div style="display:flex;gap:0.5rem">
+          <span class="tag" style="background:#3B82F6;color:#fff">Student</span>
+          <span class="tag" style="background:#7C3AED;color:#fff">Teacher</span>
+        </div>
+        <div style="color:#64748B;font-size:0.7rem">↙ ↘ &nbsp;&nbsp;&nbsp;&nbsp;</div>
+        <div style="display:flex;gap:0.5rem">
+          <span class="tag" style="background:#059669;color:#fff">Project</span>
+          <span class="tag" style="background:#0891B2;color:#fff">Internship</span>
+        </div>
+        <div style="color:#64748B;font-size:0.7rem">↓ ↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center">
+          <span class="tag" style="background:#D97706;color:#fff">Document</span>
+          <span class="tag" style="background:#DC2626;color:#fff">Meeting</span>
+          <span class="tag" style="background:#64748B;color:#fff">Deadline</span>
+          <span class="tag" style="background:#DB2777;color:#fff">Notification</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 7: RBAC ═══════════════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="7">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">RBAC & Security</div>
+    <div class="slide-sub">Role-Based Access Control — 3 Roles หลัก พร้อม Sub-permissions</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#DBEAFE;border:1px solid #3B82F6;padding:0">
+      <div style="background:#3B82F6;padding:0.6rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700">👨‍🎓 Student</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>ยื่นคำขอโครงงาน / ฝึกงาน</li>
+        <li>บันทึก Logbook & Meeting</li>
+        <li>ดาวน์โหลด PDF เอกสาร</li>
+        <li>ดูสถานะ workflow ของตัวเอง</li>
+        <li>Upload evidence files</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#D1FAE5;border:1px solid #059669;padding:0">
+      <div style="background:#059669;padding:0.6rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700">👨‍🏫 Teacher</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>อนุมัติ / ปฏิเสธ workflow</li>
+        <li>ดู queue งานของตัวเอง</li>
+        <li>Sub-perm: teacher:type</li>
+        <li>Sub-perm: teacher:position:*</li>
+        <li>Sub-perm: topic_exam_access</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#FEE2E2;border:1px solid #DC2626;padding:0">
+      <div style="background:#DC2626;padding:0.6rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700">🏢 Admin</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>จัดการ users & roles ทุกคน</li>
+        <li>ออกเลขที่ อว. เอกสาร</li>
+        <li>ดู Reports & Analytics</li>
+        <li>ตั้งค่าปีการศึกษา / Deadline</li>
+        <li>Bulk approve & export XLSX</li>
+      </ul></div>
+    </div>
+  </div>
+  <div style="margin:0 1.5rem 0.8rem;background:#F1F5F9;border-radius:7px;padding:0.5rem 1rem;font-size:0.8rem;color:#64748B;text-align:center">🔒 JWT Auth · IDOR Fixes (6/6) · Rate Limiter · Joi Validation · CORS Dynamic Origins</div>
+</div>
+</div>
+
+<!-- ══ SLIDE 8: Internship Workflow ══════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="8">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Core Workflow — ฝึกงาน (Internship)</div>
+  </div>
+  <div style="padding:0 1.5rem 0.8rem 1.6rem">
+    <div class="flow">
+      <div class="flow-step" style="position:relative">
+        <div class="step-badge">1</div>
+        <div class="flow-box" style="background:#DBEAFE;border-color:#3B82F6">ยื่นคำขอ<br>ฝึกงาน</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="position:relative">
+        <div class="step-badge">2</div>
+        <div class="flow-box" style="background:#EDE9FE;border-color:#7C3AED">เจ้าหน้าที่<br>ตรวจสอบ</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="position:relative">
+        <div class="step-badge">3</div>
+        <div class="flow-box" style="background:#D1FAE5;border-color:#059669">อนุมัติ<br>& ออกเลข</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="position:relative">
+        <div class="step-badge">4</div>
+        <div class="flow-box" style="background:#FEF9C3;border-color:#F59E0B">สร้าง PDF<br>ราชการ</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="position:relative">
+        <div class="step-badge">5</div>
+        <div class="flow-box" style="background:#FFE4E6;border-color:#F43F5E">รับเอกสาร<br>ใบรับรอง</div>
+      </div>
+    </div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#F8FAFF;border:1px solid #E2E8F0">
+      <div class="card-header" style="font-size:0.9rem">📄 หนังสือขอความอนุเคราะห์</div>
+      <div class="card-body">ส่งถึงสถานประกอบการ พร้อมเลขที่ อว.</div>
+    </div>
+    <div class="card" style="background:#F8FAFF;border:1px solid #E2E8F0">
+      <div class="card-header" style="font-size:0.9rem">📄 หนังสือส่งตัว</div>
+      <div class="card-body">ยืนยันการฝึกงาน ลงนามโดยหัวหน้าภาค</div>
+    </div>
+    <div class="card" style="background:#F8FAFF;border:1px solid #E2E8F0">
+      <div class="card-header" style="font-size:0.9rem">🏆 ใบรับรอง (Certificate)</div>
+      <div class="card-body">ออกหลังจบฝึกงาน พร้อมคะแนนรวม</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 9: Project Workflow ═══════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="9">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Core Workflow — โครงงาน (Project / Thesis)</div>
+  </div>
+  <div style="padding:0 1.5rem 1rem 1.6rem">
+    <div style="margin-bottom:0.5rem"><span class="phase-label">Phase 1 — โครงงาน 1</span></div>
+    <div class="flow" style="margin-bottom:1.2rem">
+      <div class="flow-box" style="background:#EEF2FF;border-color:#4472C4">ลงทะเบียน<br>โครงงาน</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#EEF2FF;border-color:#4472C4">สอบหัวข้อ<br>(Topic Exam)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#EEF2FF;border-color:#4472C4">กรรมการ<br>อนุมัติ KP02</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#EEF2FF;border-color:#4472C4">เริ่มพัฒนา<br>โครงงาน</div>
+    </div>
+    <div style="margin-bottom:0.5rem"><span class="phase-label" style="background:#4472C4">Phase 2 — โครงงาน 2 / ปริญญานิพนธ์</span></div>
+    <div class="flow">
+      <div class="flow-box" style="background:#DBEAFE;border-color:#3B82F6">บันทึก<br>การพบอาจารย์</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#DBEAFE;border-color:#3B82F6">บันทึก<br>Logbook</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#DBEAFE;border-color:#3B82F6">ยื่นขอ<br>สอบ Thesis</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="background:#DBEAFE;border-color:#3B82F6">รับ<br>ปริญญานิพนธ์</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 10: Key Features ═════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="10">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Key Features</div>
+    <div class="slide-sub">ฟีเจอร์หลักที่ออกแบบเพื่อทุก role</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#EEF2FF;border:1px solid #C7D2FE">
+      <div class="card-header">📚 Logbook & Meeting</div>
+      <div class="card-body">บันทึกการพบอาจารย์พร้อม timestamp, date validation, และ teacher approval queue แบบ real-time</div>
+    </div>
+    <div class="card" style="background:#F0FDF4;border:1px solid #86EFAC">
+      <div class="card-header">📋 Document Pipeline</div>
+      <div class="card-body">สร้าง PDF หนังสือราชการ 3 ประเภทอัตโนมัติ ด้วย TH Sarabun New + ตราครุฑ</div>
+    </div>
+    <div class="card" style="background:#FEF9C3;border:1px solid #FDE68A">
+      <div class="card-header">🔔 Notification & Agents</div>
+      <div class="card-body">แจ้งเตือน Email (Gmail REST API) + Socket.io real-time ทุก workflow event พร้อม cron agents</div>
+    </div>
+    <div class="card" style="background:#FFF1F2;border:1px solid #FECDD3">
+      <div class="card-header">📊 Reports & Admin</div>
+      <div class="card-body">Dashboard สถิติ, Document Pipeline report, CSV/XLSX export, Teacher queue summary</div>
+    </div>
+    <div class="card" style="background:#F5F3FF;border:1px solid #DDD6FE">
+      <div class="card-header">🔒 Security & Auth</div>
+      <div class="card-body">KMUTNB SSO login, JWT refresh, RBAC middleware, IDOR prevention (6 fixes), Rate limiting</div>
+    </div>
+    <div class="card" style="background:#ECFDF5;border:1px solid #A7F3D0">
+      <div class="card-header">⚙️ Academic Settings</div>
+      <div class="card-body">ตั้งค่าปีการศึกษา, กำหนด deadline dynamic, DeadlineTimeline component, ThaiDate input (พ.ศ.)</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 11: Real-time & Notification ════════════════════════════════ -->
+<div class="slide-wrap" data-slide="11">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Real-time & Notification System</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card card-dark" style="background:#1A1A2E;border:1px solid #4472C4;padding:0">
+      <div style="padding:0.8rem 1rem 0.5rem">
+        <div style="font-size:1rem;font-weight:700;color:#CADCFC;margin-bottom:0.2rem">⚡ Socket.io</div>
+        <div style="font-size:0.75rem;color:#8B949E;font-style:italic;margin-bottom:0.6rem;border-bottom:1px solid #30363d;padding-bottom:0.5rem">Real-time Events</div>
+        <ul class="bullet-list" style="color:#94A3B8">
+          <li style="border-color:#21262d">Rooms: user_{userId}</li>
+          <li style="border-color:#21262d">Events: workflow update, approval, deadline</li>
+          <li style="border-color:#21262d">Frontend: useEffect + socket listener</li>
+          <li style="border-color:#21262d">Auto-reconnect บน disconnect</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="background:#D1FAE5;border:1px solid #059669;padding:0">
+      <div style="padding:0.8rem 1rem 0.5rem">
+        <div style="font-size:1rem;font-weight:700;color:#065F46;margin-bottom:0.2rem">📧 Email Notifications</div>
+        <div style="font-size:0.75rem;color:#059669;font-style:italic;margin-bottom:0.6rem;border-bottom:1px solid #6EE7B7;padding-bottom:0.5rem">Gmail REST API</div>
+        <ul class="bullet-list">
+          <li>Gmail REST API (migration จาก nodemailer)</li>
+          <li>Base HTML template + retry logic</li>
+          <li>Fire-and-forget (ไม่ block main flow)</li>
+          <li>Trigger: ทุก workflow state change</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="background:#EDE9FE;border:1px solid #7C3AED;padding:0">
+      <div style="padding:0.8rem 1rem 0.5rem">
+        <div style="font-size:1rem;font-weight:700;color:#4C1D95;margin-bottom:0.2rem">🤖 Background Agents</div>
+        <div style="font-size:0.75rem;color:#7C3AED;font-style:italic;margin-bottom:0.6rem;border-bottom:1px solid #DDD6FE;padding-bottom:0.5rem">Node-cron / Node-schedule</div>
+        <ul class="bullet-list">
+          <li>deadlineStatusUpdater — อัปเดต overdue</li>
+          <li>projectDeadlineMonitor — แจ้งเตือนล่วงหน้า</li>
+          <li>deadlineReminderAgent — reminder email</li>
+          <li>Filter ตาม active academic year</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 12: PDF System ═══════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="12">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">PDF System — หนังสือราชการอัตโนมัติ</div>
+    <div class="slide-sub">pdfkit + TH Sarabun New + ตราครุฑ — layout ราชการตรงตาม template ต้นฉบับ</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#EEF2FF;border:1px solid #6366F1;padding:0">
+      <div style="background:#6366F1;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">📄 หนังสือขอความอนุเคราะห์</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>ส่งถึงสถานประกอบการ เพื่อขอรับนักศึกษาฝึกงาน</li>
+        <li>Header: ที่อยู่ภาควิชา + เลขที่ อว.</li>
+        <li>เรื่อง / เรียน bold — รูปแบบราชการครบถ้วน</li>
+        <li>Footer: ข้อมูลติดต่อ + เบอร์โทร 4601</li>
+        <li>ตราครุฑ absolute positioning</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#F0FDF4;border:1px solid #059669;padding:0">
+      <div style="background:#059669;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">📄 หนังสือส่งตัว</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>ยืนยันการส่งนักศึกษาไปฝึกงานอย่างเป็นทางการ</li>
+        <li>Checklist 3 ข้อ + หมายเหตุ</li>
+        <li>ลงนามโดยหัวหน้าภาควิชา (departmentInfo.js)</li>
+        <li>คณะ + มหาวิทยาลัยแสดงใต้ลายเซ็น</li>
+        <li>Content-Disposition header → filename ถูกต้อง</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#FEF9C3;border:1px solid #F59E0B;padding:0">
+      <div style="background:#F59E0B;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">🏆 ใบรับรองการฝึกงาน</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>ออกหลังจบฝึกงานครบ 250+ ชั่วโมง</li>
+        <li>แสดงคะแนนรวม / FULL_SCORE (100)</li>
+        <li>เกณฑ์ผ่าน: PASS_SCORE แยกแสดง</li>
+        <li>Loma font สำหรับ Thai rendering</li>
+        <li>IDOR-protected — ดูได้เฉพาะเจ้าของ</li>
+      </ul></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 13: Testing ═══════════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="13">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">Testing Strategy</div>
+    <div class="slide-sub">ครอบคลุม E2E · Backend Integration · Security Route Access</div>
+  </div>
+  <div class="card-grid card-grid-3" style="padding-left:1.6rem">
+    <div class="card" style="background:#EEF2FF;border:1px solid #6366F1;padding:0">
+      <div style="background:#6366F1;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">E2E Tests (Playwright)</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>Multi-role auth (Student / Teacher / Admin)</li>
+        <li>Admin settings & Teacher advisor flows</li>
+        <li>Meeting-logbook, KP02-defense, Thesis</li>
+        <li>Security route-access (40 tests)</li>
+        <li>Internship workflow B1-B5 (66 tests)</li>
+        <li>7-step seed pipeline สำหรับ test data</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#D1FAE5;border:1px solid #059669;padding:0">
+      <div style="background:#059669;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">Backend Integration Tests</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>SQLite in-memory (ไม่ต้องรัน MySQL)</li>
+        <li>Controller → Service → Model ครบ</li>
+        <li>Rejection flow 25 automated tests</li>
+        <li>PDF generation + IDOR prevention</li>
+        <li>Email & notification service mocks</li>
+        <li>JWT auth + RBAC middleware</li>
+      </ul></div>
+    </div>
+    <div class="card" style="background:#FEE2E2;border:1px solid #DC2626;padding:0">
+      <div style="background:#DC2626;padding:0.55rem;border-radius:8px 8px 0 0;text-align:center;color:#fff;font-weight:700;font-size:0.9rem">Security Audit</div>
+      <div style="padding:0.8rem"><ul class="bullet-list">
+        <li>IDOR vulnerabilities: พบ 6 แก้ครบ 6/6</li>
+        <li>Route-access matrix: ตรวจ 40 routes</li>
+        <li>RBAC policy audit (167→24 wildcard rules)</li>
+        <li>JWT token claims verification</li>
+        <li>PDF security — ownership check ทุก endpoint</li>
+        <li>Rate limiter & CORS validation</li>
+      </ul></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 14: Test Results ═════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="14">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">ผลลัพธ์จากการทดสอบระบบ</div>
+  </div>
+  <div class="stat-row" style="padding-left:1.6rem">
+    <div class="stat-card" style="background:#EEF2FF">
+      <div class="stat-num" style="color:#4338CA">160</div>
+      <div class="stat-label">E2E Tests Passed</div>
+      <div class="stat-sub">Playwright</div>
+    </div>
+    <div class="stat-card" style="background:#F0FDF4">
+      <div class="stat-num" style="color:#059669">172</div>
+      <div class="stat-label">Tests Skipped</div>
+      <div class="stat-sub">Feature gating</div>
+    </div>
+    <div class="stat-card" style="background:#FEF9C3">
+      <div class="stat-num" style="color:#D97706">25</div>
+      <div class="stat-label">Backend Tests</div>
+      <div class="stat-sub">Rejection flow</div>
+    </div>
+    <div class="stat-card" style="background:#FEE2E2">
+      <div class="stat-num" style="color:#DC2626">6/6</div>
+      <div class="stat-label">IDOR Fixes</div>
+      <div class="stat-sub">Security audit</div>
+    </div>
+  </div>
+  <div style="padding:0.4rem 1.5rem 0.8rem 1.6rem">
+    <div style="font-size:0.85rem;font-weight:700;color:#4472C4;margin-bottom:0.6rem">Test Coverage (%)</div>
+    <div class="bar-row">
+      <div class="bar-label">E2E — Workflow</div>
+      <div class="bar-track"><div class="bar-fill" style="width:93%;background:#4338CA"></div></div>
+      <div class="bar-pct" style="color:#4338CA">93%</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">E2E — Security</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#059669"></div></div>
+      <div class="bar-pct" style="color:#059669">100%</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Backend — Rejection flow</div>
+      <div class="bar-track"><div class="bar-fill" style="width:88%;background:#D97706"></div></div>
+      <div class="bar-pct" style="color:#D97706">88%</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">IDOR / Auth Security</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#DC2626"></div></div>
+      <div class="bar-pct" style="color:#DC2626">100%</div>
+    </div>
+    <div style="background:#F1F5F9;border-radius:8px;padding:0.6rem 1rem;margin-top:0.4rem;font-size:0.82rem;color:#334155">
+      <strong>สิ่งที่พบ:</strong> Rejection flow พบและแก้ไข 19 bugs · Demo issues BUG-01/02 + FEATURE-01 + UX-01 ✅ ·
+      Production import สำเร็จ 41 projects + 90 internship records
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 15: ปัญหาที่เจอ ═══════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="15">
+<div class="slide slide-light">
+  <div class="accent-bar"></div>
+  <div class="slide-header light" style="padding-left:1.6rem">
+    <div class="slide-title">ปัญหาที่เจอ / อุปสรรคระหว่างการพัฒนา</div>
+  </div>
+  <div class="card-grid card-grid-2" style="padding-left:1.6rem">
+    <div class="prob-card" style="background:#FEF9C3;border:1px solid #F59E0B">
+      <div class="prob-title"><span class="prob-num" style="background:#F59E0B">01</span>Thai Font ใน PDF</div>
+      <div class="prob-err">❌ pdfkit ไม่รองรับ Thai font → ตัวอักษรไทยไม่แสดง</div>
+      <div class="prob-sol">✅ เพิ่ม TH Sarabun New + Loma font ใน Docker image และ config pdfkit</div>
+    </div>
+    <div class="prob-card" style="background:#FEE2E2;border:1px solid #DC2626">
+      <div class="prob-title"><span class="prob-num" style="background:#DC2626">02</span>IDOR Vulnerability</div>
+      <div class="prob-err">❌ PDF endpoint ไม่ตรวจ ownership → user A ดู PDF ของ user B ได้</div>
+      <div class="prob-sol">✅ เพิ่ม ownership check ทุก PDF endpoint (6 จุด) + automated security tests</div>
+    </div>
+    <div class="prob-card" style="background:#EDE9FE;border:1px solid #7C3AED">
+      <div class="prob-title"><span class="prob-num" style="background:#7C3AED">03</span>Workflow State Complexity</div>
+      <div class="prob-err">❌ State กระจายใน 3 layers ไม่ sync กัน ทำให้เกิด phantom status</div>
+      <div class="prob-sol">✅ สร้าง workflowStates.ts + WORKFLOW_STATES.md audit ทำให้ทุก layer ใช้แหล่งเดียว</div>
+    </div>
+    <div class="prob-card" style="background:#D1FAE5;border:1px solid #059669">
+      <div class="prob-title"><span class="prob-num" style="background:#059669">04</span>MySQL UTF-8mb4 บน Docker</div>
+      <div class="prob-err">❌ Thai characters หายเมื่อ import data ผ่าน docker exec ไม่ระบุ charset</div>
+      <div class="prob-sol">✅ เพิ่ม --default-character-set=utf8mb4 ทุกครั้งที่รัน mysql บน production</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ SLIDE 16: Q&A ═══════════════════════════════════════════════════════ -->
+<div class="slide-wrap" data-slide="16">
+<div class="slide slide-dark">
+  <div style="position:absolute;top:0;left:0;right:0;height:5px;background:#4472C4"></div>
+  <div style="position:absolute;top:-40px;right:-40px;width:220px;height:220px;border-radius:50%;background:#2D3A8C60"></div>
+  <div style="padding:1.4rem 1.8rem 0.8rem;border-bottom:1px solid #30363d;margin-bottom:1rem">
+    <div style="font-size:1.4rem;font-weight:700;color:#CADCFC">สรุป</div>
+  </div>
+  <div class="qa-content" style="position:relative;z-index:1">
+    <div>
+      <ul class="bullet-list" style="padding-left:0.5rem">
+        <li style="color:#CADCFC;border-color:#30363d;font-size:0.9rem">✅ ระบบครอบคลุม workflow ครบทุก use case</li>
+        <li style="color:#CADCFC;border-color:#30363d;font-size:0.9rem">✅ PDF หนังสือราชการ 3 ประเภท ตรง template</li>
+        <li style="color:#CADCFC;border-color:#30363d;font-size:0.9rem">✅ E2E 160 pass, IDOR fixed 6/6, Security ผ่าน</li>
+        <li style="color:#CADCFC;border-color:#30363d;font-size:0.9rem">✅ Production deploy — 41 projects + 90 internship</li>
+        <li style="color:#CADCFC;border-color:#30363d;font-size:0.9rem">✅ Real-time notifications + Background agents</li>
+      </ul>
+    </div>
+    <div class="qa-box">
+      <div class="qa-big">Q&A</div>
+      <div class="qa-line"></div>
+      <div class="qa-sub">คำถามและข้อเสนอแนะ</div>
+      <div style="font-size:0.8rem;color:#6677AA;margin-top:0.5rem;font-style:italic">ยินดีตอบทุกคำถาม</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:0;left:0;right:0;background:#162055;padding:0.4rem;text-align:center;font-size:0.75rem;color:#6677AA">
+    CSLogbook · ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ · มจพ. 2568
+  </div>
+</div>
+</div>
+
+</div><!-- /viewer -->
+
+<!-- Thumbnail strip -->
+<div class="thumb-strip" id="thumbStrip"></div>
+
+<script>
+let current = 1;
+const total = 16;
+const slideTitles = [
+  "Cover","ปัญหา","วัตถุประสงค์","Architecture","Tech Stack",
+  "Database","RBAC","Internship Flow","Project Flow","Key Features",
+  "Real-time","PDF System","Testing","Test Results","อุปสรรค","Q&A"
+];
+
+function goSlide(dir) {
+  const next = current + dir;
+  if (next < 1 || next > total) return;
+  showSlide(next);
+}
+
+function showSlide(n) {
+  document.querySelectorAll('.slide-wrap').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[data-slide="${n}"]`).classList.add('active');
+  current = n;
+  document.getElementById('counter').textContent = `${n} / ${total}`;
+  document.getElementById('prevBtn').disabled = n === 1;
+  document.getElementById('nextBtn').disabled = n === total;
+  document.getElementById('progressFill').style.width = `${(n / total) * 100}%`;
+  document.querySelectorAll('.thumb').forEach((t, i) => t.classList.toggle('active-thumb', i + 1 === n));
+  document.querySelector(`#thumbStrip .thumb:nth-child(${n})`).scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+
+// Build thumbnails
+const strip = document.getElementById('thumbStrip');
+slideTitles.forEach((title, i) => {
+  const n = i + 1;
+  const th = document.createElement('div');
+  th.className = 'thumb' + (n === 1 ? ' active-thumb' : '');
+  th.title = `Slide ${n}: ${title}`;
+  th.style.background = (n === 1 || n === 16) ? '#1E2761' : '#F0F4FF';
+  th.style.color = (n === 1 || n === 16) ? '#CADCFC' : '#1E2761';
+  th.innerHTML = `<span style="font-size:0.6rem;text-align:center;line-height:1.2;padding:0 3px">${title}</span><span class="thumb-num">${n}</span>`;
+  th.onclick = () => showSlide(n);
+  strip.appendChild(th);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goSlide(1);
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goSlide(-1);
+  if (e.key === 'Home') showSlide(1);
+  if (e.key === 'End') showSlide(total);
+});
+</script>
+</body>
+</html>
