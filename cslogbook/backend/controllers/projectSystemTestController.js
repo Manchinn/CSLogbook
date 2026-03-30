@@ -132,7 +132,7 @@ module.exports = {
           order: idx + 1,
           name: project.projectNameTh || '-',
           submitter: submitter.name ? `${submitter.studentCode || ''} ${submitter.name}`.trim() : '-',
-          testPeriod: (start || end) ? `${start} - ${end}` : '-',
+          testPeriod: (start || end) ? `${formatThaiDate(start)} - ${formatThaiDate(end)}` : '-',
           status: statusLabel[row.status] || row.status || '-',
           submittedAt: formatThaiDate(row.submittedAt),
         };
