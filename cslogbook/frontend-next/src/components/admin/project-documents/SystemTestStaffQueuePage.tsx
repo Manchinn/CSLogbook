@@ -53,6 +53,10 @@ function statusMeta(status: string) {
   return { className: styles.tagStatus };
 }
 
+function canSelectRow(row: AdminSystemTestQueueRecord): boolean {
+  return row.status === "pending_staff";
+}
+
 export function SystemTestStaffQueuePage() {
   const { user } = useAuth();
   const [status, setStatus] = useState("all");
@@ -68,6 +72,14 @@ export function SystemTestStaffQueuePage() {
   const [decisionNote, setDecisionNote] = useState("");
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkApproveOpen, setBulkApproveOpen] = useState(false);
+  const [bulkApproveNote, setBulkApproveNote] = useState("");
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkRejectNote, setBulkRejectNote] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const isStaff = Boolean(user && (user.role === "admin" || (user.role === "teacher" && user.teacherType === "support")));
   const canView = isStaff;
@@ -112,6 +124,27 @@ export function SystemTestStaffQueuePage() {
 
   const activeRecord = useMemo(() => detailQuery.data ?? selected, [detailQuery.data, selected]);
 
+  // Bulk selection helpers
+  const allSelectableRows = useMemo(() => rows.filter(canSelectRow), [rows]);
+  const isAllSelected = allSelectableRows.length > 0 && allSelectableRows.every((r) => selectedIds.includes(r.projectId));
+  const selectedCount = selectedIds.length;
+
+  const onToggleSelected = (projectId: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId],
+    );
+  };
+
+  const onToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allSelectableRows.map((r) => r.projectId));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
   const pageTitle = "คำขอทดสอบระบบ (System Test)";
   const pageSubtitle = "ติดตามและพิจารณาคำขอทดสอบระบบจากนักศึกษา ตรวจสอบเอกสารและหลักฐานประกอบ";
 
@@ -153,12 +186,81 @@ export function SystemTestStaffQueuePage() {
     }
   };
 
+  const submitBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedIds.map((projectId) =>
+          submitDecision.mutateAsync({
+            projectId,
+            decision: "approve",
+            note: bulkApproveNote.trim() || undefined,
+          }),
+        ),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const succeeded = results.length - failed;
+      setBulkApproveOpen(false);
+      setBulkApproveNote("");
+      clearSelection();
+      setFeedback({
+        tone: failed === 0 ? "success" : "warning",
+        message:
+          failed === 0
+            ? `อนุมัติ ${succeeded} รายการเรียบร้อยแล้ว`
+            : `อนุมัติสำเร็จ ${succeeded} รายการ, ล้มเหลว ${failed} รายการ`,
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const submitBulkReject = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedIds.map((projectId) =>
+          submitDecision.mutateAsync({
+            projectId,
+            decision: "reject",
+            note: bulkRejectNote.trim() || undefined,
+          }),
+        ),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const succeeded = results.length - failed;
+      setBulkRejectOpen(false);
+      setBulkRejectNote("");
+      clearSelection();
+      setFeedback({
+        tone: failed === 0 ? "success" : "warning",
+        message:
+          failed === 0
+            ? `ส่งกลับ ${succeeded} รายการเรียบร้อยแล้ว`
+            : `ส่งกลับสำเร็จ ${succeeded} รายการ, ล้มเหลว ${failed} รายการ`,
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const openPdfPreview = (url: string) => {
     setPdfPreviewUrl(url);
   };
 
   const closePdfPreview = () => {
     setPdfPreviewUrl(null);
+  };
+
+  const resetFilters = () => {
+    setStatus("all");
+    setSearch("");
+    setAcademicYear("");
+    setSemester("");
+    setPage(1);
+    clearSelection();
   };
 
   if (!canView) {
@@ -180,17 +282,33 @@ export function SystemTestStaffQueuePage() {
           <p className={styles.subtitle}>{pageSubtitle}</p>
         </div>
         <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className={styles.button}
-            onClick={() => {
-              setStatus("all");
-              setSearch("");
-              setAcademicYear("");
-              setSemester("");
-              setPage(1);
-            }}
-          >
+          {isStaff && selectedCount > 0 ? (
+            <>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => {
+                  setBulkApproveNote("");
+                  setBulkApproveOpen(true);
+                }}
+                disabled={bulkBusy}
+              >
+                อนุมัติ ({selectedCount})
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonDanger}`}
+                onClick={() => {
+                  setBulkRejectNote("");
+                  setBulkRejectOpen(true);
+                }}
+                disabled={bulkBusy}
+              >
+                ส่งกลับ ({selectedCount})
+              </button>
+            </>
+          ) : null}
+          <button type="button" className={styles.button} onClick={resetFilters}>
             รีเซ็ตตัวกรอง
           </button>
         </div>
@@ -231,6 +349,7 @@ export function SystemTestStaffQueuePage() {
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
+              clearSelection();
             }}
           >
             <option value="all">ทุกสถานะ</option>
@@ -245,6 +364,7 @@ export function SystemTestStaffQueuePage() {
             onChange={(event) => {
               setAcademicYear(event.target.value);
               setPage(1);
+              clearSelection();
             }}
           >
             <option value="">ทุกปีการศึกษา</option>
@@ -260,6 +380,7 @@ export function SystemTestStaffQueuePage() {
             onChange={(event) => {
               setSemester(event.target.value);
               setPage(1);
+              clearSelection();
             }}
           >
             <option value="">ทุกภาคเรียน</option>
@@ -274,6 +395,7 @@ export function SystemTestStaffQueuePage() {
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
+              clearSelection();
             }}
           />
         </div>
@@ -284,6 +406,16 @@ export function SystemTestStaffQueuePage() {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th className={local.checkboxCol}>
+                  {allSelectableRows.length > 0 ? (
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={onToggleSelectAll}
+                      title="เลือกทั้งหมดในหน้านี้"
+                    />
+                  ) : null}
+                </th>
                 <th>โครงงาน</th>
                 <th>ผู้ยื่นคำขอ</th>
                 <th>ช่วงเวลาทดสอบ</th>
@@ -295,75 +427,89 @@ export function SystemTestStaffQueuePage() {
             <tbody>
               {queueQuery.isLoading ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <p className={styles.empty}>กำลังโหลดข้อมูล...</p>
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <p className={styles.empty}>ไม่พบคำขอทดสอบระบบที่ตรงตามเงื่อนไข</p>
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
-                  <tr key={row.requestId}>
-                    <td>
-                      <p className={styles.name}>{row.projectSnapshot.projectNameTh || row.projectSnapshot.projectNameEn || "-"}</p>
-                      <p className={styles.subText}>
-                        #{row.projectId} {row.projectSnapshot.projectCode ? `| ${row.projectSnapshot.projectCode}` : ""}
-                      </p>
-                    </td>
-                    <td>
-                      {row.submittedBy ? (
-                        <>
-                          <p className={styles.subText}>{row.submittedBy.studentCode}</p>
-                          <p className={styles.subText}>{row.submittedBy.name}</p>
-                        </>
-                      ) : (
-                        <p className={styles.subText}>-</p>
-                      )}
-                    </td>
-                    <td>
-                      <p className={styles.subText}>เริ่ม: {formatDate(row.testStartDate)}</p>
-                      <p className={styles.subText}>สิ้นสุด: {formatDate(row.testDueDate)}</p>
-                    </td>
-                    <td>
-                      <span className={`${styles.tag} ${statusMeta(row.status).className}`}>{statusLabel(row.status)}</span>
-                      {row.deadlineTag ? (
-                        <span className={`${styles.tag} ${styles.tagLate}`} title={row.deadlineTag.tooltip || ""}>
-                          {row.deadlineTag.text}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>
-                      <p className={styles.subText}>ยื่นคำขอ: {formatDateTime(row.submittedAt)}</p>
-                      <p className={styles.subText}>อัปเดตล่าสุด: {formatDateTime(row.updatedAt)}</p>
-                    </td>
-                    <td>
-                      <div className={styles.buttonRow}>
-                        <button type="button" className={styles.button} onClick={() => openDrawer(row)}>
-                          รายละเอียด
-                        </button>
-                        {isStaff && row.status === "pending_staff" ? (
-                          <>
-                            <button
-                              type="button"
-                              className={`${styles.button} ${styles.buttonPrimary}`}
-                              onClick={() => openDecisionModal(row, "approve")}
-                              disabled={isBusy}
-                            >
-                              อนุมัติ
-                            </button>
-                            <button type="button" className={styles.button} onClick={() => openDecisionModal(row, "reject")} disabled={isBusy}>
-                              ส่งกลับ
-                            </button>
-                          </>
+                rows.map((row) => {
+                  const selectable = canSelectRow(row);
+                  const isChecked = selectedIds.includes(row.projectId);
+                  return (
+                    <tr key={row.requestId}>
+                      <td>
+                        {selectable ? (
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => onToggleSelected(row.projectId)}
+                            title={`เลือกรายการ #${row.projectId}`}
+                          />
                         ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td>
+                        <p className={styles.name}>{row.projectSnapshot.projectNameTh || row.projectSnapshot.projectNameEn || "-"}</p>
+                        <p className={styles.subText}>
+                          #{row.projectId} {row.projectSnapshot.projectCode ? `| ${row.projectSnapshot.projectCode}` : ""}
+                        </p>
+                      </td>
+                      <td>
+                        {row.submittedBy ? (
+                          <>
+                            <p className={styles.subText}>{row.submittedBy.studentCode}</p>
+                            <p className={styles.subText}>{row.submittedBy.name}</p>
+                          </>
+                        ) : (
+                          <p className={styles.subText}>-</p>
+                        )}
+                      </td>
+                      <td>
+                        <p className={styles.subText}>เริ่ม: {formatDate(row.testStartDate)}</p>
+                        <p className={styles.subText}>สิ้นสุด: {formatDate(row.testDueDate)}</p>
+                      </td>
+                      <td>
+                        <span className={`${styles.tag} ${statusMeta(row.status).className}`}>{statusLabel(row.status)}</span>
+                        {row.deadlineTag ? (
+                          <span className={`${styles.tag} ${styles.tagLate}`} title={row.deadlineTag.tooltip || ""}>
+                            {row.deadlineTag.text}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>
+                        <p className={styles.subText}>ยื่นคำขอ: {formatDateTime(row.submittedAt)}</p>
+                        <p className={styles.subText}>อัปเดตล่าสุด: {formatDateTime(row.updatedAt)}</p>
+                      </td>
+                      <td>
+                        <div className={styles.buttonRow}>
+                          <button type="button" className={styles.button} onClick={() => openDrawer(row)}>
+                            รายละเอียด
+                          </button>
+                          {isStaff && row.status === "pending_staff" ? (
+                            <>
+                              <button
+                                type="button"
+                                className={`${styles.button} ${styles.buttonPrimary}`}
+                                onClick={() => openDecisionModal(row, "approve")}
+                                disabled={isBusy}
+                              >
+                                อนุมัติ
+                              </button>
+                              <button type="button" className={styles.button} onClick={() => openDecisionModal(row, "reject")} disabled={isBusy}>
+                                ส่งกลับ
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -379,6 +525,7 @@ export function SystemTestStaffQueuePage() {
             onChange={(event) => {
               setPageSize(Number(event.target.value));
               setPage(1);
+              clearSelection();
             }}
           >
             {PAGE_SIZE_OPTIONS.map((size) => (
@@ -567,6 +714,80 @@ export function SystemTestStaffQueuePage() {
                 disabled={submitDecision.isPending}
               >
                 {submitDecision.isPending ? "กำลังบันทึก..." : "ยืนยัน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkApproveOpen ? (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>อนุมัติรายการที่เลือก ({selectedCount} รายการ)</h3>
+            <p className={styles.subText}>ยืนยันการอนุมัติคำขอทดสอบระบบ {selectedCount} รายการที่เลือก</p>
+            <label className={styles.field}>
+              <span>หมายเหตุถึงนักศึกษา (ไม่บังคับ)</span>
+              <textarea
+                className={styles.textarea}
+                rows={4}
+                value={bulkApproveNote}
+                onChange={(event) => setBulkApproveNote(event.target.value)}
+                placeholder="ระบุหมายเหตุเพิ่มเติม (จะส่งให้ทุกรายการที่เลือก)"
+              />
+            </label>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setBulkApproveOpen(false)}
+                disabled={bulkBusy}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => void submitBulkApprove()}
+                disabled={bulkBusy}
+              >
+                {bulkBusy ? "กำลังบันทึก..." : `ยืนยันอนุมัติ ${selectedCount} รายการ`}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkRejectOpen ? (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>ส่งกลับรายการที่เลือก ({selectedCount} รายการ)</h3>
+            <p className={styles.subText}>ยืนยันการส่งกลับคำขอทดสอบระบบ {selectedCount} รายการที่เลือก</p>
+            <label className={styles.field}>
+              <span>หมายเหตุถึงนักศึกษา (ไม่บังคับ)</span>
+              <textarea
+                className={styles.textarea}
+                rows={4}
+                value={bulkRejectNote}
+                onChange={(event) => setBulkRejectNote(event.target.value)}
+                placeholder="ระบุหมายเหตุเพิ่มเติม (จะส่งให้ทุกรายการที่เลือก)"
+              />
+            </label>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setBulkRejectOpen(false)}
+                disabled={bulkBusy}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonDanger}`}
+                onClick={() => void submitBulkReject()}
+                disabled={bulkBusy}
+              >
+                {bulkBusy ? "กำลังบันทึก..." : `ยืนยันส่งกลับ ${selectedCount} รายการ`}
               </button>
             </div>
           </div>
