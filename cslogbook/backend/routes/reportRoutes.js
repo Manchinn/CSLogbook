@@ -21,6 +21,12 @@ router.get('/projects/status-summary', reportController.getProjectStatusSummary)
 router.get('/projects/advisor-load', reportController.getAdvisorLoad);
 router.get('/projects/academic-years', reportController.getProjectAcademicYears);
 
+// === Excel Export Endpoints ===
+router.get('/internships/enrolled-students/export', reportController.exportEnrolledStudents);
+router.get('/projects/export', reportController.exportProjectReport);
+router.get('/documents/pipeline/export', reportController.exportDocumentPipeline);
+router.get('/internships/supervisors/export', reportController.exportSupervisorReport);
+
 // === Document Pipeline Report ===
 router.get('/documents/pipeline', reportController.getDocumentPipeline);
 

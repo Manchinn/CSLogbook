@@ -1,6 +1,7 @@
 const importantDeadlineService = require('../services/importantDeadlineService');
 const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
 const { Document } = require('../models');
+const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
 const resolveDocumentCreatedAttribute = () => {
   const attrs = Document?.rawAttributes;
@@ -361,5 +362,55 @@ module.exports.getAllForTeacher = async (req, res) => {
     res.json({ success: true, data: enriched });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// Excel export: กำหนดการสำคัญทั้งหมด
+exports.exportAcademicDeadlines = async (req, res, next) => {
+  try {
+    const { academicYear, semester } = req.query;
+    const deadlines = await importantDeadlineService.getAll({ academicYear, semester });
+
+    const TYPE_MAP = {
+      SUBMISSION: 'ส่งเอกสาร',
+      ANNOUNCEMENT: 'ประกาศ',
+      MILESTONE: 'เหตุการณ์สำคัญ',
+    };
+    const RELATED_MAP = {
+      project: 'โครงงาน',
+      project1: 'โครงงาน 1',
+      project2: 'โครงงาน 2',
+      internship: 'ฝึกงาน',
+      general: 'ทั่วไป',
+    };
+
+    const columns = [
+      { header: 'ชื่อกำหนดการ', key: 'name', width: 35 },
+      { header: 'หมวด', key: 'relatedTo', width: 12 },
+      { header: 'ปีการศึกษา', key: 'academicYear', width: 12 },
+      { header: 'ภาคเรียน', key: 'semester', width: 10 },
+      { header: 'ประเภท', key: 'deadlineType', width: 15 },
+      { header: 'วันครบกำหนด', key: 'deadlineDate', width: 18 },
+      { header: 'สำคัญ', key: 'isCritical', width: 8 },
+    ];
+
+    const rows = deadlines.map((d) => {
+      const obj = d.toJSON ? d.toJSON() : d;
+      return {
+        name: obj.name || '-',
+        relatedTo: RELATED_MAP[obj.relatedTo] || obj.relatedTo || '-',
+        academicYear: obj.academicYear || '-',
+        semester: obj.semester || '-',
+        deadlineType: TYPE_MAP[obj.deadlineType] || obj.deadlineType || '-',
+        deadlineDate: formatThaiDate(obj.deadlineAt || obj.date),
+        isCritical: obj.isCritical ? 'ใช่' : 'ไม่',
+      };
+    });
+
+    await new ExcelExportBuilder('กำหนดการสำคัญ')
+      .addSheet('กำหนดการสำคัญ', columns, rows)
+      .sendResponse(res);
+  } catch (err) {
+    next(err);
   }
 };

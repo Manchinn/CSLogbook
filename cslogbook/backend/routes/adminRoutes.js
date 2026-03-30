@@ -149,6 +149,7 @@ router.put('/notification-settings/enable-all', adminAuth, notificationSettingsC
 router.put('/notification-settings/disable-all', adminAuth, notificationSettingsController.disableAllNotifications);
 
 // === เพิ่ม Admin Important Deadline Routes ===
+router.get('/important-deadlines/export', adminAuth, importantDeadlineController.exportAcademicDeadlines);
 router.get('/important-deadlines', adminAuth, importantDeadlineController.getAll);
 router.post('/important-deadlines', adminAuth, importantDeadlineController.create);
 router.put('/important-deadlines/:id', adminAuth, importantDeadlineController.update);
