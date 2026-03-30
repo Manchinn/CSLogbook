@@ -99,7 +99,7 @@ export function SystemTestStaffQueuePage() {
   const queueQuery = useAdminSystemTestQueue(filters, canView);
   const yearsQuery = useAdminSystemTestAcademicYears(canView);
   const detailQuery = useAdminSystemTestDetail(selected?.projectId ?? null, drawerOpen && canView);
-  const { submitDecision } = useAdminSystemTestMutations();
+  const { submitDecision, exportMutation } = useAdminSystemTestMutations();
 
   const rows = useMemo(() => queueQuery.data?.rows ?? [], [queueQuery.data?.rows]);
   const total = queueQuery.data?.total ?? 0;
@@ -310,6 +310,21 @@ export function SystemTestStaffQueuePage() {
           ) : null}
           <button type="button" className={styles.button} onClick={resetFilters}>
             รีเซ็ตตัวกรอง
+          </button>
+          <button
+            type="button"
+            className={`${styles.button} ${styles.buttonPrimary}`}
+            onClick={() =>
+              void exportMutation.mutateAsync({
+                status: status === "all" ? undefined : status,
+                search: search.trim() || undefined,
+                academicYear: academicYear || undefined,
+                semester: semester || undefined,
+              })
+            }
+            disabled={exportMutation.isPending}
+          >
+            {exportMutation.isPending ? "กำลังส่งออก..." : "ส่งออก Excel"}
           </button>
         </div>
       </header>

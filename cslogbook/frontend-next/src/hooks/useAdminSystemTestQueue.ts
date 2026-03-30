@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  exportAdminSystemTestQueue,
   getAdminSystemTestStaffQueue,
   getAdminSystemTestRequestDetail,
   submitAdminSystemTestStaffDecision,
@@ -47,7 +48,13 @@ export function useAdminSystemTestMutations() {
     onSuccess: invalidate,
   });
 
+  const exportMutation = useMutation({
+    mutationFn: (filters: Omit<AdminSystemTestQueueFilters, "limit" | "offset">) =>
+      exportAdminSystemTestQueue(filters),
+  });
+
   return {
     submitDecision,
+    exportMutation,
   };
 }

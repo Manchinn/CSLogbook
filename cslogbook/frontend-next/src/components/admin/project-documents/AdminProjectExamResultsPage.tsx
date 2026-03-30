@@ -117,7 +117,7 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
   const pendingQuery = useAdminProjectExamPendingResults(examType, filters);
   const yearsQuery = useAdminProjectExamAcademicYears();
   const detailQuery = useAdminProjectExamResultDetail(drawerTarget?.projectId ?? null, examType, drawerOpen && Boolean(drawerTarget));
-  const { recordExamResult, updateFinalDocumentStatus } = useAdminProjectExamMutations(examType);
+  const { recordExamResult, updateFinalDocumentStatus, exportMutation } = useAdminProjectExamMutations(examType);
 
   const rows = useMemo(() => pendingQuery.data?.rows ?? [], [pendingQuery.data?.rows]);
   const total = pendingQuery.data?.total ?? 0;
@@ -251,6 +251,21 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
             disabled={pendingQuery.isFetching}
           >
             รีเฟรช
+          </button>
+          <button
+            type="button"
+            className={`${styles.button} ${styles.buttonPrimary}`}
+            onClick={() =>
+              void exportMutation.mutateAsync({
+                status: status || undefined,
+                academicYear: academicYear || undefined,
+                semester: semester || undefined,
+                search: search.trim() || undefined,
+              })
+            }
+            disabled={exportMutation.isPending}
+          >
+            {exportMutation.isPending ? "กำลังส่งออก..." : "ส่งออก Excel"}
           </button>
         </div>
       </header>

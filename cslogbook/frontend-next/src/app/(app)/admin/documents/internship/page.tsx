@@ -97,7 +97,7 @@ export default function AdminInternshipDocumentsPage() {
     semester: semester || undefined,
   });
   const detailQuery = useAdminInternshipDocumentDetail(selected?.id ?? null, drawerOpen);
-  const { reviewDocument, rejectDocument, previewDocument, downloadDocument } = useAdminInternshipDocumentMutations();
+  const { reviewDocument, rejectDocument, previewDocument, downloadDocument, exportMutation } = useAdminInternshipDocumentMutations();
 
   const listResult = documentsQuery.data;
   const rows = useMemo(() => listResult?.documents ?? [], [listResult?.documents]);
@@ -301,6 +301,21 @@ export default function AdminInternshipDocumentsPage() {
           <div className={btn.buttonRow}>
             <button type="button" className={btn.button} onClick={onResetFilters}>
               รีเซ็ตตัวกรอง
+            </button>
+            <button
+              type="button"
+              className={`${btn.button} ${btn.buttonPrimary}`}
+              onClick={() =>
+                void exportMutation.mutateAsync({
+                  status: status || undefined,
+                  search: search.trim() || undefined,
+                  academicYear: academicYear || undefined,
+                  semester: semester || undefined,
+                })
+              }
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? "กำลังส่งออก..." : "ส่งออก Excel"}
             </button>
           </div>
         </header>

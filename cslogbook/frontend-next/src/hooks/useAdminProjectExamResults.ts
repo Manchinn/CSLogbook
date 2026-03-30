@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  exportAdminProjectExamResults,
   getAdminProjectExamPendingResults,
   getAdminProjectExamResult,
   getProjectAcademicYearsForExamResults,
@@ -67,8 +68,14 @@ export function useAdminProjectExamMutations(examType: AdminExamType) {
     onSuccess: invalidate,
   });
 
+  const exportMutation = useMutation({
+    mutationFn: (filters: Omit<AdminProjectExamFilters, "limit" | "offset">) =>
+      exportAdminProjectExamResults(examType, filters),
+  });
+
   return {
     recordExamResult,
     updateFinalDocumentStatus,
+    exportMutation,
   };
 }

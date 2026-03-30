@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   approveAdminCertificateRequest,
   downloadAdminCertificateRequest,
+  exportAdminCertificateRequests,
   getAdminCertificateRequestDetail,
   getAdminCertificateRequests,
   getAdminInternshipLogbookSummary,
@@ -61,9 +62,15 @@ export function useAdminInternshipCertificateMutations() {
     mutationFn: ({ requestId }: { requestId: number }) => downloadAdminCertificateRequest(requestId),
   });
 
+  const exportMutation = useMutation({
+    mutationFn: (filters: Omit<AdminCertificateListFilters, "page" | "limit">) =>
+      exportAdminCertificateRequests(filters),
+  });
+
   return {
     approveRequest: approveMutation,
     rejectRequest: rejectMutation,
     downloadRequest: downloadMutation,
+    exportMutation,
   };
 }

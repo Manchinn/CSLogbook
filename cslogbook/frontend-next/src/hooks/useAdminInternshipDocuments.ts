@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   downloadInternshipDocument,
+  exportAdminInternshipDocuments,
   getAdminInternshipDocumentDetail,
   getAdminInternshipDocuments,
   getInternshipAcademicYearsForAdmin,
@@ -82,10 +83,16 @@ export function useAdminInternshipDocumentMutations() {
     mutationFn: ({ documentId }: { documentId: number }) => downloadInternshipDocument(documentId),
   });
 
+  const exportMutation = useMutation({
+    mutationFn: (filters: Omit<AdminInternshipDocumentListFilters, "limit" | "offset">) =>
+      exportAdminInternshipDocuments(filters),
+  });
+
   return {
     reviewDocument: reviewMutation,
     rejectDocument: rejectMutation,
     previewDocument: previewMutation,
     downloadDocument: downloadMutation,
+    exportMutation,
   };
 }

@@ -77,7 +77,7 @@ export default function AdminInternshipCertificatesPage() {
     detail?.internship?.internshipId ?? null,
     Boolean(logbookModalOpen && detail?.internship?.internshipId),
   );
-  const { approveRequest, rejectRequest, downloadRequest } = useAdminInternshipCertificateMutations();
+  const { approveRequest, rejectRequest, downloadRequest, exportMutation } = useAdminInternshipCertificateMutations();
 
   const rows = useMemo(() => certificatesQuery.data?.rows ?? [], [certificatesQuery.data?.rows]);
   const filteredRows = useMemo(() => {
@@ -272,6 +272,20 @@ export default function AdminInternshipCertificatesPage() {
               }}
             >
               รีเซ็ตตัวกรอง
+            </button>
+            <button
+              type="button"
+              className={`${btn.button} ${btn.buttonPrimary}`}
+              onClick={() =>
+                void exportMutation.mutateAsync({
+                  status: status || undefined,
+                  academicYear: academicYear || undefined,
+                  semester: semester || undefined,
+                })
+              }
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? "กำลังส่งออก..." : "ส่งออก Excel"}
             </button>
           </div>
         </header>
