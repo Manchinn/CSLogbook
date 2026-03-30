@@ -51,6 +51,12 @@ export default function AdminInternshipCertificatesPage() {
   const [rejectRemarks, setRejectRemarks] = useState("");
   const [logbookModalOpen, setLogbookModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkApproveOpen, setBulkApproveOpen] = useState(false);
+  const [bulkApproveIds, setBulkApproveIds] = useState<number[]>([]);
+  const [certNumbers, setCertNumbers] = useState<Record<number, string>>({});
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
 
   const filters = useMemo(
     () => ({
@@ -164,6 +170,82 @@ export default function AdminInternshipCertificatesPage() {
     }
   };
 
+  function canSelectRow(row: AdminCertificateRequest): boolean {
+    return row.status === "pending";
+  }
+
+  const pendingInFiltered = filteredRows.filter(canSelectRow);
+  const allPendingSelected =
+    pendingInFiltered.length > 0 && pendingInFiltered.every((r) => selectedIds.includes(r.id));
+
+  const toggleSelectAll = () => {
+    if (allPendingSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(pendingInFiltered.map((r) => r.id));
+    }
+  };
+
+  const toggleSelectRow = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleBulkApprove = () => {
+    const initial: Record<number, string> = {};
+    const now = new Date();
+    const buddhistYear = now.getFullYear() + 543;
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    selectedIds.forEach((id) => {
+      const rand = String(Math.floor(1000 + Math.random() * 9000));
+      initial[id] = `ว ${buddhistYear}/${month}/${rand}`;
+    });
+    setCertNumbers(initial);
+    setBulkApproveIds(selectedIds);
+    setBulkApproveOpen(true);
+  };
+
+  const submitBulkApprove = async () => {
+    const allFilled = bulkApproveIds.every((id) => (certNumbers[id] ?? "").trim() !== "");
+    if (!allFilled) {
+      setFeedback({ tone: "warning", message: "กรุณากรอกเลขที่ใบรับรองให้ครบทุกรายการ" });
+      return;
+    }
+    const results = await Promise.allSettled(
+      bulkApproveIds.map((id) =>
+        approveRequest.mutateAsync({ requestId: id, certificateNumber: certNumbers[id].trim() }),
+      ),
+    );
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setBulkApproveOpen(false);
+    setSelectedIds([]);
+    setFeedback({
+      tone: failed === 0 ? "success" : "warning",
+      message: `อนุมัติสำเร็จ ${succeeded} รายการ${failed > 0 ? ` / ล้มเหลว ${failed} รายการ` : ""}`,
+    });
+  };
+
+  const submitBulkReject = async () => {
+    if (!bulkRejectReason.trim()) {
+      setFeedback({ tone: "warning", message: "กรุณาระบุเหตุผลการปฏิเสธ" });
+      return;
+    }
+    const results = await Promise.allSettled(
+      selectedIds.map((id) =>
+        rejectRequest.mutateAsync({ requestId: id, remarks: bulkRejectReason.trim() }),
+      ),
+    );
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setBulkRejectOpen(false);
+    setBulkRejectReason("");
+    setSelectedIds([]);
+    setFeedback({
+      tone: failed === 0 ? "success" : "warning",
+      message: `ปฏิเสธสำเร็จ ${succeeded} รายการ${failed > 0 ? ` / ล้มเหลว ${failed} รายการ` : ""}`,
+    });
+  };
+
   const isActionPending = approveRequest.isPending || rejectRequest.isPending || downloadRequest.isPending;
   const breakdownRows = detail?.evaluationDetail?.breakdown ?? [];
   const breakdownTotalScore = breakdownRows.reduce((acc, row) => acc + (typeof row.score === "number" ? row.score : 0), 0);
@@ -235,6 +317,7 @@ export default function AdminInternshipCertificatesPage() {
               onChange={(event) => {
                 setStatus(event.target.value);
                 setPage(1);
+                setSelectedIds([]);
               }}
             >
               <option value="">ทุกสถานะ</option>
@@ -248,6 +331,7 @@ export default function AdminInternshipCertificatesPage() {
               onChange={(event) => {
                 setAcademicYear(event.target.value);
                 setPage(1);
+                setSelectedIds([]);
               }}
             >
               <option value="">ทุกปีการศึกษา</option>
@@ -263,6 +347,7 @@ export default function AdminInternshipCertificatesPage() {
               onChange={(event) => {
                 setSemester(event.target.value);
                 setPage(1);
+                setSelectedIds([]);
               }}
             >
               <option value="">ทุกภาคเรียน</option>
@@ -274,10 +359,47 @@ export default function AdminInternshipCertificatesPage() {
         </section>
 
         <section className={styles.card}>
+          {selectedIds.length > 0 ? (
+            <div className={`${btn.buttonRow} ${styles.bulkActionBar}`}>
+              <span className={styles.subText}>{selectedIds.length} รายการที่เลือก</span>
+              <button
+                type="button"
+                className={`${btn.button} ${btn.buttonPrimary}`}
+                onClick={handleBulkApprove}
+                disabled={isActionPending}
+              >
+                อนุมัติ ({selectedIds.length})
+              </button>
+              <button
+                type="button"
+                className={`${btn.button} ${btn.buttonDanger}`}
+                onClick={() => setBulkRejectOpen(true)}
+                disabled={isActionPending}
+              >
+                ปฏิเสธ ({selectedIds.length})
+              </button>
+              <button
+                type="button"
+                className={btn.button}
+                onClick={() => setSelectedIds([])}
+              >
+                ยกเลิกการเลือก
+              </button>
+            </div>
+          ) : null}
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th className={styles.checkboxCol}>
+                    <input
+                      type="checkbox"
+                      checked={allPendingSelected}
+                      onChange={toggleSelectAll}
+                      disabled={pendingInFiltered.length === 0}
+                      aria-label="เลือกทั้งหมด"
+                    />
+                  </th>
                   <th>รหัสนักศึกษา</th>
                   <th>ชื่อ-นามสกุล</th>
                   <th className={responsive.hideOnMobile}>บริษัท</th>
@@ -290,6 +412,16 @@ export default function AdminInternshipCertificatesPage() {
                 {filteredRows.length ? (
                   filteredRows.map((row) => (
                     <tr key={row.id}>
+                      <td>
+                        {canSelectRow(row) ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(row.id)}
+                            onChange={() => toggleSelectRow(row.id)}
+                            aria-label={`เลือก ${row.student.fullName}`}
+                          />
+                        ) : null}
+                      </td>
                       <td>{row.student.studentCode || "-"}</td>
                       <td>{row.student.fullName || "-"}</td>
                       <td className={responsive.hideOnMobile}>{row.internship.companyName || "-"}</td>
@@ -328,7 +460,7 @@ export default function AdminInternshipCertificatesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <p className={styles.empty}>ไม่พบคำขอหนังสือรับรองที่ตรงตามเงื่อนไข</p>
                     </td>
                   </tr>
@@ -612,6 +744,99 @@ export default function AdminInternshipCertificatesPage() {
                   onClick={() => setLogbookModalOpen(false)}
                 >
                   ปิด
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {bulkApproveOpen ? (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modal}>
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>อนุมัติหนังสือรับรอง ({bulkApproveIds.length} รายการ)</h3>
+                <button
+                  type="button"
+                  className={styles.modalCloseBtn}
+                  onClick={() => setBulkApproveOpen(false)}
+                  aria-label="ปิด"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className={styles.reviewItemList}>
+                {bulkApproveIds.map((id) => {
+                  const row = rows.find((r) => r.id === id);
+                  return (
+                    <div key={id} className={styles.reviewItem}>
+                      <span className={`${styles.subText} ${styles.reviewItemLabel}`}>
+                        {row?.student.studentCode || "-"} {row?.student.fullName || "-"}
+                      </span>
+                      <input
+                        className={`${styles.input} ${styles.reviewItemInput}`}
+                        placeholder="เลขที่ใบรับรอง"
+                        value={certNumbers[id] ?? ""}
+                        onChange={(e) => setCertNumbers((prev) => ({ ...prev, [id]: e.target.value }))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className={btn.buttonRow}>
+                <button
+                  type="button"
+                  className={btn.button}
+                  onClick={() => setBulkApproveOpen(false)}
+                  disabled={isActionPending}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className={`${btn.button} ${btn.buttonPrimary}`}
+                  onClick={() => void submitBulkApprove()}
+                  disabled={isActionPending}
+                >
+                  ยืนยันอนุมัติทั้งหมด
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {bulkRejectOpen ? (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modal}>
+              <h3 className={styles.modalTitle}>ปฏิเสธหนังสือรับรอง ({selectedIds.length} รายการ)</h3>
+              <label className={styles.field}>
+                <span>เหตุผลการปฏิเสธ (ใช้ร่วมกันทุกรายการ)</span>
+                <textarea
+                  className={styles.textarea}
+                  rows={4}
+                  value={bulkRejectReason}
+                  onChange={(e) => setBulkRejectReason(e.target.value)}
+                  placeholder="ระบุเหตุผลการปฏิเสธ"
+                />
+              </label>
+              <div className={btn.buttonRow}>
+                <button
+                  type="button"
+                  className={btn.button}
+                  onClick={() => {
+                    setBulkRejectOpen(false);
+                    setBulkRejectReason("");
+                  }}
+                  disabled={isActionPending}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className={`${btn.button} ${btn.buttonDanger}`}
+                  onClick={() => void submitBulkReject()}
+                  disabled={isActionPending}
+                >
+                  ยืนยันปฏิเสธทั้งหมด
                 </button>
               </div>
             </div>
