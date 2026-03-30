@@ -54,6 +54,7 @@ router.get('/:id/kp02', projectDefenseRequestController.getProject1Request);
 router.post('/:id/kp02', authorize('project', 'kp02Submit'), checkDeadlineBeforeSubmission('SUBMISSION'), validateSubmitProject1Request, projectDefenseRequestController.submitProject1Request);
 router.post('/:id/kp02/advisor-approve', authorize('project', 'kp02AdvisorDecision'), projectDefenseRequestController.submitAdvisorDecision);
 router.post('/:id/kp02/verify', authorize('project', 'kp02StaffVerify'), projectDefenseRequestController.verifyProject1Request);
+router.post('/:id/kp02/reject', authorize('project', 'kp02StaffVerify'), projectDefenseRequestController.rejectProject1Request);
 router.post('/:id/kp02/schedule', authorize('project', 'kp02Schedule'), projectDefenseRequestController.scheduleProject1Defense);
 
 router.patch('/:id/final-document/status', authorize('project', 'finalDocumentStatus'), projectExamResultController.updateFinalDocumentStatus);

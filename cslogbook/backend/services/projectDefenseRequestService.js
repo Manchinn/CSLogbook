@@ -922,6 +922,58 @@ class ProjectDefenseRequestService {
     return this.verifyDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_THESIS);
   }
 
+  async rejectDefenseRequest(projectId, { reason } = {}, actorUser = {}, defenseType = DEFENSE_TYPE_PROJECT1) {
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 10) {
+      const error = new Error('กรุณาระบุเหตุผลการปฏิเสธอย่างน้อย 10 ตัวอักษร');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const t = await sequelize.transaction();
+    try {
+      const request = await ProjectDefenseRequest.findOne({
+        where: { projectId, defenseType },
+        include: this.buildRequestInclude(),
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (!request) {
+        throw new Error('ไม่พบคำขอสอบสำหรับโครงงานนี้');
+      }
+      if (!['advisor_approved', 'staff_verified'].includes(request.status)) {
+        throw new Error('ไม่สามารถปฏิเสธคำขอนี้ได้ในสถานะปัจจุบัน');
+      }
+
+      await request.update({
+        status: 'advisor_in_review',
+        advisorApprovedAt: null,
+        staffVerifiedAt: null,
+        staffVerifiedByUserId: null,
+        staffVerificationNote: reason.trim()
+      }, { transaction: t });
+
+      await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
+      await t.commit();
+
+      logger.info('rejectDefenseRequest success', { projectId, defenseType, staffUserId: actorUser?.userId || null });
+
+      return this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
+    } catch (error) {
+      await this.safeRollback(t);
+      logger.error('rejectDefenseRequest failed', { projectId, defenseType, error: error.message });
+      throw error;
+    }
+  }
+
+  async rejectProject1Request(projectId, payload = {}, actorUser = {}) {
+    return this.rejectDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_PROJECT1);
+  }
+
+  async rejectThesisRequest(projectId, payload = {}, actorUser = {}) {
+    return this.rejectDefenseRequest(projectId, payload, actorUser, DEFENSE_TYPE_THESIS);
+  }
+
   async getAdvisorApprovalQueue(teacherId, { status, withMetrics = false, defenseType = DEFENSE_TYPE_PROJECT1 } = {}) {
     const where = { teacherId };
     if (status) {

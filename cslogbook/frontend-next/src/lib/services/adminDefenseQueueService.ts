@@ -314,6 +314,19 @@ export async function verifyDefenseQueueRequest(payload: {
   });
 }
 
+export async function rejectDefenseQueueRequest(payload: {
+  projectId: number;
+  defenseType: DefenseType;
+  reason: string;
+}) {
+  const params = new URLSearchParams({ defenseType: payload.defenseType });
+  return apiFetch(`/projects/${payload.projectId}/kp02/reject?${params.toString()}`, {
+    method: "POST",
+    body: JSON.stringify({ reason: payload.reason.trim() }),
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export async function exportDefenseQueue(defenseType: DefenseType, filters: Omit<DefenseQueueFilters, "limit" | "offset"> = {}, token?: string) {
   const effectiveToken = resolveToken(token);
   const query = buildQueueQuery(filters, defenseType);

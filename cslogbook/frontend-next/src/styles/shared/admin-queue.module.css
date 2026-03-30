@@ -398,6 +398,12 @@
   color: #92400e;
 }
 
+.fieldError {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin: 0;
+}
+
 /* ─── Drawer ─── */
 .drawerOverlay {
   position: fixed;
@@ -557,6 +563,15 @@
   text-decoration: underline;
 }
 
+/* ─── Bulk Action Bar ─── */
+.bulkActionBar {
+  margin-bottom: var(--space-3);
+}
+
+.checkboxCol {
+  width: 40px;
+}
+
 /* ─── Review Modal Items ─── */
 .reviewItemList {
   max-height: 300px;
@@ -576,7 +591,7 @@
 }
 
 .reviewItemInput {
-  width: 100px;
+  width: 180px;
 }
 
 .reviewModalActions {

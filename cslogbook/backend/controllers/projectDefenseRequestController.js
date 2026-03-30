@@ -242,6 +242,27 @@ module.exports = {
     }
   },
 
+  async rejectProject1Request(req, res) {
+    try {
+      const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
+      if (!isStaff) {
+        return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ปฏิเสธคำขอนี้' });
+      }
+
+      const { reason } = req.body || {};
+      const defenseType = resolveDefenseType(req, DEFENSE_TYPE_PROJECT1);
+      const record = defenseType === DEFENSE_TYPE_THESIS
+        ? await projectDefenseRequestService.rejectThesisRequest(req.params.id, { reason }, req.user)
+        : await projectDefenseRequestService.rejectProject1Request(req.params.id, { reason }, req.user);
+
+      return res.json({ success: true, data: record });
+    } catch (error) {
+      logger.error('rejectProject1Request error', { projectId: req.params.id, error: error.message });
+      const status = error.statusCode || 400;
+      return res.status(status).json({ success: false, message: error.message || 'ไม่สามารถปฏิเสธคำขอได้' });
+    }
+  },
+
   async scheduleProject1Defense(req, res) {
     const isStaff = ['admin', 'teacher'].includes(req.user.role) && (req.user.role !== 'teacher' || req.user.teacherType === 'support');
     if (!isStaff) {

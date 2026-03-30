@@ -88,6 +88,12 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
   const [verifyNote, setVerifyNote] = useState("");
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkVerifyOpen, setBulkVerifyOpen] = useState(false);
+  const [bulkVerifyNote, setBulkVerifyNote] = useState("");
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
+
   const isStaff = Boolean(user && (user.role === "admin" || (user.role === "teacher" && user.teacherType === "support")));
   const canExportProject1 = Boolean(user && user.role === "teacher" && user.canExportProject1);
   const canExportThesis = Boolean(
@@ -113,12 +119,28 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
   const queueQuery = useAdminDefenseQueue(defenseType, filters, canView);
   const yearsQuery = useAdminDefenseAcademicYears(canView);
   const detailQuery = useAdminDefenseDetail(selected?.projectId ?? null, defenseType, drawerOpen && canView);
-  const { verifyRequest, exportQueue } = useAdminDefenseQueueMutations(defenseType);
+  const { verifyRequest, rejectRequest, exportQueue } = useAdminDefenseQueueMutations(defenseType);
 
   const rows = useMemo(() => queueQuery.data?.rows ?? [], [queueQuery.data?.rows]);
   const total = queueQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const isBusy = verifyRequest.isPending || exportQueue.isPending;
+  const isBusy = verifyRequest.isPending || rejectRequest.isPending || exportQueue.isPending;
+
+  function canSelectRow(row: DefenseQueueRecord): boolean {
+    return row.status === "advisor_approved";
+  }
+
+  const onToggleSelected = (requestId: number, checked: boolean) => {
+    setSelectedIds((prev) => (checked ? [...prev, requestId] : prev.filter((id) => id !== requestId)));
+  };
+
+  const onToggleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? rows.filter(canSelectRow).map((r) => r.requestId) : []);
+  };
+
+  const allSelectableRows = rows.filter(canSelectRow);
+  const isAllSelected = allSelectableRows.length > 0 && selectedIds.length === allSelectableRows.length;
+  const selectedCount = selectedIds.length;
 
   const stats = useMemo(
     () =>
@@ -142,6 +164,46 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
     defenseType === DEFENSE_TYPE_THESIS
       ? "ติดตามคำขอสอบปริญญานิพนธ์ ตรวจสอบรายการ และส่งออกชุดข้อมูลสำหรับนัดสอบ"
       : "ติดตามคำขอสอบ คพ.02 ตรวจสอบรายการ และส่งออกชุดข้อมูลสำหรับนัดสอบ";
+
+  const submitBulkVerify = async () => {
+    if (!selectedCount) return;
+    const targets = rows.filter((r) => selectedIds.includes(r.requestId));
+    const results = await Promise.allSettled(
+      targets.map((r) =>
+        verifyRequest.mutateAsync({ projectId: r.projectId, defenseType, note: bulkVerifyNote }),
+      ),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const succeeded = results.length - failed;
+    setBulkVerifyOpen(false);
+    setSelectedIds([]);
+    setBulkVerifyNote("");
+    setFeedback(
+      failed === 0
+        ? { tone: "success", message: `ตรวจสอบแล้ว ${succeeded} รายการ` }
+        : { tone: "warning", message: `สำเร็จ ${succeeded} รายการ / ล้มเหลว ${failed} รายการ` },
+    );
+  };
+
+  const submitBulkReject = async () => {
+    if (!selectedCount || bulkRejectReason.trim().length < 10) return;
+    const targets = rows.filter((r) => selectedIds.includes(r.requestId));
+    const results = await Promise.allSettled(
+      targets.map((r) =>
+        rejectRequest.mutateAsync({ projectId: r.projectId, defenseType, reason: bulkRejectReason }),
+      ),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const succeeded = results.length - failed;
+    setBulkRejectOpen(false);
+    setSelectedIds([]);
+    setBulkRejectReason("");
+    setFeedback(
+      failed === 0
+        ? { tone: "success", message: `ปฏิเสธแล้ว ${succeeded} รายการ` }
+        : { tone: "warning", message: `สำเร็จ ${succeeded} รายการ / ล้มเหลว ${failed} รายการ` },
+    );
+  };
 
   const openDrawer = (row: DefenseQueueRecord) => {
     setSelected(row);
@@ -212,6 +274,32 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
           <p className={styles.subtitle}>{pageSubtitle}</p>
         </div>
         <div className={styles.buttonRow}>
+          {isStaff ? (
+            <>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                disabled={!selectedCount || isBusy}
+                onClick={() => {
+                  setBulkVerifyNote("");
+                  setBulkVerifyOpen(true);
+                }}
+              >
+                ตรวจสอบแล้ว ({selectedCount})
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonDanger}`}
+                disabled={!selectedCount || isBusy}
+                onClick={() => {
+                  setBulkRejectReason("");
+                  setBulkRejectOpen(true);
+                }}
+              >
+                ปฏิเสธ ({selectedCount})
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             className={styles.button}
@@ -222,6 +310,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
               setAcademicYear(active ? String(active.academicYear) : "");
               setSemester("");
               setPage(1);
+              setSelectedIds([]);
             }}
           >
             รีเซ็ตตัวกรอง
@@ -267,6 +356,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
+              setSelectedIds([]);
             }}
           >
             <option value="all">ทุกสถานะ</option>
@@ -280,6 +370,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             onChange={(event) => {
               setAcademicYear(event.target.value);
               setPage(1);
+              setSelectedIds([]);
             }}
           >
             <option value="">ทุกปีการศึกษา</option>
@@ -295,6 +386,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             onChange={(event) => {
               setSemester(event.target.value);
               setPage(1);
+              setSelectedIds([]);
             }}
           >
             <option value="">ทุกภาคเรียน</option>
@@ -309,6 +401,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
+              setSelectedIds([]);
             }}
           />
         </div>
@@ -319,6 +412,17 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
           <table className={styles.table}>
             <thead>
               <tr>
+                {isStaff ? (
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      disabled={allSelectableRows.length === 0}
+                      onChange={(e) => onToggleSelectAll(e.target.checked)}
+                      aria-label="เลือกทั้งหมด"
+                    />
+                  </th>
+                ) : null}
                 <th>โครงงาน</th>
                 <th>สมาชิก</th>
                 <th>สถานะ</th>
@@ -329,19 +433,31 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             <tbody>
               {queueQuery.isLoading ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={isStaff ? 6 : 5}>
                     <p className={styles.empty}>กำลังโหลดข้อมูล...</p>
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={isStaff ? 6 : 5}>
                     <p className={styles.empty}>ไม่พบคำขอสอบที่ตรงตามเงื่อนไข</p>
                   </td>
                 </tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.requestId}>
+                    {isStaff ? (
+                      <td>
+                        {canSelectRow(row) ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(row.requestId)}
+                            onChange={(e) => onToggleSelected(row.requestId, e.target.checked)}
+                            aria-label={`เลือก ${row.project.projectNameTh || row.project.projectNameEn || row.requestId}`}
+                          />
+                        ) : null}
+                      </td>
+                    ) : null}
                     <td>
                       <p className={styles.name}>{row.project.projectNameTh || row.project.projectNameEn || "-"}</p>
                       <p className={styles.subText}>#{row.projectId} {row.project.projectCode ? `| ${row.project.projectCode}` : ""}</p>
@@ -583,6 +699,83 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
                 disabled={verifyRequest.isPending}
               >
                 {verifyRequest.isPending ? "กำลังบันทึก..." : "ยืนยัน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkVerifyOpen ? (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>ยืนยันการตรวจสอบ ({selectedCount} รายการ)</h3>
+            <p className={styles.subText}>รายการที่เลือกจะถูกเปลี่ยนสถานะเป็น "ตรวจสอบแล้ว"</p>
+            <label className={styles.field}>
+              <span>หมายเหตุถึงนักศึกษา (ไม่บังคับ)</span>
+              <textarea
+                className={styles.textarea}
+                rows={4}
+                value={bulkVerifyNote}
+                onChange={(event) => setBulkVerifyNote(event.target.value)}
+                placeholder="ระบุหมายเหตุเพิ่มเติม"
+              />
+            </label>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.button}
+                disabled={verifyRequest.isPending}
+                onClick={() => setBulkVerifyOpen(false)}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => void submitBulkVerify()}
+                disabled={verifyRequest.isPending}
+              >
+                {verifyRequest.isPending ? "กำลังบันทึก..." : `ยืนยัน ${selectedCount} รายการ`}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkRejectOpen ? (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>ปฏิเสธคำขอ ({selectedCount} รายการ)</h3>
+            <p className={styles.subText}>รายการที่เลือกจะถูกส่งกลับไปสถานะ "รออาจารย์อนุมัติ"</p>
+            <label className={styles.field}>
+              <span>เหตุผลการปฏิเสธ (บังคับ ขั้นต่ำ 10 ตัวอักษร)</span>
+              <textarea
+                className={styles.textarea}
+                rows={4}
+                value={bulkRejectReason}
+                onChange={(event) => setBulkRejectReason(event.target.value)}
+                placeholder="ระบุเหตุผลการปฏิเสธ"
+              />
+            </label>
+            {bulkRejectReason.length > 0 && bulkRejectReason.trim().length < 10 ? (
+              <p className={styles.fieldError}>กรุณาระบุเหตุผลอย่างน้อย 10 ตัวอักษร</p>
+            ) : null}
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.button}
+                disabled={rejectRequest.isPending}
+                onClick={() => setBulkRejectOpen(false)}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonDanger}`}
+                onClick={() => void submitBulkReject()}
+                disabled={rejectRequest.isPending || bulkRejectReason.trim().length < 10}
+              >
+                {rejectRequest.isPending ? "กำลังบันทึก..." : `ปฏิเสธ ${selectedCount} รายการ`}
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
   getAdminDefenseQueue,
   getProjectAcademicYearsForDefenseQueue,
   getProjectDefenseDetail,
+  rejectDefenseQueueRequest,
   verifyDefenseQueueRequest,
   type DefenseQueueFilters,
   type DefenseType,
@@ -49,12 +50,18 @@ export function useAdminDefenseQueueMutations(defenseType: DefenseType) {
     onSuccess: invalidate,
   });
 
+  const rejectRequest = useMutation({
+    mutationFn: rejectDefenseQueueRequest,
+    onSuccess: invalidate,
+  });
+
   const exportQueue = useMutation({
     mutationFn: (filters: Omit<DefenseQueueFilters, "limit" | "offset">) => exportDefenseQueue(defenseType, filters),
   });
 
   return {
     verifyRequest,
+    rejectRequest,
     exportQueue,
   };
 }

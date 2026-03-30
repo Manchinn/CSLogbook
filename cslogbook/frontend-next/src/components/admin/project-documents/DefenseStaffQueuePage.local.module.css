@@ -1,5 +1,9 @@
 /* ─── Defense/SystemTest Queue — Page-specific classes ─── */
 
+.checkboxCol {
+  width: 2.5rem;
+}
+
 .list {
   margin: 0;
   padding-left: 1rem;
