@@ -212,13 +212,23 @@ export async function recordAdminTopicExamResult(payload: {
   });
 }
 
-export function exportAdminTopicExamOverview(
+export function exportTopicExamList(
   filters: Omit<AdminTopicExamFilters, "limit" | "offset"> = {},
 ) {
   return downloadExcelFile({
-    endpoint: "/projects/topic-exam/export",
+    endpoint: "/projects/topic-exam/export-list",
     params: { ...filters },
-    fallbackFilename: "หัวข้อโครงงาน.xlsx",
+    fallbackFilename: "รายชื่อสอบหัวข้อโครงงาน.xlsx",
+  });
+}
+
+export function exportTopicExamResults(
+  filters: Omit<AdminTopicExamFilters, "limit" | "offset"> = {},
+) {
+  return downloadExcelFile({
+    endpoint: "/projects/topic-exam/export-results",
+    params: { ...filters },
+    fallbackFilename: "ผลสอบหัวข้อโครงงาน.xlsx",
   });
 }
 
