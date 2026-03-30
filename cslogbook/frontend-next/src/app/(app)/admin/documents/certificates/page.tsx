@@ -36,7 +36,7 @@ function generateCertificateNumber() {
 }
 
 export default function AdminInternshipCertificatesPage() {
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("pending");
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
@@ -265,7 +265,7 @@ export default function AdminInternshipCertificatesPage() {
               className={btn.button}
               onClick={() => {
                 setSearch("");
-                setStatus("");
+                setStatus("pending");
                 setAcademicYear("");
                 setSemester("");
                 setPage(1);
@@ -321,7 +321,7 @@ export default function AdminInternshipCertificatesPage() {
               }}
             >
               <option value="">ทุกสถานะ</option>
-              <option value="pending">รอดำเนินการ</option>
+              <option value="pending">รอตรวจสอบ</option>
               <option value="approved">อนุมัติแล้ว</option>
               <option value="rejected">ปฏิเสธ</option>
             </select>

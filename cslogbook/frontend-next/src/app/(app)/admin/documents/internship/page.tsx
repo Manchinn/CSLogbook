@@ -358,7 +358,7 @@ export default function AdminInternshipDocumentsPage() {
             >
               <option value="">ทุกสถานะ</option>
               <option value="pending">รอตรวจสอบ</option>
-              <option value="approved">อนุมัติ</option>
+              <option value="approved">อนุมัติแล้ว</option>
               <option value="rejected">ปฏิเสธ</option>
               <option value="cancelled">ยกเลิกการฝึกงาน</option>
             </select>

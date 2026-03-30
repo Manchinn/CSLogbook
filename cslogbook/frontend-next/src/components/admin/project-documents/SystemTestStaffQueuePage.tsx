@@ -59,7 +59,7 @@ function canSelectRow(row: AdminSystemTestQueueRecord): boolean {
 
 export function SystemTestStaffQueuePage() {
   const { user } = useAuth();
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("pending_staff");
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
@@ -255,7 +255,7 @@ export function SystemTestStaffQueuePage() {
   };
 
   const resetFilters = () => {
-    setStatus("all");
+    setStatus("pending_staff");
     setSearch("");
     setAcademicYear("");
     setSemester("");

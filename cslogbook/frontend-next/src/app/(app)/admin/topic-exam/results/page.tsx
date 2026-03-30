@@ -42,6 +42,7 @@ function resultLabel(result: "passed" | "failed" | null) {
 
 export default function AdminTopicExamResultsPage() {
   const [search, setSearch] = useState("");
+  const [examStatus, setExamStatus] = useState("pending");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
   const [page, setPage] = useState(1);
@@ -73,8 +74,16 @@ export default function AdminTopicExamResultsPage() {
   const advisorsQuery = useAdminTopicExamAdvisors();
   const { recordResult, exportOverview } = useAdminTopicExamMutations();
 
-  const rows = useMemo(() => overviewQuery.data?.rows ?? [], [overviewQuery.data?.rows]);
-  const total = overviewQuery.data?.total ?? 0;
+  // NOTE: backend /projects/topic-exam/overview does not support examResult filter — filtered client-side
+  const allRows = useMemo(() => overviewQuery.data?.rows ?? [], [overviewQuery.data?.rows]);
+  const rows = useMemo(() => {
+    if (!examStatus || examStatus === "all") return allRows;
+    return allRows.filter((row) => {
+      if (examStatus === "pending") return !row.examResult;
+      return row.examResult === examStatus;
+    });
+  }, [allRows, examStatus]);
+  const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const stats = useMemo(
@@ -260,6 +269,7 @@ export default function AdminTopicExamResultsPage() {
               className={styles.button}
               onClick={() => {
                 setSearch("");
+                setExamStatus("pending");
                 setAcademicYear("");
                 setSemester("");
                 setPage(1);
@@ -314,6 +324,19 @@ export default function AdminTopicExamResultsPage() {
                 setPage(1);
               }}
             />
+            <select
+              className={styles.select}
+              value={examStatus}
+              onChange={(event) => {
+                setExamStatus(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="pending">รอบันทึกผล</option>
+              <option value="passed">ผ่าน</option>
+              <option value="failed">ไม่ผ่าน</option>
+              <option value="all">ทั้งหมด</option>
+            </select>
             <select
               className={styles.select}
               value={academicYear}

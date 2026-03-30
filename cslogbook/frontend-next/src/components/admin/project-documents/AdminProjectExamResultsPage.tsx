@@ -293,8 +293,8 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
             }}
           >
             <option value="pending">รอบันทึกผล</option>
-            <option value="passed">ผ่านแล้ว</option>
-            <option value="failed">ไม่ผ่านแล้ว</option>
+            <option value="passed">ผ่าน</option>
+            <option value="failed">ไม่ผ่าน</option>
             <option value="all">ทั้งหมด</option>
           </select>
           <select

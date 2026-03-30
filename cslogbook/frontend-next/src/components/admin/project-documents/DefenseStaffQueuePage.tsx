@@ -68,7 +68,7 @@ type DefenseStaffQueuePageProps = {
 export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProps) {
   const { user } = useAuth();
   const { data: academicYearOptions = [] } = useAcademicYears();
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("advisor_approved");
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
@@ -304,7 +304,7 @@ export function DefenseStaffQueuePage({ defenseType }: DefenseStaffQueuePageProp
             type="button"
             className={styles.button}
             onClick={() => {
-              setStatus("all");
+              setStatus("advisor_approved");
               setSearch("");
               const active = academicYearOptions.find((y) => y.status === "active");
               setAcademicYear(active ? String(active.academicYear) : "");
