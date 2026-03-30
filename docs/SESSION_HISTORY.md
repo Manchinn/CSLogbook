@@ -66,6 +66,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch `comment`→`note`, add generic document rejection notification |
 | 59 | 03-28 | Rejection audit (19 bugs), demo issues (BUG-01/02, FEATURE-01, UX-01), 25 tests, data import (26 projects + 61 internship + 11 students created), seed script fixes, IMPORT_GUIDE, GitHub Actions upload workflow |
 | 60 | 03-28 | Production data import: seed scripts สำหรับโครงงาน 2568/2 (41 projects) + ฝึกงาน 2567/2568 (90 records) — ติดตั้ง Claude Code บน VPS, deploy via CI/CD, docker cp Excel files, รัน seed ผ่าน docker exec, เพิ่มสมาชิกขาด 3 คน, แก้ mysql utf8mb4 charset bug |
+| 61 | 03-30 | Admin document UX improvements (8 pages): inline expand→drawer (ผลสอบ), bulk actions (คพ.02/03+system test+certificates), default status alignment (6 pages), XLSX export ทุกหน้า (4 endpoints ใหม่), Thai label normalization — 8 commits, ~30 files, ~1170 insertions |
 
 ### Pending
 
@@ -1319,3 +1320,59 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 | `frontend-next/src/app/(app)/project/phase2/view/ProjectPhase2Content.tsx` | **EDIT** — F4 staff_returned→staff_rejected |
 | `frontend-next/src/lib/services/internshipService.ts` | **EDIT** — rejectionReason type |
 | `frontend-next/src/lib/services/projectService.ts` | **EDIT** — F5 approvedAt type |
+
+---
+
+### Session 61 (claude, 2026-03-30) — Admin Document UX Improvements
+
+**Scope:** 8 admin document management pages — 4 categories of changes
+
+| Commit | Summary |
+|---|---|
+| `b296ba12` | refactor: replace inline expand with drawer in exam results pages |
+| `fcdd659e` | feat: add bulk verify/reject to defense queue pages (คพ.02/03) |
+| `00e4eb09` | feat: add bulk approve/reject to system test staff queue |
+| `a8dd38d1` | feat: add bulk approve/reject to certificates page |
+| `c5934634` | fix: unify default status filters and Thai status labels across admin pages |
+| `9d435d33` | feat: add XLSX export endpoints for exam results, system test, internship docs, and certificates |
+| `53b0ea48` | feat: add XLSX export buttons to exam results, system test, internship docs, and certificates pages |
+| `5b3b52ba` | docs: add spec and plan for admin document UX improvements |
+
+**Changes by category:**
+
+| Category | Pages Affected | Details |
+|---|---|---|
+| **Drawer** | ผลสอบโครงงาน, ผลสอบปริญญานิพนธ์ | แทน inline expand ด้วย drawer 680px (4 sections: โครงงาน, การสอบ, ผล, เล่มเอกสาร) |
+| **Bulk actions** | คพ.02/03, system test, ใบรับรอง | checkbox multi-select, bulk verify/approve/reject modals, Promise.allSettled partial success |
+| **Default status** | 6 หน้า | defense→advisor_approved, sys-test→pending_staff, certs→pending, labels unified |
+| **XLSX export** | 4 หน้าใหม่ (รวม 8 หน้า) | Backend ExcelJS endpoints + frontend export buttons |
+
+**Files changed (~30 files, ~1,170 insertions):**
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|---|---|
+| `AdminProjectExamResultsPage.tsx` | inline expand→drawer, labels ผ่านแล้ว→ผ่าน, export button |
+| `AdminProjectExamResultsPage.local.module.css` | ลบ .expandPanel/.expandGrid |
+| `DefenseStaffQueuePage.tsx` | bulk verify/reject, default advisor_approved, export button |
+| `DefenseStaffQueuePage.local.module.css` | เพิ่ม .checkboxCol |
+| `SystemTestStaffQueuePage.tsx` | bulk approve/reject, default pending_staff, export button |
+| `certificates/page.tsx` | bulk approve (per-item cert#)/reject, default pending, label fix, export button |
+| `internship/page.tsx` | label อนุมัติ→อนุมัติแล้ว, export button |
+| `topic-exam/results/page.tsx` | เพิ่ม examStatus filter (client-side) |
+| `adminProjectExamResultService.ts` | เพิ่ม exportAdminProjectExamResults |
+| `adminSystemTestService.ts` | เพิ่ม exportAdminSystemTestQueue |
+| `adminInternshipDocumentsService.ts` | เพิ่ม exportAdminInternshipDocuments |
+| `adminInternshipCertificatesService.ts` | เพิ่ม exportAdminCertificateRequests |
+| `useAdminProjectExamResults.ts` | เพิ่ม export mutation |
+| `useAdminSystemTestQueue.ts` | เพิ่ม export mutation |
+| `useAdminInternshipDocuments.ts` | เพิ่ม export mutation |
+| `useAdminInternshipCertificates.ts` | เพิ่ม export mutation |
+| `useAdminDefenseQueue.ts` | เพิ่ม rejectRequest mutation |
+| `adminDefenseQueueService.ts` | เพิ่ม rejectDefenseQueueRequest |
+| `admin-queue.module.css` | เพิ่ม .bulkActionBar, .checkboxCol, .fieldError |
+| `projectRoutes.js` | เพิ่ม exam-results/export, system-test/export, kp02/reject |
+| `adminRoutes.js` | เพิ่ม documents/export, certificate-requests/export |
+| `projectDefenseRequestController.js` | เพิ่ม exportExamResults, rejectProject1Request |
+| `projectDefenseRequestService.js` | เพิ่ม rejectDefenseRequest, rejectProject1Request, rejectThesisRequest |
+| `projectSystemTestController.js` | เพิ่ม exportStaffQueue |
+| `documentController.js` | เพิ่ม exportDocuments, exportCertificateRequests |
