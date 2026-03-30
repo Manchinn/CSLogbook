@@ -1262,7 +1262,7 @@ class ProjectDefenseRequestService {
     const { defenseType = DEFENSE_TYPE_PROJECT1 } = filters;
     // ใช้ status จาก user filter — ถ้าไม่ส่งมาจะใช้ default ของ getStaffVerificationQueue
     const exportFilters = { ...filters, withMetrics: false };
-    const records = await this.getStaffVerificationQueue(exportFilters);
+    const { data: records = [] } = await this.getStaffVerificationQueue(exportFilters);
     const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ 1';
 
     const columns = [
