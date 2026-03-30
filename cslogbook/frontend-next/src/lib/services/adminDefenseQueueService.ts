@@ -1,6 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import { AUTH_TOKEN_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
-import { env } from "@/lib/config/env";
+import { downloadExcelFile } from "@/lib/utils/excelDownload";
 
 export const DEFENSE_TYPE_PROJECT1 = "PROJECT1";
 export const DEFENSE_TYPE_THESIS = "THESIS";
@@ -274,20 +273,6 @@ function buildQueueQuery(filters: DefenseQueueFilters, defenseType: DefenseType)
   return params.toString();
 }
 
-function resolveToken(token?: string) {
-  if (token) return token;
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(AUTH_TOKEN_KEY) ?? window.localStorage.getItem(LEGACY_TOKEN_KEY);
-}
-
-function extractFileName(contentDisposition: string | null, fallback: string) {
-  if (!contentDisposition) return fallback;
-  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
-  if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
-  const plainMatch = /filename="?([^"]+)"?/i.exec(contentDisposition);
-  if (plainMatch?.[1]) return plainMatch[1];
-  return fallback;
-}
 
 export async function getAdminDefenseQueue(defenseType: DefenseType, filters: DefenseQueueFilters = {}) {
   const query = buildQueueQuery(filters, defenseType);
@@ -327,33 +312,18 @@ export async function rejectDefenseQueueRequest(payload: {
   });
 }
 
-export async function exportDefenseQueue(defenseType: DefenseType, filters: Omit<DefenseQueueFilters, "limit" | "offset"> = {}, token?: string) {
-  const effectiveToken = resolveToken(token);
-  const query = buildQueueQuery(filters, defenseType);
-  const response = await fetch(`${env.apiUrl}/projects/kp02/staff-queue/export?${query}`, {
-    method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
+export function exportDefenseQueue(
+  defenseType: DefenseType,
+  filters: Omit<DefenseQueueFilters, "limit" | "offset"> = {},
+) {
+  const fallback = defenseType === DEFENSE_TYPE_THESIS
+    ? "thesis-queue.xlsx"
+    : "project1-queue.xlsx";
+  return downloadExcelFile({
+    endpoint: "/projects/kp02/staff-queue/export",
+    params: { defenseType, ...filters },
+    fallbackFilename: fallback,
   });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "ไม่สามารถส่งออกข้อมูลได้");
-  }
-
-  const blob = await response.blob();
-  const filename = extractFileName(
-    response.headers.get("content-disposition"),
-    `${defenseType === DEFENSE_TYPE_THESIS ? "thesis" : "project1"}-queue-${Date.now()}.xlsx`,
-  );
-
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
 }
 
 export async function getProjectDefenseDetail(projectId: number, defenseType: DefenseType) {

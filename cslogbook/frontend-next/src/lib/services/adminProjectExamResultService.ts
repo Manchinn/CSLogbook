@@ -1,6 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import { AUTH_TOKEN_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
-import { env } from "@/lib/config/env";
+import { downloadExcelFile } from "@/lib/utils/excelDownload";
 
 export const ADMIN_EXAM_TYPE_PROJECT1 = "PROJECT1";
 export const ADMIN_EXAM_TYPE_THESIS = "THESIS";
@@ -323,54 +322,16 @@ export async function getProjectAcademicYearsForExamResults() {
     .sort((a, b) => b - a);
 }
 
-function resolveToken(token?: string) {
-  if (token) return token;
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(AUTH_TOKEN_KEY) ?? window.localStorage.getItem(LEGACY_TOKEN_KEY);
-}
-
-function extractFileName(contentDisposition: string | null, fallback: string) {
-  if (!contentDisposition) return fallback;
-  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
-  if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
-  const plainMatch = /filename="?([^"]+)"?/i.exec(contentDisposition);
-  if (plainMatch?.[1]) return plainMatch[1];
-  return fallback;
-}
-
-export async function exportAdminProjectExamResults(
+export function exportAdminProjectExamResults(
   examType: AdminExamType,
   filters: Omit<AdminProjectExamFilters, "limit" | "offset"> = {},
-  token?: string,
 ) {
-  const effectiveToken = resolveToken(token);
-  const params = new URLSearchParams({ examType });
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
+  const fallback = examType === ADMIN_EXAM_TYPE_THESIS
+    ? "ผลสอบปริญญานิพนธ์.xlsx"
+    : "ผลสอบโครงงานพิเศษ.xlsx";
+  return downloadExcelFile({
+    endpoint: "/projects/exam-results/export",
+    params: { examType, ...filters },
+    fallbackFilename: fallback,
   });
-
-  const response = await fetch(`${env.apiUrl}/projects/exam-results/export?${params.toString()}`, {
-    method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "ไม่สามารถส่งออกข้อมูลได้");
-  }
-
-  const blob = await response.blob();
-  const fallback = examType === ADMIN_EXAM_TYPE_THESIS ? "ผลสอบปริญญานิพนธ์.xlsx" : "ผลสอบโครงงานพิเศษ.xlsx";
-  const filename = extractFileName(response.headers.get("content-disposition"), fallback);
-
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
 }

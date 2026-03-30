@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api/client";
 import { AUTH_TOKEN_KEY, LEGACY_TOKEN_KEY } from "@/lib/auth/storageKeys";
 import { env } from "@/lib/config/env";
+import { downloadExcelFile } from "@/lib/utils/excelDownload";
 
 export type AdminCertificateRequestStatus = "pending" | "approved" | "rejected" | string;
 
@@ -246,48 +247,14 @@ export async function downloadAdminCertificateRequest(requestId: number, token?:
   return fetchCertificateBlob(`/admin/certificate-requests/${requestId}/download`, `internship-certificate-${requestId}.pdf`, token);
 }
 
-function extractFileName(contentDisposition: string | null, fallback: string) {
-  if (!contentDisposition) return fallback;
-  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
-  if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
-  const plainMatch = /filename="?([^"]+)"?/i.exec(contentDisposition);
-  if (plainMatch?.[1]) return plainMatch[1];
-  return fallback;
-}
-
-export async function exportAdminCertificateRequests(
+export function exportAdminCertificateRequests(
   filters: Omit<AdminCertificateListFilters, "page" | "limit"> = {},
-  token?: string,
 ) {
-  const effectiveToken = resolveToken(token);
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
+  return downloadExcelFile({
+    endpoint: "/admin/certificate-requests/export",
+    params: { ...filters },
+    fallbackFilename: "ใบรับรองฝึกงาน.xlsx",
   });
-
-  const response = await fetch(`${env.apiUrl}/admin/certificate-requests/export?${params.toString()}`, {
-    method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "ไม่สามารถส่งออกข้อมูลได้");
-  }
-
-  const blob = await response.blob();
-  const filename = extractFileName(response.headers.get("content-disposition"), "ใบรับรองฝึกงาน.xlsx");
-
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
 }
 
 export async function getAdminInternshipLogbookSummary(internshipId: number): Promise<AdminInternshipLogbookSummary | null> {
