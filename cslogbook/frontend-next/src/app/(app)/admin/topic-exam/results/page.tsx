@@ -48,7 +48,6 @@ export default function AdminTopicExamResultsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [selected, setSelected] = useState<AdminTopicExamRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("pass");
@@ -72,7 +71,7 @@ export default function AdminTopicExamResultsPage() {
   const overviewQuery = useAdminTopicExamOverview(filters);
   const yearsQuery = useAdminTopicExamAcademicYears();
   const advisorsQuery = useAdminTopicExamAdvisors();
-  const { recordResult, exportOverview } = useAdminTopicExamMutations();
+  const { recordResult, exportList, exportResults } = useAdminTopicExamMutations();
 
   // NOTE: backend /projects/topic-exam/overview does not support examResult filter — filtered client-side
   const allRows = useMemo(() => overviewQuery.data?.rows ?? [], [overviewQuery.data?.rows]);
@@ -157,18 +156,25 @@ export default function AdminTopicExamResultsPage() {
     setModalOpen(false);
   };
 
-  const handleExport = async () => {
+  const exportFilters = {
+    search: search.trim() || undefined,
+    academicYear: academicYear || undefined,
+    semester: semester || undefined,
+  };
+
+  const handleExportList = async () => {
     try {
-      await exportOverview.mutateAsync({
-        search: search.trim() || undefined,
-        academicYear: academicYear || undefined,
-        semester: semester || undefined,
-      });
+      await exportList.mutateAsync(exportFilters);
     } catch (error) {
-      setFeedback({
-        tone: "warning",
-        message: error instanceof Error ? error.message : "ไม่สามารถส่งออกข้อมูลได้",
-      });
+      setFeedback({ tone: "warning", message: error instanceof Error ? error.message : "ไม่สามารถส่งออกรายชื่อสอบได้" });
+    }
+  };
+
+  const handleExportResults = async () => {
+    try {
+      await exportResults.mutateAsync(exportFilters);
+    } catch (error) {
+      setFeedback({ tone: "warning", message: error instanceof Error ? error.message : "ไม่สามารถส่งออกผลสอบได้" });
     }
   };
 
@@ -242,7 +248,7 @@ export default function AdminTopicExamResultsPage() {
     }
   };
 
-  const isBusy = recordResult.isPending || exportOverview.isPending;
+  const isBusy = recordResult.isPending || exportList.isPending || exportResults.isPending;
 
   return (
     <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
@@ -277,11 +283,11 @@ export default function AdminTopicExamResultsPage() {
             >
               รีเซ็ตตัวกรอง
             </button>
-            <button type="button" className={styles.button} onClick={() => setPreviewOpen(true)}>
-              ดูตัวอย่างก่อนส่งออก
+            <button type="button" className={styles.button} onClick={() => void handleExportList()} disabled={isBusy}>
+              Export รายชื่อสอบ
             </button>
-            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => void handleExport()} disabled={isBusy}>
-              ส่งออก Excel
+            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => void handleExportResults()} disabled={isBusy}>
+              Export ผลสอบ
             </button>
           </div>
         </header>
@@ -520,60 +526,6 @@ export default function AdminTopicExamResultsPage() {
         </section>
 
       {overviewQuery.isError ? <p className={styles.empty}>ไม่สามารถโหลดข้อมูลผลสอบหัวข้อได้</p> : null}
-
-      {previewOpen ? (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>ตัวอย่างรายชื่อก่อนส่งออก</h3>
-            <p className={styles.subText}>รายการนี้ใช้ตัวกรองเดียวกับหน้าหลัก และเหมาะสำหรับตรวจทานก่อนสร้างไฟล์</p>
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>ชื่อโครงงาน</th>
-                    <th>สมาชิก</th>
-                    <th>ผลสอบหัวข้อ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length ? (
-                    rows.map((row) => (
-                      <tr key={`preview-${row.projectId}`}>
-                        <td>{row.titleTh || row.titleEn || "-"}</td>
-                        <td>
-                          {row.members.length
-                            ? row.members.map((member) => `${member.studentCode || "-"} ${member.name || "-"}`).join(", ")
-                            : "-"}
-                        </td>
-                        <td>{resultLabel(row.examResult)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3}>
-                        <p className={styles.empty}>ไม่พบรายการสำหรับส่งออก</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className={styles.buttonRow}>
-              <button type="button" className={styles.button} onClick={() => setPreviewOpen(false)}>
-                ปิด
-              </button>
-              <button
-                type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
-                onClick={() => void handleExport()}
-                disabled={isBusy}
-              >
-                ส่งออก Excel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {drawerOpen && selected ? (
           <div className={styles.drawerOverlay}>

@@ -34,32 +34,20 @@ router.get(
   }
 );
 
-// GET /api/projects/topic-exam/export?format=csv|xlsx ใช้ query เดียวกับ overview
+// GET /api/projects/topic-exam/export-list — รายชื่อสอบ (ก่อนสอบ)
 router.get(
-  "/export",
+  "/export-list",
   authenticateToken,
   authorize("topicExam", "access"),
-  async (req, res, next) => {
-    const start = Date.now();
-    logger.info(
-      `[TopicExam] export request start user=${req.user?.userId} role=${req.user?.role} format=${req.query.format}`
-    );
-    try {
-      await controller.exportOverview(req, res, (err) => {
-        if (err) throw err;
-      });
-      logger.info(
-        `[TopicExam] export request success user=${req.user?.userId} ms=${
-          Date.now() - start
-        }`
-      );
-    } catch (e) {
-      logger.error(
-        `[TopicExam] export request error user=${req.user?.userId} err=${e.message}`
-      );
-      next(e);
-    }
-  }
+  controller.exportExamList
+);
+
+// GET /api/projects/topic-exam/export-results — ผลสอบ (หลังสอบ)
+router.get(
+  "/export-results",
+  authenticateToken,
+  authorize("topicExam", "access"),
+  controller.exportExamResults
 );
 
 module.exports = router;
