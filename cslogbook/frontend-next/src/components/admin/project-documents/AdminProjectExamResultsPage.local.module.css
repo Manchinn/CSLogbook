@@ -1,18 +1,5 @@
 /* ─── Exam Results — Page-specific classes ─── */
 
-.expandPanel {
-  margin-top: var(--space-3);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3);
-}
-
-.expandGrid {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
 .checkboxField {
   display: flex;
   align-items: center;

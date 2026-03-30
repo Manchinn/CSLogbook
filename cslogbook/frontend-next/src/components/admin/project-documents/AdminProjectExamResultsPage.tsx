@@ -88,7 +88,8 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [expandedProjectId, setExpandedProjectId] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTarget, setDrawerTarget] = useState<AdminProjectExamRow | null>(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [recordTarget, setRecordTarget] = useState<AdminProjectExamRow | null>(null);
   const [recordResult, setRecordResult] = useState<"PASS" | "FAIL">("PASS");
@@ -115,7 +116,7 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
 
   const pendingQuery = useAdminProjectExamPendingResults(examType, filters);
   const yearsQuery = useAdminProjectExamAcademicYears();
-  const detailQuery = useAdminProjectExamResultDetail(expandedProjectId, examType, Boolean(expandedProjectId));
+  const detailQuery = useAdminProjectExamResultDetail(drawerTarget?.projectId ?? null, examType, drawerOpen && Boolean(drawerTarget));
   const { recordExamResult, updateFinalDocumentStatus } = useAdminProjectExamMutations(examType);
 
   const rows = useMemo(() => pendingQuery.data?.rows ?? [], [pendingQuery.data?.rows]);
@@ -139,17 +140,21 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
   );
 
   const isBusy = recordExamResult.isPending || updateFinalDocumentStatus.isPending;
-  const expandedDetail = useMemo(() => {
-    if (!expandedProjectId) return null;
-    const listRow = rows.find((item) => item.projectId === expandedProjectId);
-    if (!listRow) return null;
+
+  const openDrawer = (row: AdminProjectExamRow) => {
+    setDrawerTarget(row);
+    setDrawerOpen(true);
+  };
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setDrawerTarget(null);
+  };
+  const activeRecord = useMemo(() => {
+    if (!drawerTarget) return null;
     const detailRow = detailQuery.data;
-    if (!detailRow) return listRow;
-    return {
-      ...listRow,
-      examResult: detailRow,
-    };
-  }, [detailQuery.data, expandedProjectId, rows]);
+    if (!detailRow) return drawerTarget;
+    return { ...drawerTarget, examResult: detailRow };
+  }, [detailQuery.data, drawerTarget]);
 
   const openRecordModal = (row: AdminProjectExamRow) => {
     setRecordTarget(row);
@@ -231,7 +236,7 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
               setSemester("");
               setSearch("");
               setPage(1);
-              setExpandedProjectId(null);
+              closeDrawer();
             }}
           >
             รีเซ็ตตัวกรอง
@@ -361,7 +366,6 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
               ) : (
                 rows.map((row) => {
                   const tag = formatResultTag(row.examResult?.result ?? null);
-                  const isExpanded = expandedProjectId === row.projectId;
                   return (
                     <tr key={row.projectId}>
                       <td>
@@ -411,12 +415,8 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
                       ) : null}
                       <td>
                         <div className={styles.buttonRow}>
-                          <button
-                            type="button"
-                            className={styles.button}
-                            onClick={() => setExpandedProjectId(isExpanded ? null : row.projectId)}
-                          >
-                            {isExpanded ? "ซ่อนรายละเอียด" : "รายละเอียด"}
+                          <button type="button" className={styles.button} onClick={() => openDrawer(row)}>
+                            รายละเอียด
                           </button>
                           <button
                             type="button"
@@ -440,53 +440,6 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
             </tbody>
           </table>
         </div>
-
-        {expandedDetail ? (
-          <div className={local.expandPanel}>
-            <div className={local.expandGrid}>
-              <section className={styles.detailSection}>
-                <h3 className={styles.detailTitle}>รายละเอียดการสอบ</h3>
-                <p>สถานะคำขอสอบ: {DEFENSE_STATUS_LABEL[expandedDetail.defenseRequest?.status ?? ""] || expandedDetail.defenseRequest?.status || "-"}</p>
-                <p>ยื่นคำขอเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.submittedAt)}</p>
-                <p>อาจารย์อนุมัติเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.advisorApprovedAt)}</p>
-                <p>เจ้าหน้าที่ตรวจเมื่อ: {formatDateTime(expandedDetail.defenseRequest?.staffVerifiedAt)}</p>
-              </section>
-              <section className={styles.detailSection}>
-                <h3 className={styles.detailTitle}>ผลการสอบ</h3>
-                {expandedDetail.examResult ? (
-                  <>
-                    <p>ผลสอบ: {expandedDetail.examResult.result === "PASS" ? "ผ่าน" : "ไม่ผ่าน"}</p>
-                    <p>คะแนน: {expandedDetail.examResult.score ?? "-"}</p>
-                    <p>หมายเหตุ: {expandedDetail.examResult.notes || "-"}</p>
-                    <p>ผู้บันทึก: {expandedDetail.examResult.recordedByName || "-"}</p>
-                    <p>บันทึกเมื่อ: {formatDateTime(expandedDetail.examResult.recordedAt)}</p>
-                    {expandedDetail.examResult.result === "FAIL" ? (
-                      <p>รับทราบผลโดยนักศึกษา: {formatDateTime(expandedDetail.examResult.studentAcknowledgedAt)}</p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p>ยังไม่มีผลสอบ</p>
-                )}
-              </section>
-              {examType === ADMIN_EXAM_TYPE_THESIS ? (
-                <section className={styles.detailSection}>
-                  <h3 className={styles.detailTitle}>สถานะเล่มเอกสาร</h3>
-                  <p>
-                    สถานะ:{" "}
-                    {expandedDetail.finalDocument
-                      ? FINAL_DOCUMENT_LABEL[expandedDetail.finalDocument.status ?? ""] ||
-                        expandedDetail.finalDocument.status ||
-                        "-"
-                      : "ยังไม่ส่งเล่ม"}
-                  </p>
-                  <p>ส่งเมื่อ: {formatDateTime(expandedDetail.finalDocument?.submittedAt)}</p>
-                  <p>ตรวจล่าสุด: {formatDateTime(expandedDetail.finalDocument?.reviewDate)}</p>
-                  <p>ผู้ตรวจ: {expandedDetail.finalDocument?.reviewerName || "-"}</p>
-                </section>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
 
         <div className={styles.pagination}>
           <p className={styles.paginationInfo}>
@@ -627,6 +580,123 @@ export function AdminProjectExamResultsPage({ examType }: AdminProjectExamResult
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {drawerOpen && drawerTarget ? (
+        <div className={styles.drawerOverlay}>
+          <aside className={styles.drawer}>
+            <header className={styles.drawerHeader}>
+              <div>
+                <p className={styles.drawerTitle}>รายละเอียดโครงงาน</p>
+                <p className={styles.subText}>{activeRecord?.projectNameTh || activeRecord?.projectNameEn || "-"}</p>
+              </div>
+              <button type="button" className={styles.button} onClick={closeDrawer}>
+                ปิด
+              </button>
+            </header>
+            <div className={styles.drawerBody}>
+              {detailQuery.isLoading ? <p className={styles.empty}>กำลังโหลดรายละเอียด...</p> : null}
+
+              <section className={styles.detailSection}>
+                <h3 className={styles.detailTitle}>ข้อมูลโครงงาน</h3>
+                <p>ชื่อไทย: {activeRecord?.projectNameTh || "-"}</p>
+                <p>ชื่ออังกฤษ: {activeRecord?.projectNameEn || "-"}</p>
+                <p>รหัสโครงงาน: {activeRecord?.projectCode || "-"}</p>
+                <p>
+                  ปีการศึกษา / ภาคเรียน: {activeRecord?.academicYear || "-"} / {activeRecord?.semester || "-"}
+                </p>
+                {activeRecord?.members.length ? (
+                  <>
+                    <p className={styles.subText}>สมาชิก:</p>
+                    {activeRecord.members.map((member) => (
+                      <p key={`drawer-${activeRecord.projectId}-${member.studentId ?? member.studentCode}`} className={styles.subText}>
+                        {member.studentCode || "-"} {member.name || "-"}
+                      </p>
+                    ))}
+                  </>
+                ) : (
+                  <p className={styles.subText}>สมาชิก: -</p>
+                )}
+                <p>ที่ปรึกษาหลัก: {activeRecord?.advisor?.name || "-"}</p>
+                <p>ที่ปรึกษาร่วม: {activeRecord?.coAdvisor?.name || "-"}</p>
+              </section>
+
+              <section className={styles.detailSection}>
+                <h3 className={styles.detailTitle}>รายละเอียดการสอบ</h3>
+                <p>
+                  สถานะคำขอสอบ:{" "}
+                  {DEFENSE_STATUS_LABEL[activeRecord?.defenseRequest?.status ?? ""] ||
+                    activeRecord?.defenseRequest?.status ||
+                    "-"}
+                </p>
+                <p>วันที่ยื่นคำขอ: {formatDateTime(activeRecord?.defenseRequest?.submittedAt)}</p>
+                <p>วันที่อาจารย์อนุมัติ: {formatDateTime(activeRecord?.defenseRequest?.advisorApprovedAt)}</p>
+                <p>วันที่เจ้าหน้าที่ตรวจ: {formatDateTime(activeRecord?.defenseRequest?.staffVerifiedAt)}</p>
+              </section>
+
+              <section className={styles.detailSection}>
+                <h3 className={styles.detailTitle}>ผลการสอบ</h3>
+                {activeRecord?.examResult ? (
+                  <>
+                    <p>ผลสอบ: {activeRecord.examResult.result === "PASS" ? "ผ่าน" : "ไม่ผ่าน"}</p>
+                    <p>คะแนน: {activeRecord.examResult.score ?? "-"}</p>
+                    <p>หมายเหตุ: {activeRecord.examResult.notes || "-"}</p>
+                    <p>ผู้บันทึก: {activeRecord.examResult.recordedByName || "-"}</p>
+                    <p>วันที่บันทึก: {formatDateTime(activeRecord.examResult.recordedAt)}</p>
+                    {activeRecord.examResult.result === "FAIL" ? (
+                      <p>รับทราบผลโดยนักศึกษา: {formatDateTime(activeRecord.examResult.studentAcknowledgedAt)}</p>
+                    ) : null}
+                    {activeRecord.examResult.result === "PASS" && activeRecord.examResult.requireScopeRevision ? (
+                      <p className={styles.subText}>ต้องแก้ไข scope ก่อนเข้าขั้นตอนถัดไป</p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className={styles.empty}>ยังไม่มีผลสอบ</p>
+                )}
+              </section>
+
+              {examType === ADMIN_EXAM_TYPE_THESIS ? (
+                <section className={styles.detailSection}>
+                  <h3 className={styles.detailTitle}>สถานะเล่มเอกสาร</h3>
+                  <p>
+                    สถานะ:{" "}
+                    {activeRecord?.finalDocument
+                      ? FINAL_DOCUMENT_LABEL[activeRecord.finalDocument.status ?? ""] ||
+                        activeRecord.finalDocument.status ||
+                        "-"
+                      : "ยังไม่ส่งเล่ม"}
+                  </p>
+                  <p>ส่งเมื่อ: {formatDateTime(activeRecord?.finalDocument?.submittedAt)}</p>
+                  <p>ตรวจล่าสุด: {formatDateTime(activeRecord?.finalDocument?.reviewDate)}</p>
+                  <p>ผู้ตรวจ: {activeRecord?.finalDocument?.reviewerName || "-"}</p>
+                </section>
+              ) : null}
+            </div>
+            <div className={styles.drawerFooter}>
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                disabled={Boolean(activeRecord?.examResult)}
+                onClick={() => {
+                  if (activeRecord) openRecordModal(activeRecord);
+                }}
+              >
+                บันทึกผลสอบ
+              </button>
+              {examType === ADMIN_EXAM_TYPE_THESIS ? (
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => {
+                    if (activeRecord) openDocumentModal(activeRecord);
+                  }}
+                >
+                  อัปเดตสถานะเล่ม
+                </button>
+              ) : null}
+            </div>
+          </aside>
         </div>
       ) : null}
     </div>
