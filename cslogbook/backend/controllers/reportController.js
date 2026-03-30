@@ -1,6 +1,7 @@
 // controllers/reportController.js
 // Controller บาง เรียก service แล้วคืน JSON
 const reportService = require('../services/reportService');
+const projectManagementService = require('../services/projectManagementService');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
 exports.getOverview = async (req, res, next) => {
@@ -194,8 +195,11 @@ exports.exportEnrolledStudents = async (req, res, next) => {
 exports.exportProjectReport = async (req, res, next) => {
   try {
     const { year, semester } = req.query;
-    const data = await reportService.getProjectStatusSummary({ year, semester });
-    const projects = data.projects || data || [];
+    const { rows: projects } = await projectManagementService.getAllProjects({
+      academicYear: year,
+      semester,
+      limit: 2000,
+    });
 
     const columns = [
       { header: 'ชื่อโครงงาน', key: 'projectTitle', width: 45 },
@@ -205,10 +209,16 @@ exports.exportProjectReport = async (req, res, next) => {
     ];
 
     const rows = projects.map((p) => ({
-      projectTitle: p.projectTitle || p.projectNameTh || '-',
-      status: p.statusLabel || p.status || '-',
-      members: (p.members || []).map(m => `${m.studentCode} ${m.name}`).join(', '),
-      advisorName: p.advisorName || '-',
+      projectTitle: p.projectNameTh || '-',
+      status: p.status || '-',
+      members: (p.members || []).map((m) => {
+        const s = m.student;
+        const u = s?.user;
+        return `${s?.studentCode || ''} ${u?.firstName || ''} ${u?.lastName || ''}`.trim();
+      }).join(', ') || '-',
+      advisorName: p.advisor?.user
+        ? `${p.advisor.user.firstName || ''} ${p.advisor.user.lastName || ''}`.trim()
+        : '-',
     }));
 
     await new ExcelExportBuilder('รายงานโครงงาน')

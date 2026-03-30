@@ -35,7 +35,7 @@ class ExcelExportBuilder {
     ws.columns = columns;
     ws.addRows(rows);
     const headerRow = ws.getRow(1);
-    Object.assign(headerRow.font, this.headerStyle.font);
+    headerRow.font = this.headerStyle.font;
     if (this.headerStyle.fill) headerRow.fill = this.headerStyle.fill;
     headerRow.alignment = { vertical: 'middle', wrapText: true };
     return this;

@@ -187,7 +187,7 @@ export default function AdminInternshipReportPage() {
               type="button"
               className={btn.button}
               disabled={filteredStudents.length === 0}
-              onClick={() => exportEnrolledStudents({ year: String(year) })}
+              onClick={() => exportEnrolledStudents({ year: String(year), semester: semester != null ? String(semester) : undefined })}
             >
               ส่งออก Excel
             </button>

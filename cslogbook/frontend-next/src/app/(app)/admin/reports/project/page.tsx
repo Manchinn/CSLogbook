@@ -160,7 +160,7 @@ export default function AdminProjectReportPage() {
               type="button"
               className={btn.button}
               disabled={projects.length === 0}
-              onClick={() => exportProjectReport({ year: String(year) })}
+              onClick={() => exportProjectReport({ year: String(year), semester: semester != null ? String(semester) : undefined })}
             >
               ส่งออก Excel
             </button>
