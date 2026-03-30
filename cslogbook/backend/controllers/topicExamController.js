@@ -3,7 +3,7 @@
 const topicExamService = require('../services/topicExamService');
 const logger = require('../utils/logger');
 const { stringify } = require('node:querystring');
-const { ExcelExportBuilder } = require('../utils/excelExportBuilder');
+const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
 // helper: flatten project -> member rows (หนึ่งสมาชิกต่อหนึ่งแถว)
 // คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
