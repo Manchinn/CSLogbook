@@ -3,6 +3,7 @@ const projectDocumentService = require('../services/projectDocumentService');
 const projectWorkflowStateService = require('../services/projectWorkflowStateService');
 const projectExamResultService = require('../services/projectExamResultService');
 const logger = require('../utils/logger');
+const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
 const DEFENSE_TYPE_THESIS = 'THESIS';
@@ -298,14 +299,10 @@ module.exports = {
 
       const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
 
-      const ExcelJS = require('exceljs');
-      const wb = new ExcelJS.Workbook();
       const sheetName = resolvedType === 'THESIS' ? 'ผลสอบปริญญานิพนธ์' : 'ผลสอบโครงงานพิเศษ 1';
-      const ws = wb.addWorksheet(sheetName);
 
-      ws.columns = [
+      const columns = [
         { header: 'ลำดับ', key: 'order', width: 8 },
-        { header: 'รหัสโครงงาน', key: 'code', width: 15 },
         { header: 'ชื่อโครงงาน (ไทย)', key: 'nameTh', width: 45 },
         { header: 'ชื่อโครงงาน (อังกฤษ)', key: 'nameEn', width: 45 },
         { header: 'สมาชิก', key: 'members', width: 40 },
@@ -316,7 +313,9 @@ module.exports = {
         { header: 'วันที่บันทึก', key: 'recordedAt', width: 20 },
       ];
 
-      rows.forEach((row, idx) => {
+      const resultLabel = { PASS: 'ผ่าน', FAIL: 'ไม่ผ่าน' };
+
+      const dataRows = rows.map((row, idx) => {
         const memberList = (row.members || []).map(m => {
           const sc = m.student?.studentCode || m.studentCode || '-';
           const fn = m.student?.user
@@ -334,37 +333,28 @@ module.exports = {
           ? row.examResults[0]
           : {};
 
-        const resultLabel = exam.result === 'PASS' ? 'ผ่าน'
-          : exam.result === 'FAIL' ? 'ไม่ผ่าน'
-          : 'รอบันทึก';
-
-        ws.addRow({
+        return {
           order: idx + 1,
-          code: row.projectCode || '-',
           nameTh: row.projectNameTh || '-',
           nameEn: row.projectNameEn || '-',
           members: memberList || '-',
           advisor: advisorName,
-          result: resultLabel,
+          result: resultLabel[exam.result] || 'รอบันทึก',
           score: exam.score != null ? exam.score : '-',
           notes: exam.notes || '-',
-          recordedAt: exam.recordedAt || '-',
-        });
+          recordedAt: formatThaiDate(exam.recordedAt),
+        };
       });
 
-      ws.getRow(1).font = { bold: true };
-      ws.eachRow(row => { row.alignment = { vertical: 'top', wrapText: true }; });
-
       const prefix = resolvedType === 'THESIS' ? 'ผลสอบปริญญานิพนธ์' : 'ผลสอบโครงงานพิเศษ1';
-      const filename = `${prefix}_${Date.now()}.xlsx`;
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-      await wb.xlsx.write(res);
-      res.end();
+      await new ExcelExportBuilder(prefix)
+        .addSheet(sheetName, columns, dataRows)
+        .sendResponse(res);
     } catch (error) {
       logger.error('exportExamResults error', { error: error.message });
-      if (res.headersSent) return;
-      return res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+      if (!res.headersSent) {
+        return res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+      }
     }
   },
 

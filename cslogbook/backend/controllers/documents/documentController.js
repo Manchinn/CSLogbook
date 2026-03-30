@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const documentService = require('../../services/documentService');
 const logger = require('../../utils/logger');
+const { ExcelExportBuilder, formatThaiDate } = require('../../utils/excelExportBuilder');
 // อัพโหลดเอกสาร
 const uploadDocument = async (req, res) => {
     try {
@@ -613,11 +614,7 @@ const exportDocuments = async (req, res) => {
         const result = await documentService.getDocuments(filters, { limit: 9999, offset: 0 }, null, req.user.role);
         const rows = Array.isArray(result?.documents) ? result.documents : [];
 
-        const ExcelJS = require('exceljs');
-        const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet('เอกสารฝึกงาน');
-
-        ws.columns = [
+        const columns = [
             { header: 'ลำดับ', key: 'order', width: 8 },
             { header: 'ประเภทเอกสาร', key: 'docType', width: 25 },
             { header: 'รหัสนักศึกษา', key: 'studentCode', width: 15 },
@@ -640,33 +637,28 @@ const exportDocuments = async (req, res) => {
             pending: 'รอดำเนินการ',
             approved: 'อนุมัติ',
             rejected: 'ปฏิเสธ',
+            revising: 'แก้ไข',
         };
 
-        rows.forEach((row, idx) => {
-            ws.addRow({
-                order: idx + 1,
-                docType: docTypeLabel[row.type] || row.type || '-',
-                studentCode: row.student_code || '-',
-                studentName: row.student_name || '-',
-                company: row.companyName || '-',
-                status: statusLabel[row.status] || row.status || '-',
-                officialNumber: row.officialNumber || row.official_number || '-',
-                submittedAt: row.created_at || '-',
-            });
-        });
+        const dataRows = rows.map((row, idx) => ({
+            order: idx + 1,
+            docType: docTypeLabel[row.type] || row.type || '-',
+            studentCode: row.student_code || '-',
+            studentName: row.student_name || '-',
+            company: row.companyName || '-',
+            status: statusLabel[row.status] || row.status || '-',
+            officialNumber: row.officialNumber || row.official_number || '-',
+            submittedAt: formatThaiDate(row.created_at),
+        }));
 
-        ws.getRow(1).font = { bold: true };
-        ws.eachRow(r => { r.alignment = { vertical: 'top', wrapText: true }; });
-
-        const filename = `เอกสารฝึกงาน_${Date.now()}.xlsx`;
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-        await wb.xlsx.write(res);
-        res.end();
+        await new ExcelExportBuilder('เอกสารฝึกงาน')
+            .addSheet('เอกสารฝึกงาน', columns, dataRows)
+            .sendResponse(res);
     } catch (error) {
         logger.error('exportDocuments error', { error: error.message });
-        if (res.headersSent) return;
-        res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+        if (!res.headersSent) {
+            res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+        }
     }
 };
 
@@ -684,11 +676,7 @@ const exportCertificateRequests = async (req, res) => {
         const result = await documentService.getCertificateRequests(filters, { page: 1, limit: 9999 });
         const rows = Array.isArray(result?.data) ? result.data : [];
 
-        const ExcelJS = require('exceljs');
-        const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet('คำขอหนังสือรับรอง');
-
-        ws.columns = [
+        const columns = [
             { header: 'ลำดับ', key: 'order', width: 8 },
             { header: 'รหัสนักศึกษา', key: 'studentCode', width: 15 },
             { header: 'ชื่อ-นามสกุล', key: 'fullName', width: 30 },
@@ -705,31 +693,25 @@ const exportCertificateRequests = async (req, res) => {
             rejected: 'ปฏิเสธ',
         };
 
-        rows.forEach((row, idx) => {
-            ws.addRow({
-                order: idx + 1,
-                studentCode: row.student?.studentCode || '-',
-                fullName: row.student?.fullName || '-',
-                company: row.internship?.companyName || '-',
-                totalHours: row.totalHours ?? '-',
-                score: row.totalScore ?? row.score ?? '-',
-                status: statusLabel[row.status] || row.status || '-',
-                requestedAt: row.requestDate || row.requestedAt || '-',
-            });
-        });
+        const dataRows = rows.map((row, idx) => ({
+            order: idx + 1,
+            studentCode: row.student?.studentCode || '-',
+            fullName: row.student?.fullName || '-',
+            company: row.internship?.companyName || '-',
+            totalHours: row.totalHours ?? '-',
+            score: row.totalScore ?? row.score ?? '-',
+            status: statusLabel[row.status] || row.status || '-',
+            requestedAt: formatThaiDate(row.requestDate || row.requestedAt),
+        }));
 
-        ws.getRow(1).font = { bold: true };
-        ws.eachRow(r => { r.alignment = { vertical: 'top', wrapText: true }; });
-
-        const filename = `คำขอหนังสือรับรอง_${Date.now()}.xlsx`;
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-        await wb.xlsx.write(res);
-        res.end();
+        await new ExcelExportBuilder('คำขอหนังสือรับรอง')
+            .addSheet('คำขอหนังสือรับรอง', columns, dataRows)
+            .sendResponse(res);
     } catch (error) {
         logger.error('exportCertificateRequests error', { error: error.message });
-        if (res.headersSent) return;
-        res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+        if (!res.headersSent) {
+            res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+        }
     }
 };
 

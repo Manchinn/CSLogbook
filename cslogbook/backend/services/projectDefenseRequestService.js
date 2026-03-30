@@ -16,7 +16,7 @@ const projectDocumentService = require('./projectDocumentService');
 const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
-const ExcelJS = require('exceljs');
+const { ExcelExportBuilder } = require('../utils/excelExportBuilder');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const { checkDefenseRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
@@ -1263,18 +1263,16 @@ class ProjectDefenseRequestService {
     // ใช้ status จาก user filter — ถ้าไม่ส่งมาจะใช้ default ของ getStaffVerificationQueue
     const exportFilters = { ...filters, withMetrics: false };
     const records = await this.getStaffVerificationQueue(exportFilters);
-    const workbook = new ExcelJS.Workbook();
     const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ 1';
-    const worksheet = workbook.addWorksheet(worksheetName);
 
-    worksheet.columns = [
+    const columns = [
       { header: 'ลำดับ', key: 'index', width: 10 },
       { header: 'ชื่อโครงงานพิเศษ', key: 'titleTh', width: 50 },
       { header: 'สมาชิก', key: 'members', width: 45 },
       { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 30 }
     ];
 
-    records.forEach((record, index) => {
+    const dataRows = records.map((record, index) => {
       const project = record.project || {};
       const members = (project.members || [])
         .map((member) => {
@@ -1284,32 +1282,22 @@ class ProjectDefenseRequestService {
         })
         .join('\n');
       const advisorName = project.advisor?.name || '-';
-      
-      worksheet.addRow({
+      return {
         index: index + 1,
         titleTh: project.projectNameTh || '-',
         members: members || '-',
         advisor: advisorName
-      });
+      };
     });
 
-    worksheet.eachRow((row, rowNumber) => {
-      row.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-      if (rowNumber === 1) {
-        row.font = { bold: true };
-        row.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' }
-        };
-      }
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
     const filenamePrefix = DEFENSE_EXPORT_PREFIX[defenseType] || DEFENSE_EXPORT_PREFIX[DEFENSE_TYPE_PROJECT1];
-    const filename = `${filenamePrefix}_${Date.now()}.xlsx`;
+    const builder = new ExcelExportBuilder(filenamePrefix)
+      .setHeaderStyle({ bold: true, fill: 'FFE0E0E0' })
+      .addSheet(worksheetName, columns, dataRows);
+
+    const buffer = await builder.toBuffer();
     logger.info('exportStaffVerificationList success', { rowCount: records.length, defenseType });
-    return { buffer, filename };
+    return { buffer, filename: builder.filename };
   }
 
   async safeRollback(transaction) {

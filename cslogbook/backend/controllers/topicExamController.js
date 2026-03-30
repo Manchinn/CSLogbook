@@ -3,6 +3,7 @@
 const topicExamService = require('../services/topicExamService');
 const logger = require('../utils/logger');
 const { stringify } = require('node:querystring');
+const { ExcelExportBuilder } = require('../utils/excelExportBuilder');
 
 // helper: flatten project -> member rows (หนึ่งสมาชิกต่อหนึ่งแถว)
 // คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
@@ -61,30 +62,17 @@ exports.exportOverview = async (req,res,next)=>{
     // สร้างลำดับใหม่หลัง sort
     const rows = rawRows.map((r, idx) => ({ order: idx + 1, ...r }));
     
-    const filenameBase = `รายชื่อหัวข้อโครงงานพิเศษ_${Date.now()}`;
-    const ExcelJS = require('exceljs');
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('รายชื่อหัวข้อโครงงานพิเศษ');
-    
-    // คอลัมน์ตามที่ต้องการ: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
-    ws.columns = [
+    const columns = [
       { header: 'ลำดับ', key: 'order', width: 8 },
       { header: 'หัวข้อโครงงาน', key: 'titleTh', width: 50 },
       { header: 'รหัสนักศึกษา', key: 'studentCode', width: 18 },
       { header: 'ชื่อ-นามสกุล', key: 'studentName', width: 30 },
       { header: 'หมายเหตุ', key: 'remark', width: 40 }
     ];
-    
-    rows.forEach(r=> ws.addRow(r));
-    
-    // จัดรูปแบบ header
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-    
-    res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filenameBase)}.xlsx"`);
-    await wb.xlsx.write(res);
-    res.end();
+
+    await new ExcelExportBuilder('รายชื่อหัวข้อโครงงานพิเศษ')
+      .addSheet('รายชื่อหัวข้อโครงงานพิเศษ', columns, rows)
+      .sendResponse(res);
   } catch (err) {
     logger.error(`[TopicExam] export error: ${err.message}`);
     next(err);
