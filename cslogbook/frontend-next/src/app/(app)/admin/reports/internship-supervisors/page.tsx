@@ -7,7 +7,7 @@ import {
   type InternshipSupervisorReportData,
   type InternshipSupervisorItem,
 } from "@/lib/services/reportService";
-import { downloadCSV } from "@/lib/utils/csvExport";
+import { exportSupervisorReport } from "@/lib/services/reportService";
 import { StatSkeleton } from "@/components/common/Skeleton";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
@@ -73,23 +73,6 @@ export default function InternshipSupervisorsPage() {
     : 0;
   const uniqueCompanies = new Set(filtered.map(s => s.companyName)).size;
 
-  const handleExportCsv = () => {
-    downloadCSV(
-      filtered.map(s => ({ ...s })),
-      [
-        { key: "companyName", header: "บริษัท" },
-        { key: "supervisorName", header: "พี่เลี้ยง" },
-        { key: "supervisorEmail", header: "อีเมลพี่เลี้ยง" },
-        { key: "studentCount", header: "จำนวน นศ." },
-        { key: "totalLogs", header: "Logbook ทั้งหมด" },
-        { key: "supervisorApprovalRate", header: "พี่เลี้ยงอนุมัติ (%)" },
-        { key: "evaluationCompletionRate", header: "ประเมินครบ (%)" },
-        { key: "evaluatedStudents", header: "ประเมินแล้ว (คน)" },
-      ],
-      `internship-supervisors-${year ?? "all"}`
-    );
-  };
-
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -102,8 +85,8 @@ export default function InternshipSupervisorsPage() {
           <button type="button" className={btn.button} onClick={() => loadData(year, semester)} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
-          <button type="button" className={btn.button} disabled={filtered.length === 0} onClick={handleExportCsv}>
-            ส่งออก CSV
+          <button type="button" className={btn.button} disabled={filtered.length === 0} onClick={() => exportSupervisorReport({ year: year ? String(year) : undefined })}>
+            ส่งออก Excel
           </button>
         </div>
       </div>

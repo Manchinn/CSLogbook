@@ -34,7 +34,7 @@ import {
 } from "@/lib/services/importantDeadlineService";
 import { useAcademicYears } from "@/hooks/useAcademicYears";
 import { DeadlineTimeline } from "@/components/admin/DeadlineTimeline";
-import { downloadCSV } from "@/lib/utils/csvExport";
+import { exportAcademicDeadlines } from "@/lib/services/reportService";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
 
@@ -634,25 +634,6 @@ export default function AcademicSettingsPage() {
     } catch {
       setDeadlineStats(null);
     }
-  };
-
-  const handleExportCSV = () => {
-    const yearLabel = deadlineYearFilter || "ทุกปี";
-    const semLabel = deadlineSemesterFilter || "ทุกเทอม";
-    downloadCSV(
-      deadlines as unknown as Record<string, unknown>[],
-      [
-        { key: "name" as never, header: "ชื่อกำหนดการ" },
-        { key: "relatedTo" as never, header: "หมวด", format: (v: unknown) => relatedToLabel(v as string) },
-        { key: "academicYear" as never, header: "ปีการศึกษา", format: (v: unknown) => String(v ?? "") },
-        { key: "semester" as never, header: "ภาคเรียน", format: (v: unknown) => String(v ?? "") },
-        { key: "deadlineType" as never, header: "ประเภท", format: (v: unknown) => v === "SUBMISSION" ? "ส่งเอกสาร" : v === "ANNOUNCEMENT" ? "ประกาศ" : v === "MILESTONE" ? "เหตุการณ์สำคัญ" : String(v ?? "") },
-        { key: "deadlineDate" as never, header: "วันครบกำหนด" },
-        { key: "deadlineTime" as never, header: "เวลา", format: (v: unknown) => v ? String(v) : "" },
-        { key: "isCritical" as never, header: "สำคัญ", format: (v: unknown) => v ? "ใช่" : "ไม่" },
-      ],
-      `กำหนดการสำคัญ-${yearLabel}-${semLabel}`
-    );
   };
 
   const currentScheduleLabel = useMemo(() => {
@@ -1289,9 +1270,12 @@ export default function AcademicSettingsPage() {
                     onClick={() => { setDeadlineYearFilter(""); setDeadlineSemesterFilter(""); loadDeadlines(); }}>
                     ล้าง filter
                   </button>
-                  <button type="button" className={btn.button} onClick={handleExportCSV}
+                  <button type="button" className={btn.button} onClick={() => exportAcademicDeadlines({
+                      academicYear: deadlineYearFilter || undefined,
+                      semester: deadlineSemesterFilter || undefined,
+                    })}
                     disabled={deadlines.length === 0}>
-                    ส่งออก CSV
+                    ส่งออก Excel
                   </button>
                 </div>
               </label>

@@ -7,7 +7,7 @@ import {
   type DocumentPipelineData,
   type DocumentPipelineItem,
 } from "@/lib/services/reportService";
-import { downloadCSV } from "@/lib/utils/csvExport";
+import { exportDocumentPipeline } from "@/lib/services/reportService";
 import { StatSkeleton } from "@/components/common/Skeleton";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
@@ -127,31 +127,6 @@ export default function DocumentPipelinePage() {
     return Array.from(set);
   }, [pipeline]);
 
-  const handleExportCsv = () => {
-    const rows: { documentType: string; documentName: string; status: string; statusLabel: string; count: number }[] = [];
-    pipeline.forEach((doc) => {
-      Object.entries(doc.statuses).forEach(([status, count]) => {
-        rows.push({
-          documentType: doc.documentType === "INTERNSHIP" ? "ฝึกงาน" : "โครงงาน",
-          documentName: localizeDocName(doc.documentName),
-          status,
-          statusLabel: STATUS_LABELS[status] || status,
-          count,
-        });
-      });
-    });
-    downloadCSV(
-      rows,
-      [
-        { key: "documentType", header: "ประเภท" },
-        { key: "documentName", header: "ชื่อเอกสาร" },
-        { key: "statusLabel", header: "สถานะ" },
-        { key: "count", header: "จำนวน" },
-      ],
-      `document-pipeline-${year ?? "all"}`
-    );
-  };
-
   const summaryCards = summary
     ? [
         { label: "ทั้งหมด", value: summary.total, color: "#475569" },
@@ -175,8 +150,8 @@ export default function DocumentPipelinePage() {
           <button type="button" className={btn.button} onClick={() => loadData(year, semester, docType)} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
-          <button type="button" className={btn.button} disabled={pipeline.length === 0} onClick={handleExportCsv}>
-            ส่งออก CSV
+          <button type="button" className={btn.button} disabled={pipeline.length === 0} onClick={() => exportDocumentPipeline({ year: year ? String(year) : undefined })}>
+            ส่งออก Excel
           </button>
         </div>
       </div>

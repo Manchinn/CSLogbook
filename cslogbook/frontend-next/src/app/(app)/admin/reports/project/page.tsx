@@ -13,7 +13,7 @@ import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import styles from "../internship/page.module.css";
 import btn from "@/styles/shared/buttons.module.css";
 import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
-import { downloadCSV } from "@/lib/utils/csvExport";
+import { exportProjectReport } from "@/lib/services/reportService";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   draft: "แบบร่าง",
@@ -160,20 +160,9 @@ export default function AdminProjectReportPage() {
               type="button"
               className={btn.button}
               disabled={projects.length === 0}
-              onClick={() =>
-                downloadCSV(
-                  projects,
-                  [
-                    { key: "projectTitle", header: "ชื่อโครงงาน" },
-                    { key: "status", header: "สถานะ", format: (v) => PROJECT_STATUS_LABELS[String(v ?? "")] ?? String(v ?? "") },
-                    { key: "members", header: "นักศึกษา", format: (v) => ((v as ProjectListItem["members"]) ?? []).map((m) => `${m.studentCode} ${m.name}`).join(", ") },
-                    { key: "advisorName", header: "ที่ปรึกษา" },
-                  ],
-                  `project-report-${year}`
-                )
-              }
+              onClick={() => exportProjectReport({ year: String(year) })}
             >
-              ส่งออก CSV
+              ส่งออก Excel
             </button>
           </div>
         </header>

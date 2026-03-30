@@ -14,7 +14,7 @@ import { StatSkeleton, TableSkeleton } from "@/components/common/Skeleton";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "./page.module.css";
 import { currentBuddhistYear } from "@/lib/utils/thaiDateUtils";
-import { downloadCSV } from "@/lib/utils/csvExport";
+import { exportEnrolledStudents } from "@/lib/services/reportService";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "ยังไม่เริ่ม",
@@ -187,35 +187,9 @@ export default function AdminInternshipReportPage() {
               type="button"
               className={btn.button}
               disabled={filteredStudents.length === 0}
-              onClick={() =>
-                downloadCSV(
-                  filteredStudents,
-                  [
-                    { key: "studentCode", header: "รหัสนักศึกษา" },
-                    { key: "fullName", header: "ชื่อ-นามสกุล" },
-                    { key: "studentYear", header: "ชั้นปี" },
-                    { key: "internshipStatus", header: "สถานะ", format: (v) => STATUS_LABELS[String(v ?? "")] ?? String(v ?? "") },
-                    { key: "companyName", header: "บริษัท" },
-                    { key: "internshipPosition", header: "ตำแหน่ง" },
-                    { key: "supervisorName", header: "พี่เลี้ยง" },
-                    { key: "supervisorEmail", header: "อีเมลพี่เลี้ยง" },
-                    { key: "startDate", header: "วันเริ่ม", format: (v) => formatDate(v as string) },
-                    { key: "endDate", header: "วันสิ้นสุด", format: (v) => formatDate(v as string) },
-                    { key: "logCount", header: "จำนวน Logbook" },
-                    { key: "totalHours", header: "ชั่วโมงรวม" },
-                    { key: "logSupervisorApproved", header: "Logbook พี่เลี้ยงอนุมัติ" },
-                    { key: "logAdvisorApproved", header: "Logbook อ.อนุมัติ" },
-                    { key: "evaluated", header: "ประเมินแล้ว", format: (v) => v ? "ใช่" : "ไม่" },
-                    { key: "overallScore", header: "คะแนนรวม" },
-                    { key: "passFail", header: "ผ่าน/ไม่ผ่าน" },
-                    { key: "reflectionSubmitted", header: "ส่งสรุปผล", format: (v) => v ? "ส่งแล้ว" : "ยังไม่ส่ง" },
-                    { key: "certificateStatus", header: "ใบรับรอง" },
-                  ],
-                  `internship-report-${year}`
-                )
-              }
+              onClick={() => exportEnrolledStudents({ year: String(year) })}
             >
-              ส่งออก CSV
+              ส่งออก Excel
             </button>
           </div>
         </header>
