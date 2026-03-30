@@ -58,6 +58,7 @@ router.get('/stats/system', adminAuth, adminController.getSystemStats);
 router.get('/activities', adminAuth, adminController.getRecentActivities);
 
 // === เพิ่ม Admin Document Routes ===
+router.get('/documents/export', adminAuth, documentController.exportDocuments);
 router.get('/documents', adminAuth, documentController.getDocuments);
 router.get('/documents/:id', adminAuth, documentController.getDocumentById);
 router.post('/documents/:id/approve', adminAuth, documentController.approveDocument);
@@ -68,6 +69,7 @@ router.get('/documents/:id/download', adminAuth, documentController.downloadDocu
 
 // ✅ เพิ่ม Certificate Management Routes ใหม่
 // === เพิ่ม Certificate Management Routes ===
+router.get('/certificate-requests/export', adminAuth, documentController.exportCertificateRequests);
 router.get('/certificate-requests', adminAuth, documentController.getCertificateRequests);
 router.get('/certificate-requests/:requestId/detail', adminAuth, documentController.getCertificateRequestDetail);
 router.post('/certificate-requests/:requestId/approve', adminAuth, documentController.approveCertificateRequest);

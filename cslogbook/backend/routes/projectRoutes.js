@@ -30,12 +30,14 @@ router.post('/', authorize('project', 'create'), checkProjectEligibility, valida
 router.get('/mine', authorize('project', 'viewMine'), checkProjectEligibility, controller.getMyProjects);
 
 // ผลสอบโครงงานพิเศษ - routes ที่ไม่มี :id (ต้องอยู่ก่อน)
+router.get('/exam-results/export', authorize('project', 'examRecord'), projectDefenseRequestController.exportExamResults);
 router.get('/exam-results/project1/pending', projectExamResultController.getProject1PendingResults);
 router.get('/exam-results/thesis/pending', projectExamResultController.getThesisPendingResults);
 router.get('/exam-results/statistics', projectExamResultController.getExamStatistics);
 
 // System test request (ก่อนยื่นสอบโครงงานพิเศษ)
 router.get('/system-test/advisor-queue', authorize('project', 'systemTestAdvisorQueue'), projectSystemTestController.advisorQueue);
+router.get('/system-test/staff-queue/export', authorize('project', 'systemTestStaffQueue'), projectSystemTestController.exportStaffQueue);
 router.get('/system-test/staff-queue', authorize('project', 'systemTestStaffQueue'), projectSystemTestController.staffQueue);
 
 router.get('/:id/system-test/request', projectSystemTestController.getLatestRequest);

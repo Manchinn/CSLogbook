@@ -1,6 +1,7 @@
 const projectDefenseRequestService = require('../services/projectDefenseRequestService');
 const projectDocumentService = require('../services/projectDocumentService');
 const projectWorkflowStateService = require('../services/projectWorkflowStateService');
+const projectExamResultService = require('../services/projectExamResultService');
 const logger = require('../utils/logger');
 
 const DEFENSE_TYPE_PROJECT1 = 'PROJECT1';
@@ -272,6 +273,98 @@ module.exports = {
     const message = 'ระบบนัดสอบโครงงานพิเศษ 1 ถูกย้ายไปจัดการผ่านปฏิทินภาควิชาแล้ว โปรดอัปเดตข้อมูลผ่านระบบปฏิทินโดยตรง';
     logger.info('scheduleProject1Defense deprecated access', { projectId: req.params.id, userId: req.user.userId });
     return res.status(410).json({ success: false, message });
+  },
+
+  async exportExamResults(req, res) {
+    try {
+      const { examType = 'PROJECT1', academicYear, semester, status, search } = req.query;
+      const resolvedType = ['PROJECT1', 'THESIS'].includes(String(examType).toUpperCase())
+        ? String(examType).toUpperCase()
+        : 'PROJECT1';
+
+      const result = resolvedType === 'THESIS'
+        ? await projectExamResultService.getThesisPendingResults({
+            academicYear: academicYear ? Number(academicYear) : undefined,
+            semester: semester ? Number(semester) : undefined,
+            status: status || 'all',
+            search: search || undefined,
+          })
+        : await projectExamResultService.getProject1PendingResults({
+            academicYear: academicYear ? Number(academicYear) : undefined,
+            semester: semester ? Number(semester) : undefined,
+            status: status || 'all',
+            search: search || undefined,
+          });
+
+      const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+
+      const ExcelJS = require('exceljs');
+      const wb = new ExcelJS.Workbook();
+      const sheetName = resolvedType === 'THESIS' ? 'ผลสอบปริญญานิพนธ์' : 'ผลสอบโครงงานพิเศษ 1';
+      const ws = wb.addWorksheet(sheetName);
+
+      ws.columns = [
+        { header: 'ลำดับ', key: 'order', width: 8 },
+        { header: 'รหัสโครงงาน', key: 'code', width: 15 },
+        { header: 'ชื่อโครงงาน (ไทย)', key: 'nameTh', width: 45 },
+        { header: 'ชื่อโครงงาน (อังกฤษ)', key: 'nameEn', width: 45 },
+        { header: 'สมาชิก', key: 'members', width: 40 },
+        { header: 'อาจารย์ที่ปรึกษา', key: 'advisor', width: 25 },
+        { header: 'ผลสอบ', key: 'result', width: 12 },
+        { header: 'คะแนน', key: 'score', width: 10 },
+        { header: 'หมายเหตุ', key: 'notes', width: 30 },
+        { header: 'วันที่บันทึก', key: 'recordedAt', width: 20 },
+      ];
+
+      rows.forEach((row, idx) => {
+        const memberList = (row.members || []).map(m => {
+          const sc = m.student?.studentCode || m.studentCode || '-';
+          const fn = m.student?.user
+            ? `${m.student.user.firstName || ''} ${m.student.user.lastName || ''}`.trim()
+            : m.name || '';
+          return `${sc} ${fn}`.trim();
+        }).join('\n');
+
+        const advisorUser = row.advisor?.user || {};
+        const advisorName = advisorUser.firstName
+          ? `${advisorUser.firstName} ${advisorUser.lastName || ''}`.trim()
+          : '-';
+
+        const exam = Array.isArray(row.examResults) && row.examResults.length > 0
+          ? row.examResults[0]
+          : {};
+
+        const resultLabel = exam.result === 'PASS' ? 'ผ่าน'
+          : exam.result === 'FAIL' ? 'ไม่ผ่าน'
+          : 'รอบันทึก';
+
+        ws.addRow({
+          order: idx + 1,
+          code: row.projectCode || '-',
+          nameTh: row.projectNameTh || '-',
+          nameEn: row.projectNameEn || '-',
+          members: memberList || '-',
+          advisor: advisorName,
+          result: resultLabel,
+          score: exam.score != null ? exam.score : '-',
+          notes: exam.notes || '-',
+          recordedAt: exam.recordedAt || '-',
+        });
+      });
+
+      ws.getRow(1).font = { bold: true };
+      ws.eachRow(row => { row.alignment = { vertical: 'top', wrapText: true }; });
+
+      const prefix = resolvedType === 'THESIS' ? 'ผลสอบปริญญานิพนธ์' : 'ผลสอบโครงงานพิเศษ1';
+      const filename = `${prefix}_${Date.now()}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      await wb.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      logger.error('exportExamResults error', { error: error.message });
+      return res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+    }
   },
 
   async exportStaffVerificationList(req, res) {

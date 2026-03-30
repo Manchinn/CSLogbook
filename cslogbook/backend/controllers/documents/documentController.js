@@ -599,26 +599,159 @@ const downloadInternshipLogbookSummaryPDF = async (req, res) => {
     }
 };
 
+// ส่งออก XLSX รายการเอกสารฝึกงาน (admin)
+const exportDocuments = async (req, res) => {
+    try {
+        const { type, status, search, academicYear, semester } = req.query;
+        const filters = {
+            type,
+            status,
+            search,
+            academicYear: academicYear ? parseInt(academicYear) : undefined,
+            semester: semester ? parseInt(semester) : undefined,
+        };
+        const result = await documentService.getDocuments(filters, { limit: 9999, offset: 0 }, null, req.user.role);
+        const rows = Array.isArray(result?.documents) ? result.documents : [];
+
+        const ExcelJS = require('exceljs');
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('เอกสารฝึกงาน');
+
+        ws.columns = [
+            { header: 'ลำดับ', key: 'order', width: 8 },
+            { header: 'ประเภทเอกสาร', key: 'docType', width: 25 },
+            { header: 'รหัสนักศึกษา', key: 'studentCode', width: 15 },
+            { header: 'ชื่อ-นามสกุล', key: 'studentName', width: 30 },
+            { header: 'บริษัท', key: 'company', width: 35 },
+            { header: 'สถานะ', key: 'status', width: 15 },
+            { header: 'เลขที่ อว.', key: 'officialNumber', width: 20 },
+            { header: 'วันที่ส่ง', key: 'submittedAt', width: 20 },
+        ];
+
+        const docTypeLabel = {
+            cs05: 'CS05',
+            acceptance: 'ตอบรับ',
+            delivery: 'ส่งตัว',
+            certificate: 'หนังสือรับรอง',
+            internship: 'ฝึกงาน',
+            project: 'โครงงาน',
+        };
+        const statusLabel = {
+            pending: 'รอดำเนินการ',
+            approved: 'อนุมัติ',
+            rejected: 'ปฏิเสธ',
+        };
+
+        rows.forEach((row, idx) => {
+            ws.addRow({
+                order: idx + 1,
+                docType: docTypeLabel[row.type] || row.type || '-',
+                studentCode: row.student_code || '-',
+                studentName: row.student_name || '-',
+                company: row.companyName || '-',
+                status: statusLabel[row.status] || row.status || '-',
+                officialNumber: row.officialNumber || row.official_number || '-',
+                submittedAt: row.created_at || '-',
+            });
+        });
+
+        ws.getRow(1).font = { bold: true };
+        ws.eachRow(r => { r.alignment = { vertical: 'top', wrapText: true }; });
+
+        const filename = `เอกสารฝึกงาน_${Date.now()}.xlsx`;
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+        await wb.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        logger.error('exportDocuments error', { error: error.message });
+        res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+    }
+};
+
+// ส่งออก XLSX คำขอหนังสือรับรอง (admin)
+const exportCertificateRequests = async (req, res) => {
+    try {
+        const { status, studentId, academicYear, semester } = req.query;
+        const filters = {
+            status,
+            studentId,
+            academicYear: academicYear ? parseInt(academicYear) : undefined,
+            semester: semester ? parseInt(semester) : undefined,
+        };
+        const result = await documentService.getCertificateRequests(filters, { page: 1, limit: 9999 });
+        const rows = Array.isArray(result?.data) ? result.data : [];
+
+        const ExcelJS = require('exceljs');
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('คำขอหนังสือรับรอง');
+
+        ws.columns = [
+            { header: 'ลำดับ', key: 'order', width: 8 },
+            { header: 'รหัสนักศึกษา', key: 'studentCode', width: 15 },
+            { header: 'ชื่อ-นามสกุล', key: 'fullName', width: 30 },
+            { header: 'บริษัท', key: 'company', width: 35 },
+            { header: 'ชั่วโมงฝึกงาน', key: 'totalHours', width: 15 },
+            { header: 'คะแนนรวม', key: 'score', width: 15 },
+            { header: 'สถานะ', key: 'status', width: 15 },
+            { header: 'วันที่ขอ', key: 'requestedAt', width: 20 },
+        ];
+
+        const statusLabel = {
+            pending: 'รอดำเนินการ',
+            approved: 'อนุมัติ',
+            rejected: 'ปฏิเสธ',
+        };
+
+        rows.forEach((row, idx) => {
+            ws.addRow({
+                order: idx + 1,
+                studentCode: row.student?.studentCode || '-',
+                fullName: row.student?.fullName || '-',
+                company: row.internship?.companyName || '-',
+                totalHours: row.totalHours ?? '-',
+                score: row.totalScore ?? row.score ?? '-',
+                status: statusLabel[row.status] || row.status || '-',
+                requestedAt: row.requestDate || row.requestedAt || '-',
+            });
+        });
+
+        ws.getRow(1).font = { bold: true };
+        ws.eachRow(r => { r.alignment = { vertical: 'top', wrapText: true }; });
+
+        const filename = `คำขอหนังสือรับรอง_${Date.now()}.xlsx`;
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+        await wb.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        logger.error('exportCertificateRequests error', { error: error.message });
+        res.status(error.statusCode || 400).json({ success: false, message: error.message || 'ไม่สามารถส่งออกได้' });
+    }
+};
+
 module.exports = {
     uploadDocument,
     getDocumentById,
     updateDocumentStatus,
     getDocuments,
+    exportDocuments,
+    exportCertificateRequests,
     approveDocument,
     rejectDocument,
     searchDocuments,
     getRecentDocuments,
-    viewDocument, // เพิ่มฟังก์ชัน viewDocument ที่นี่
-    downloadDocument, // เพิ่มฟังก์ชัน downloadDocument ที่นี่
+    viewDocument,
+    downloadDocument,
 
     // ✅ เพิ่มฟังก์ชันใหม่สำหรับ Certificate Management
     getCertificateRequests,
-        getCertificateRequestDetail,
+    getCertificateRequestDetail,
     approveCertificateRequest,
     rejectCertificateRequest,
     downloadCertificateForAdmin,
     notifyStudent,
-    getInternshipSummary, // ✅ ใหม่: สรุปการฝึกงานสำหรับ admin
+    getInternshipSummary,
     getInternshipLogbookSummary,
     previewInternshipLogbookSummaryPDF,
     downloadInternshipLogbookSummaryPDF,
