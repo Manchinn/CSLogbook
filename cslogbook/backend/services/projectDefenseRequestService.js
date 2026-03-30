@@ -1260,8 +1260,8 @@ class ProjectDefenseRequestService {
 
   async exportStaffVerificationList(filters = {}) {
     const { defenseType = DEFENSE_TYPE_PROJECT1 } = filters;
-    // ใช้สถานะเฉพาะ 'completed' สำหรับการ export เพื่อจัดตารางสอบ
-    const exportFilters = { ...filters, status: EXPORT_DEFAULT_STATUSES, withMetrics: false };
+    // ใช้ status จาก user filter — ถ้าไม่ส่งมาจะใช้ default ของ getStaffVerificationQueue
+    const exportFilters = { ...filters, withMetrics: false };
     const records = await this.getStaffVerificationQueue(exportFilters);
     const workbook = new ExcelJS.Workbook();
     const worksheetName = defenseType === DEFENSE_TYPE_THESIS ? 'รายชื่อสอบปริญญานิพนธ์' : 'รายชื่อสอบโครงงานพิเศษ 1';

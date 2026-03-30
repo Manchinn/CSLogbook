@@ -279,6 +279,7 @@ export default function AdminInternshipCertificatesPage() {
               onClick={() =>
                 void exportMutation.mutateAsync({
                   status: status || undefined,
+                  search: search.trim() || undefined,
                   academicYear: academicYear || undefined,
                   semester: semester || undefined,
                 })

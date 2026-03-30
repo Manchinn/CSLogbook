@@ -1247,12 +1247,18 @@ class DocumentService {
      */
     async getCertificateRequests(filters = {}, pagination = {}) {
         try {
-            const { status, studentId, academicYear, semester } = filters;
+            const { status, studentId, academicYear, semester, search } = filters;
             const { page = 1, limit = 10 } = pagination;
-            
+
             const whereClause = {};
             if (status) whereClause.status = status;
             if (studentId) whereClause.studentId = { [Op.like]: `%${studentId}%` };
+            // search: ค้นหาจาก studentCode หรือชื่อ (ผ่าน include where ด้านล่าง)
+            const searchCondition = search ? { [Op.or]: [
+                { '$student.studentCode$': { [Op.like]: `%${search}%` } },
+                { '$student.user.firstName$': { [Op.like]: `%${search}%` } },
+                { '$student.user.lastName$': { [Op.like]: `%${search}%` } },
+            ] } : null;
 
             const { InternshipCertificateRequest, InternshipLogbook } = require('../models');
 
@@ -1288,7 +1294,7 @@ class DocumentService {
             }
 
             const requests = await InternshipCertificateRequest.findAndCountAll({
-                where: whereClause,
+                where: searchCondition ? { ...whereClause, ...searchCondition } : whereClause,
                 include: includeArray,
                 order: [['requestDate', 'DESC']],
                 limit: parseInt(limit),

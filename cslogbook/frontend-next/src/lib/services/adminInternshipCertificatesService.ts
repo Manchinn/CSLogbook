@@ -21,6 +21,7 @@ export type AdminCertificateRequest = {
 
 export type AdminCertificateListFilters = {
   status?: string;
+  search?: string;
   academicYear?: string | number;
   semester?: string | number;
   page?: number;

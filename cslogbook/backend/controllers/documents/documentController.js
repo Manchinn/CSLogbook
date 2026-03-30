@@ -673,10 +673,11 @@ const exportDocuments = async (req, res) => {
 // ส่งออก XLSX คำขอหนังสือรับรอง (admin)
 const exportCertificateRequests = async (req, res) => {
     try {
-        const { status, studentId, academicYear, semester } = req.query;
+        const { status, studentId, academicYear, semester, search } = req.query;
         const filters = {
             status,
             studentId,
+            search: search || undefined,
             academicYear: academicYear ? parseInt(academicYear) : undefined,
             semester: semester ? parseInt(semester) : undefined,
         };
