@@ -148,9 +148,11 @@ async function getTopicOverview(query = {}) {
     order.push([defaultOrderField, "DESC"]);
   }
 
-  // Pagination params
-  const limit = query.limit ? parseInt(query.limit, 10) : undefined;
-  const offset = query.offset ? parseInt(query.offset, 10) : undefined;
+  // Pagination params — validate to prevent negative/NaN abuse
+  const rawLimit = query.limit ? parseInt(query.limit, 10) : undefined;
+  const rawOffset = query.offset ? parseInt(query.offset, 10) : undefined;
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 2000) : undefined;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : undefined;
 
   let projects;
   let total = 0;

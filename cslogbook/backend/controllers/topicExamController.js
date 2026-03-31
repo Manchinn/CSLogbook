@@ -9,32 +9,6 @@ const logger = require('../utils/logger');
 const { stringify } = require('node:querystring');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
-// helper: flatten project -> member rows (หนึ่งสมาชิกต่อหนึ่งแถว)
-// คอลัมน์: หัวข้อ, รหัสนักศึกษา, ชื่อ-นามสกุล, หมายเหตุ
-// กรองเฉพาะโครงงานที่พร้อม Export (readyForExport = true)
-function flattenProjects(projects){
-  const rows = [];
-  for (const p of projects) {
-    // ตรวจสอบว่าโครงงานพร้อม Export หรือไม่
-    if (!p.readiness?.readyForExport) {
-      continue; // ข้ามโครงงานที่ไม่พร้อม
-    }
-
-    if(!p.members || p.members.length === 0){
-      continue; // ข้ามโครงงานที่ไม่มีสมาชิก
-    }
-    
-    p.members.forEach(m => {
-      rows.push({
-        titleTh: p.titleTh || '',
-        studentCode: m.studentCode || '',
-        studentName: m.name || '',
-        remark: m.remark || ''
-      });
-    });
-  }
-  return rows;
-}
 
 exports.getOverview = async (req, res, next) => {
   try {
