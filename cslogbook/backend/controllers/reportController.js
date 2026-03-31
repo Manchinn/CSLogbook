@@ -3,6 +3,9 @@
 const reportService = require('../services/reportService');
 const projectManagementService = require('../services/projectManagementService');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
+const logger = require('../utils/logger');
+
+const EXPORT_LIMIT = parseInt(process.env.PROJECT_EXPORT_LIMIT || '2000', 10);
 
 exports.getOverview = async (req, res, next) => {
   try {
@@ -198,8 +201,11 @@ exports.exportProjectReport = async (req, res, next) => {
     const { projects } = await projectManagementService.getAllProjects({
       academicYear: year,
       semester,
-      limit: 2000,
+      limit: EXPORT_LIMIT,
     });
+    if (projects.length >= EXPORT_LIMIT) {
+      logger.warn(`[Report] exportProjectReport hit limit=${EXPORT_LIMIT} — data may be truncated`);
+    }
 
     const columns = [
       { header: 'ชื่อโครงงาน', key: 'projectTitle', width: 45 },

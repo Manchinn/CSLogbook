@@ -46,7 +46,7 @@ function computeReadiness(projectInstance, { enforceMemberMin } = {}) {
 /**
  * สร้าง where / filter เฉพาะจาก query
  */
-function buildFilters({ status, advisorId, search, readyOnly, academicYear, semester, projectId }) {
+function buildFilters({ status, advisorId, search, readyOnly, academicYear, semester, projectId, examResultFilter }) {
   const where = {};
   if (status && status !== "all") {
     where.status = status; // status ของ ProjectDocument (draft|advisor_assigned|in_progress|completed|archived)
@@ -63,12 +63,20 @@ function buildFilters({ status, advisorId, search, readyOnly, academicYear, seme
     }
   }
   if (search) {
-    const like = { [Op.like]: `%${search}%` };
+    // cap length + escape LIKE wildcards (%, _, \) to prevent pattern abuse
+    const safe = search.slice(0, 100).replace(/[\\%_]/g, '\\$&');
+    const like = { [Op.like]: `%${safe}%` };
     where[Op.or] = [
       { projectNameTh: like },
       { projectNameEn: like },
       { projectCode: like },
     ];
+  }
+  // examResultFilter: 'pending' → examResult IS NULL, 'with-results' → examResult IS NOT NULL
+  if (examResultFilter === 'pending') {
+    where.examResult = null;
+  } else if (examResultFilter === 'with-results') {
+    where.examResult = { [Op.ne]: null };
   }
   let yearFilter = null;
   if (academicYear !== undefined && academicYear !== null && academicYear !== "") {
@@ -133,6 +141,8 @@ async function getTopicOverview(query = {}) {
     // จะ sort ภายหลังจาก map เพราะ memberCount มาจาก association
   } else if (query.sortBy === "projectCode") {
     order.push(["projectCode", query.order === "asc" ? "ASC" : "DESC"]);
+  } else if (query.sortBy === "titleTh") {
+    order.push(["projectNameTh", query.order === "asc" ? "ASC" : "DESC"]);
   } else {
     // default: updatedAt desc
     order.push([defaultOrderField, "DESC"]);
@@ -410,4 +420,9 @@ async function getTopicOverview(query = {}) {
   };
 }
 
-module.exports = { getTopicOverview };
+const EXAM_RESULT_FILTER = {
+  PENDING: 'pending',
+  WITH_RESULTS: 'with-results',
+};
+
+module.exports = { getTopicOverview, EXAM_RESULT_FILTER };

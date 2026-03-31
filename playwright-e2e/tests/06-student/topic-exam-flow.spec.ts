@@ -120,4 +120,29 @@ test.describe.serial('Topic Exam Flow', () => {
 
     expect(hasTable || isEmpty).toBeTruthy();
   });
+
+  test('Officer เห็น Export รายชื่อสอบ และ Export ผลสอบ buttons', async ({ officerPage }) => {
+    test.skip(!canProceed, 'ข้ามเพราะ prerequisite ไม่ครบ');
+
+    await officerPage.goto('/admin/topic-exam/results');
+    await officerPage.waitForLoadState('networkidle');
+
+    // ตรวจว่ามี 2 export buttons แยกกัน
+    const exportListBtn = officerPage.locator('button:has-text("Export รายชื่อสอบ")');
+    const exportResultsBtn = officerPage.locator('button:has-text("Export ผลสอบ")');
+
+    await expect(exportListBtn).toBeVisible({ timeout: 5000 });
+    await expect(exportResultsBtn).toBeVisible({ timeout: 5000 });
+  });
+
+  test('Officer ไม่เห็น Preview modal button (removed)', async ({ officerPage }) => {
+    test.skip(!canProceed, 'ข้ามเพราะ prerequisite ไม่ครบ');
+
+    await officerPage.goto('/admin/topic-exam/results');
+    await officerPage.waitForLoadState('networkidle');
+
+    // preview modal ถูกลบออกแล้ว — ต้องไม่มี button นี้
+    const previewBtn = officerPage.locator('button:has-text("ดูตัวอย่างก่อนส่งออก")');
+    await expect(previewBtn).not.toBeVisible();
+  });
 });

@@ -1,6 +1,10 @@
 // topicExamController.js
 // Controller สำหรับ topic exam overview
 const topicExamService = require('../services/topicExamService');
+const { EXAM_RESULT_FILTER } = topicExamService;
+
+// sort config shared by both export endpoints
+const EXPORT_SORT = { sortBy: 'titleTh', order: 'asc' };
 const logger = require('../utils/logger');
 const { stringify } = require('node:querystring');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
@@ -52,12 +56,17 @@ exports.getOverview = async (req, res, next) => {
 // ใช้ก่อนสอบ เพื่อจัดห้องสอบ
 exports.exportExamList = async (req, res, next) => {
   try {
-    const { data } = await topicExamService.getTopicOverview(req.query);
+    logger.info(`[TopicExam] export-list request user=${req.user?.userId}`);
+    const { data } = await topicExamService.getTopicOverview({
+      ...req.query,
+      ...EXPORT_SORT,
+      examResultFilter: EXAM_RESULT_FILTER.PENDING,
+    });
 
+    // readyForExport is computed from multiple fields — cannot be pushed to DB level
     const pending = data.filter(
-      (p) => p.readiness?.readyForExport && !p.examResult && p.members?.length > 0
+      (p) => p.readiness?.readyForExport && p.members?.length > 0
     );
-    pending.sort((a, b) => (a.titleTh || '').localeCompare(b.titleTh || '', 'th-TH'));
 
     const rows = [];
     pending.forEach((p) => {
@@ -96,10 +105,14 @@ exports.exportExamList = async (req, res, next) => {
 // ใช้หลังสอบ เพื่อประกาศผล
 exports.exportExamResults = async (req, res, next) => {
   try {
-    const { data } = await topicExamService.getTopicOverview(req.query);
+    logger.info(`[TopicExam] export-results request user=${req.user?.userId}`);
+    const { data } = await topicExamService.getTopicOverview({
+      ...req.query,
+      ...EXPORT_SORT,
+      examResultFilter: EXAM_RESULT_FILTER.WITH_RESULTS,
+    });
 
-    const withResults = data.filter((p) => p.examResult && p.members?.length > 0);
-    withResults.sort((a, b) => (a.titleTh || '').localeCompare(b.titleTh || '', 'th-TH'));
+    const withResults = data.filter((p) => p.members?.length > 0);
 
     const RESULT_LABEL = { passed: 'ผ่าน', failed: 'ไม่ผ่าน' };
 
