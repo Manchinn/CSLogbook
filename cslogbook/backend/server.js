@@ -42,6 +42,7 @@ const validateEnv = require('./utils/validateEnv');
 
 // นำเข้า Agent Manager
 const agentManager = require('./agents');
+const logger = require('./utils/logger');
 
 // Validate server-specific environment variables
 const validateServerEnv = () => {
@@ -124,17 +125,17 @@ async function preflightCheck() {
         if (!desc[c]) missing.push(c);
       }
     } catch (e) {
-      console.warn('⚠️  Preflight: describeTable important_deadlines ล้มเหลว:', e.message);
+      logger.warn('Preflight: describeTable important_deadlines ล้มเหลว:', e.message);
       return; // ไม่ block แต่เตือน
     }
     if (missing.length) {
-      console.warn('⚠️  IMPORTANT: ตาราง important_deadlines ขาดคอลัมน์ใหม่ (อาจยังไม่รัน migration):', missing.join(', '));
-      console.warn('➡️  โปรดรัน: npx sequelize-cli db:migrate (ตรวจลำดับ: important_deadlines ก่อน documents)');
+      logger.warn('IMPORTANT: ตาราง important_deadlines ขาดคอลัมน์ใหม่ (อาจยังไม่รัน migration):', missing.join(', '));
+      logger.warn('โปรดรัน: npx sequelize-cli db:migrate (ตรวจลำดับ: important_deadlines ก่อน documents)');
     } else {
-      console.log('✅ Preflight important_deadlines schema OK');
+      logger.info('Preflight important_deadlines schema OK');
     }
   } catch (err) {
-    console.warn('⚠️  Preflight check general error:', err.message);
+    logger.warn('Preflight check general error:', err.message);
   }
 }
 
@@ -245,7 +246,7 @@ io.use((socket, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     socket.data.userId = payload.userId || payload.id;
   } catch (e) {
-    console.warn('Socket auth invalid token:', e.message);
+    logger.warn('Socket auth invalid token:', e.message);
   }
   next();
 });
@@ -254,9 +255,9 @@ io.on('connection', (socket) => {
   const userId = socket.data.userId;
   if (userId) {
     socket.join(`user_${userId}`);
-    console.log(`Socket connected & joined room user_${userId}`);
+    logger.info(`Socket connected & joined room user_${userId}`);
   } else {
-    console.log('Socket connected (guest)');
+    logger.info('Socket connected (guest)');
   }
 
   socket.on('joinUserRoom', (uid) => {
@@ -272,7 +273,7 @@ io.on('connection', (socket) => {
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`, req.body);
+  logger.info(`${req.method} ${req.url}`, req.body);
   next();
 });
 
@@ -295,7 +296,7 @@ const upload = multer({
 
 // Validate upload directory exists
 if (!fs.existsSync(ENV.UPLOAD_DIR)) {
-  console.log(`Creating upload directory: ${ENV.UPLOAD_DIR}`);
+  logger.info(`Creating upload directory: ${ENV.UPLOAD_DIR}`);
   fs.mkdirSync(ENV.UPLOAD_DIR, { recursive: true });
 }
 
@@ -332,17 +333,17 @@ app.get('/get-pdf-url', (req, res) => {
 
 // Start server (แยกจาก app เพื่อให้ supertest ใช้ app โดยตรง)
 server.listen(ENV.PORT, () => {
-  console.log(`Server running in ${ENV.NODE_ENV} mode on port ${ENV.PORT}`);
-  console.log(`Frontend URL: ${ENV.FRONTEND_URL}`);
-  console.log(`Upload directory: ${ENV.UPLOAD_DIR}`);
-  console.log(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
+  logger.info(`Server running in ${ENV.NODE_ENV} mode on port ${ENV.PORT}`);
+  logger.info(`Frontend URL: ${ENV.FRONTEND_URL}`);
+  logger.info(`Upload directory: ${ENV.UPLOAD_DIR}`);
+  logger.info(`Max file size: ${ENV.MAX_FILE_SIZE / (1024 * 1024)}MB`);
 
   // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
   const enableAllAgents = process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production';
   const enableAcademicSchedulerOnly = !enableAllAgents && (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || '').toLowerCase() === 'true';
 
   if (enableAllAgents) {
-    console.log('Starting CSLogbook Agents...');
+    logger.info('Starting CSLogbook Agents...');
     // เริ่ม Agent ทุกตัวพร้อมกัน
     agentManager.startAllAgents();
 
@@ -353,53 +354,53 @@ server.listen(ENV.PORT, () => {
     // agentManager.startAgent('logbookQualityMonitor');
     // agentManager.startAgent('eligibilityChecker');
 
-    console.log('CSLogbook Agents started successfully');
+    logger.info('CSLogbook Agents started successfully');
   } else if (enableAcademicSchedulerOnly) {
-    console.log('Starting Academic Semester Scheduler (auto-update only)...');
+    logger.info('Starting Academic Semester Scheduler (auto-update only)...');
     try {
       agentManager.startAgent('academicSemesterScheduler');
-      console.log('Academic Semester Scheduler started');
+      logger.info('Academic Semester Scheduler started');
     } catch (error) {
-      console.error('Failed to start Academic Semester Scheduler:', error.message);
+      logger.error('Failed to start Academic Semester Scheduler:', error.message);
     }
   }
 });
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
-  console.info('SIGTERM signal received.');
+  logger.info('SIGTERM signal received.');
 
   // หยุดการทำงานของ Agent ก่อนปิด server
   if (agentManager.isRunning) {
-    console.log('Stopping CSLogbook Agents...');
+    logger.info('Stopping CSLogbook Agents...');
     agentManager.stopAllAgents();
   }
 
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 // SIGINT handler (Ctrl+C)
 process.on('SIGINT', () => {
-  console.info('SIGINT signal received.');
+  logger.info('SIGINT signal received.');
 
   // หยุดการทำงานของ Agent ก่อนปิด server
   if (agentManager.isRunning) {
-    console.log('Stopping CSLogbook Agents...');
+    logger.info('Stopping CSLogbook Agents...');
     agentManager.stopAllAgents();
   }
 
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 // Unhandled rejection handling
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // ส่งออก server และ app (ถ้าจำเป็นสำหรับ integration test ขั้นสูง)

@@ -3,6 +3,7 @@ const { User, Student } = require('../models');
 const validateEnv = require('../utils/validateEnv');
 const { CONSTANTS } = require('../utils/studentUtils');
 const authorize = require('./authorize');
+const logger = require('../utils/logger');
 
 // Validate JWT environment variables
 validateEnv('auth');
@@ -53,7 +54,7 @@ const authMiddleware = {
       req.user = decoded;
       next();
     } catch (err) {
-      console.error('Authentication error:', err);
+      logger.error('Authentication error:', err);
       return res.status(401).json({
         status: 'error',
         message: err.name === 'TokenExpiredError' ? 
@@ -97,7 +98,7 @@ const authMiddleware = {
         });
       }
     } catch (error) {
-      console.error('Auth Middleware Error:', error);
+      logger.error('Auth Middleware Error:', error);
       return res.status(500).json({ message: 'Internal server error in auth check' });
     }
   },
@@ -156,7 +157,7 @@ const authMiddleware = {
 
         next();
       } catch (error) {
-        console.error('Eligibility check error:', error);
+        logger.error('Eligibility check error:', error);
         return res.status(500).json({
           status: 'error',
           message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',

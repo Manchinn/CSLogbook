@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt');
 const { validateCSVRowEnhanced } = require('../utils/csvParser');
 const { User, Student, UploadHistory, Curriculum, Academic } = require('../models');
 const { sequelize } = require('../config/database');
+const logger = require('../utils/logger');
 
 const SUPPORTED_EXTENSIONS = ['.csv', '.xlsx'];
 const HEADER_ALIAS_MAP = {
@@ -504,7 +505,7 @@ const processStudentCsvUpload = async ({ filePath, originalName, uploader, curri
         }
       } catch (eligibilityError) {
         // ไม่ให้ eligibility check error ทำให้ upload ล้ม
-        console.warn(`Eligibility check failed for ${result.studentID}:`, eligibilityError.message);
+        logger.warn(`Eligibility check failed for ${result.studentID}:`, eligibilityError.message);
       }
     }
 

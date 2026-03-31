@@ -105,7 +105,7 @@ exports.listForHead = async (req, res) => {
 
   return res.json({ success: true, data });
   } catch (error) {
-    console.error('CP05 listForHead error:', error);
+    logger.error('CP05 listForHead error:', error);
     return res.status(500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -155,7 +155,7 @@ exports.reviewByStaff = async (req, res) => {
 
     return res.json({ success: true, message: 'ตรวจสอบเอกสารแล้ว และรอหัวหน้าภาคอนุมัติ' });
   } catch (error) {
-    console.error('CP05 reviewByStaff error:', error);
+    logger.error('CP05 reviewByStaff error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -211,7 +211,7 @@ exports.approveByHead = async (req, res) => {
 
   return res.json({ success: true, message: 'อนุมัติ คพ.05 สำเร็จ' });
   } catch (error) {
-    console.error('CP05 approveByHead error:', error);
+    logger.error('CP05 approveByHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -275,7 +275,7 @@ exports.reject = async (req, res) => {
 
     return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ', notificationSent });
   } catch (error) {
-    console.error('CP05 reject error:', error);
+    logger.error('CP05 reject error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };

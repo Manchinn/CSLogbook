@@ -174,7 +174,7 @@ exports.updateContactInfo = async (req, res) => {
       data: updatedData
     });
   } catch (error) {
-    console.error('Error updating contact info:', error);
+    logger.error('Error updating contact info:', error);
     
     if (error.message === 'ไม่พบข้อมูลนักศึกษา') {
       return res.status(404).json({

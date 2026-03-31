@@ -138,7 +138,7 @@ exports.listForHead = async (req, res) => {
 
     return res.json({ success: true, data });
   } catch (error) {
-    console.error('Acceptance listForHead error:', error);
+    logger.error('Acceptance listForHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -183,7 +183,7 @@ exports.reviewByStaff = async (req, res) => {
 
     return res.json({ success: true, message: 'ส่งต่อหัวหน้าภาคเรียบร้อยแล้ว' });
   } catch (error) {
-    console.error('Acceptance reviewByStaff error:', error);
+    logger.error('Acceptance reviewByStaff error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -224,7 +224,7 @@ exports.approveByHead = async (req, res) => {
         await cs05ForSync.update({ status: 'acceptance_approved', updated_at: new Date() });
       }
     } catch (e) {
-      console.warn('Acceptance approve CS05 sync warning:', e.message);
+      logger.warn('Acceptance approve CS05 sync warning:', e.message);
     }
 
     // ✅ อัพเดทสถานะการฝึกงานของนักศึกษาตาม startDate
@@ -269,11 +269,11 @@ exports.approveByHead = async (req, res) => {
         // อัพเดทสถานะนักศึกษา
         if (student.internshipStatus !== newStatus) {
           await student.update({ internshipStatus: newStatus });
-          console.log(`Updated student ${student.studentId} internship status to ${newStatus} (Acceptance Letter approved)`);
+          logger.info(`Updated student ${student.studentId} internship status to ${newStatus} (Acceptance Letter approved)`);
         }
       }
     } catch (statusError) {
-      console.warn('Error updating student internship status after acceptance approval:', statusError.message);
+      logger.warn('Error updating student internship status after acceptance approval:', statusError.message);
       // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติ
     }
 
@@ -297,7 +297,7 @@ exports.approveByHead = async (req, res) => {
 
     return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });
   } catch (error) {
-    console.error('Acceptance approveByHead error:', error);
+    logger.error('Acceptance approveByHead error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };
@@ -348,7 +348,7 @@ exports.reject = async (req, res) => {
     }
     return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ', notificationSent });
   } catch (error) {
-    console.error('Acceptance reject error:', error);
+    logger.error('Acceptance reject error:', error);
     return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
   }
 };

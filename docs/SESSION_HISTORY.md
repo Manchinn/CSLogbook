@@ -68,6 +68,11 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 60 | 03-28 | Production data import: seed scripts สำหรับโครงงาน 2568/2 (41 projects) + ฝึกงาน 2567/2568 (90 records) — ติดตั้ง Claude Code บน VPS, deploy via CI/CD, docker cp Excel files, รัน seed ผ่าน docker exec, เพิ่มสมาชิกขาด 3 คน, แก้ mysql utf8mb4 charset bug |
 | 61 | 03-30 | Admin document UX improvements (8 pages): inline expand→drawer (ผลสอบ), bulk actions (คพ.02/03+system test+certificates), default status alignment (6 pages), XLSX export ทุกหน้า (4 endpoints ใหม่), Thai label normalization, code review fixes (permission+headersSent+requestId+busyState), export filter fixes (defense hardcode removed, certificates search) — 11 commits, ~30 files |
 | 62 | 03-30 | Export Consolidation: ลบ CSV export ทั้งหมด เหลือแค่ Excel — สร้าง ExcelExportBuilder (backend) + downloadExcelFile (frontend) shared utilities, refactor 6 exports เดิม, เพิ่ม 5 endpoints ใหม่ (report pages), Thai date formatting (พ.ศ.), ลบ projectCode จาก 2 exports, ลบ csvExport utils + xlsx dependency — 8 commits, ~25 files |
+| 63 | 03-30 | Export Bug Review: แก้ 8 bugs จาก session 62 (Object.assign ExcelJS crash, wrong service, records.map on wrapper, missing semester filters, destructure data array, formatThaiDate import) — 3 commits |
+| 64 | 03-31 | Topic Exam Export Split: แยก export เป็น 2 ปุ่ม (Export รายชื่อสอบ + Export ผลสอบ), fix formatThaiDate import — 3 commits |
+| 65 | 03-31 | PR Review Fixes: DB-level filters, search sanitization, export tests — commit ccfd0a5b |
+| 66 | 03-31 | Dead code + validation: ลบ flattenProjects helper, เพิ่ม pagination validation — commit 63b58b7b |
+| 67 | 03-31 | Codebase Audit: ลบ dead code 5 items (workflowStepService ทั้งไฟล์, legacyNavigation ทั้งไฟล์, calculateWorkHours, checkProjectMember, FullTableSkeleton), แปลง console.log→logger ~85 จุดใน 15 ไฟล์, แก้ any→proper types 4 จุดใน teacherService + extract mapRawDefenseRequest helper — 22 files, -109 lines net |
 
 ### Pending
 

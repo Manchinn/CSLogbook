@@ -165,6 +165,115 @@ export type MeetingApprovalsResponse = {
   meta?: MeetingApprovalsMeta;
 };
 
+/** Raw shape returned by the meeting-approvals backend endpoint */
+type RawMeetingLogItem = {
+  logId: number;
+  meetingId?: number;
+  meeting?: { meetingId: number; projectId?: number; phase?: string; meetingDate?: string };
+  project?: { projectId: number; projectCode?: string; projectNameTh?: string; projectNameEn?: string };
+  students?: { studentCode?: string; fullName?: string }[];
+  discussionTopic?: string;
+  currentProgress?: string;
+  problemsIssues?: string;
+  nextActionItems?: string;
+  createdAt?: string;
+  approvalStatus?: string;
+  approvalNote?: string;
+  advisorComment?: string;
+};
+
+/** Raw shape returned by the kp02/system-test advisor-queue backend endpoints */
+type ApprovalStatus = "pending" | "approved" | "rejected";
+
+type RawDefenseRequestItem = {
+  requestId?: number;
+  id?: number;
+  projectId?: number;
+  project?: {
+    projectId: number;
+    projectCode?: string;
+    projectNameTh?: string;
+    projectNameEn?: string;
+    academicYear?: number;
+    semester?: number;
+    members?: ProjectMember[];
+  };
+  requestDate?: string;
+  status?: string;
+  advisorStatus?: ApprovalStatus;
+  coAdvisorStatus?: ApprovalStatus;
+  submittedAt?: string;
+  submittedLate?: boolean;
+  meetingMetrics?: {
+    totalMeetings?: number;
+    totalApprovedLogs?: number;
+    requiredApprovedLogs?: number;
+    lastApprovedLogAt?: string;
+    perStudent?: { studentId: number; approvedLogs: number; attendedMeetings: number }[];
+  };
+  advisorApprovals?: Record<string, unknown>[];
+  advisors?: Record<string, unknown>[];
+  myApproval?: { status: ApprovalStatus; note?: string };
+  staffVerification?: StaffVerification;
+  defenseSchedule?: DefenseSchedule;
+};
+
+/** Raw shape returned by the system-test advisor-queue backend endpoint */
+type RawSystemTestItem = {
+  requestId?: number | string;
+  id?: number | string;
+  projectId?: number;
+  projectSnapshot?: {
+    projectId: number;
+    projectCode?: string;
+    projectNameTh?: string;
+    projectNameEn?: string;
+    academicYear?: number;
+    semester?: number;
+  };
+  submittedBy?: { studentCode: string; name: string };
+  requestDate?: string;
+  submittedAt?: string;
+  testStartDate?: string;
+  testDueDate?: string;
+  status?: string;
+  advisorStatus?: ApprovalStatus;
+  coAdvisorStatus?: ApprovalStatus;
+  studentNote?: string;
+  pdfFile?: { filename: string; url: string };
+  advisors?: AdvisorApproval[];
+  timeline?: SystemTestTimeline[];
+};
+
+/** Map raw backend defense request to frontend DefenseRequest shape */
+function mapRawDefenseRequest(item: RawDefenseRequestItem): DefenseRequest {
+  return {
+    ...item,
+    id: item.requestId ?? item.id ?? 0,
+    projectId: item.projectId ?? 0,
+    projectTitle: item.project?.projectNameTh || item.project?.projectNameEn || "",
+    requestDate: item.requestDate ?? "",
+    status: (item.status ?? "pending") as DefenseRequest["status"],
+    meetingMetrics: item.meetingMetrics
+      ? {
+          totalMeetings: item.meetingMetrics.totalMeetings ?? 0,
+          approvedLogs: item.meetingMetrics.totalApprovedLogs ?? 0,
+          minimumRequired: item.meetingMetrics.requiredApprovedLogs ?? 0,
+          lastApprovalDate: item.meetingMetrics.lastApprovedLogAt ?? undefined,
+          perStudent: item.meetingMetrics.perStudent,
+        }
+      : undefined,
+    advisors: (item.advisorApprovals || item.advisors || []).map((a: Record<string, unknown>) => ({
+      teacherId: a.teacherId as number,
+      teacherName: ((a.teacher as Record<string, unknown>)?.name || a.teacherName || "") as string,
+      role: (a.teacherRole || a.role || "advisor") as AdvisorApproval["role"],
+      status: (a.status || "pending") as AdvisorApproval["status"],
+      note: (a.note as string) || undefined,
+      approvedAt: (a.approvedAt as string) || undefined,
+    })),
+  };
+}
+
 /**
  * ดึงรายการบันทึกการพบที่รออนุมัติ
  */
@@ -181,8 +290,7 @@ export async function getTeacherMeetingApprovals(
   const queryString = params.toString();
   const url = queryString ? `/teachers/meeting-approvals?${queryString}` : "/teachers/meeting-approvals";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary; meta?: any }>(url, {
+  const data = await apiFetchData<{ items: RawMeetingLogItem[]; summary?: QueueSummary; meta?: MeetingApprovalsMeta }>(url, {
     method: "GET",
     token,
   });
@@ -193,8 +301,8 @@ export async function getTeacherMeetingApprovals(
     const firstStudent = students[0];
     return {
       id: item.logId,
-      meetingId: item.meeting?.meetingId ?? item.meetingId,
-      projectId: item.project?.projectId ?? item.meeting?.projectId,
+      meetingId: item.meeting?.meetingId ?? item.meetingId ?? 0,
+      projectId: item.project?.projectId ?? item.meeting?.projectId ?? 0,
       projectCode: item.project?.projectCode,
       studentCode: firstStudent?.studentCode ?? "",
       studentName: firstStudent?.fullName ?? "",
@@ -203,10 +311,10 @@ export async function getTeacherMeetingApprovals(
       currentProgress: item.currentProgress ?? "",
       problemsIssues: item.problemsIssues ?? "",
       nextActionItems: item.nextActionItems ?? "",
-      phase: item.meeting?.phase ?? "phase1",
+      phase: (item.meeting?.phase ?? "phase1") as MeetingLogApproval["phase"],
       meetingDate: item.meeting?.meetingDate ?? "",
       submittedAt: item.createdAt,
-      status: item.approvalStatus ?? "pending",
+      status: (item.approvalStatus ?? "pending") as MeetingLogApproval["status"],
       advisorNotes: item.approvalNote ?? item.advisorComment,
     };
   });
@@ -332,37 +440,13 @@ export async function getAdvisorKP02Queue(token: string, filters?: AdvisorQueueF
   const query = params.toString();
   const url = query ? `/projects/kp02/advisor-queue?${query}` : "/projects/kp02/advisor-queue";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
+  const data = await apiFetchData<{ items: RawDefenseRequestItem[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
   // Backend returns requestId — map to id for frontend
-  const items: DefenseRequest[] = (data?.items || []).map((item) => ({
-    ...item,
-    id: item.requestId ?? item.id,
-    projectTitle: item.project?.projectNameTh || item.project?.projectNameEn || "",
-    // map meetingMetrics field names จาก backend → frontend
-    meetingMetrics: item.meetingMetrics
-      ? {
-          totalMeetings: item.meetingMetrics.totalMeetings ?? 0,
-          approvedLogs: item.meetingMetrics.totalApprovedLogs ?? 0,
-          minimumRequired: item.meetingMetrics.requiredApprovedLogs ?? 0,
-          lastApprovalDate: item.meetingMetrics.lastApprovedLogAt ?? undefined,
-          perStudent: item.meetingMetrics.perStudent,
-        }
-      : undefined,
-    // map advisorApprovals → advisors (field name ต่างกัน)
-    advisors: (item.advisorApprovals || item.advisors || []).map((a: Record<string, unknown>) => ({
-      teacherId: a.teacherId,
-      teacherName: (a.teacher as Record<string, unknown>)?.name || a.teacherName || "",
-      role: a.teacherRole || a.role || "advisor",
-      status: a.status || "pending",
-      note: a.note || undefined,
-      approvedAt: a.approvedAt || undefined,
-    })),
-  }));
+  const items: DefenseRequest[] = (data?.items || []).map((item) => mapRawDefenseRequest(item));
 
   return {
     items,
@@ -395,34 +479,12 @@ export async function getAdvisorThesisQueue(token: string, filters?: AdvisorQueu
   if (filters?.status) params.append("status", filters.status);
   const url = `/projects/kp02/advisor-queue?${params.toString()}`;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
+  const data = await apiFetchData<{ items: RawDefenseRequestItem[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
-  const items: DefenseRequest[] = (data?.items || []).map((item) => ({
-    ...item,
-    id: item.requestId ?? item.id,
-    projectTitle: item.project?.projectNameTh || item.project?.projectNameEn || "",
-    meetingMetrics: item.meetingMetrics
-      ? {
-          totalMeetings: item.meetingMetrics.totalMeetings ?? 0,
-          approvedLogs: item.meetingMetrics.totalApprovedLogs ?? 0,
-          minimumRequired: item.meetingMetrics.requiredApprovedLogs ?? 0,
-          lastApprovalDate: item.meetingMetrics.lastApprovedLogAt ?? undefined,
-          perStudent: item.meetingMetrics.perStudent,
-        }
-      : undefined,
-    advisors: (item.advisorApprovals || item.advisors || []).map((a: Record<string, unknown>) => ({
-      teacherId: a.teacherId,
-      teacherName: (a.teacher as Record<string, unknown>)?.name || a.teacherName || "",
-      role: a.teacherRole || a.role || "advisor",
-      status: a.status || "pending",
-      note: a.note || undefined,
-      approvedAt: a.approvedAt || undefined,
-    })),
-  }));
+  const items: DefenseRequest[] = (data?.items || []).map((item) => mapRawDefenseRequest(item));
 
   return {
     items,
@@ -483,16 +545,18 @@ export async function getAdvisorSystemTestQueue(token: string, filters?: Advisor
   const query = params.toString();
   const url = query ? `/projects/system-test/advisor-queue?${query}` : "/projects/system-test/advisor-queue";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiFetchData<{ items: any[]; summary?: QueueSummary }>(url, {
+  const data = await apiFetchData<{ items: RawSystemTestItem[]; summary?: QueueSummary }>(url, {
     method: "GET",
     token,
   });
 
   const items: SystemTestRequest[] = (data?.items || []).map((item) => ({
     ...item,
-    id: item.requestId ?? item.id,
+    id: item.requestId ?? item.id ?? 0,
+    projectId: item.projectId ?? 0,
     projectTitle: item.projectSnapshot?.projectNameTh || item.projectSnapshot?.projectNameEn || "",
+    requestDate: item.requestDate ?? "",
+    status: (item.status ?? "pending") as SystemTestRequest["status"],
   }));
 
   return {

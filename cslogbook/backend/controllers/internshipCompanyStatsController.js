@@ -1,5 +1,6 @@
 // Controller สำหรับ Company Internship Stats
 const internshipCompanyStatsService = require('../services/internshipCompanyStatsService');
+const logger = require('../utils/logger');
 
 module.exports = {
   async getCompanyStats(req, res) {
@@ -16,7 +17,7 @@ module.exports = {
 
       return res.json({ success: true, ...data });
     } catch (error) {
-      console.error('Error getCompanyStats:', error);
+      logger.error('Error getCompanyStats:', error);
       return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงสถิติ' });
     }
   },
@@ -31,7 +32,7 @@ module.exports = {
       const data = await internshipCompanyStatsService.getCompanyDetail({ companyName });
       return res.json({ success: true, ...data });
     } catch (error) {
-      console.error('Error getCompanyDetail:', error);
+      logger.error('Error getCompanyDetail:', error);
       return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลบริษัท' });
     }
   }

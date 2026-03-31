@@ -63,26 +63,6 @@ export function TableSkeleton({ rows = 5, columns = 5 }: TableSkeletonProps) {
   );
 }
 
-// For standalone table (with thead)
-export function FullTableSkeleton({ rows = 5, columns = 5 }: TableSkeletonProps) {
-  return (
-    <table className={styles.table}>
-      <thead>
-        <tr>
-          {Array.from({ length: columns }).map((_, i) => (
-            <th key={i}>
-              <Skeleton width="80%" height="0.875rem" />
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        <TableSkeleton rows={rows} columns={columns} />
-      </tbody>
-    </table>
-  );
-}
-
 interface CardSkeletonProps {
   count?: number;
 }

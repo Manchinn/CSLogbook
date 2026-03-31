@@ -21,6 +21,7 @@ const emailService = require("../../utils/mailer.js"); // Using mailer.js direct
 const crypto = require("crypto");
 const internshipManagementService = require("../../services/internshipManagementService");
 const internshipLogbookService = require("../../services/internshipLogbookService");
+const logger = require("../../utils/logger");
 
 // ============= Controller สำหรับข้อมูลนักศึกษา =============
 /**
@@ -37,7 +38,7 @@ exports.getStudentInfo = async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error("Error fetching student info:", error);
+    logger.error("Error fetching student info:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา",
@@ -60,7 +61,7 @@ exports.getCurrentCS05 = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Get Current CS05 Error:", error);
+    logger.error("Get Current CS05 Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล CS05",
@@ -102,7 +103,7 @@ exports.submitCS05 = async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error("Submit CS05 Error:", error);
+    logger.error("Submit CS05 Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
@@ -135,7 +136,7 @@ exports.submitCS05WithTranscript = async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error("Error in submitCS05WithTranscript:", error);
+    logger.error("Error in submitCS05WithTranscript:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
@@ -160,7 +161,7 @@ exports.getCS05ById = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Get CS05 Error:", error);
+    logger.error("Get CS05 Error:", error);
     const statusCode = error.message.includes("ไม่พบ")
       ? 404
       : error.message.includes("ไม่มีสิทธิ์")
@@ -227,7 +228,7 @@ exports.submitCompanyInfo = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Submit Company Info Error:", error);
+    logger.error("Submit Company Info Error:", error);
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
       success: false,
@@ -252,7 +253,7 @@ exports.getCompanyInfo = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Get Company Info Error:", error);
+    logger.error("Get Company Info Error:", error);
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
       success: false,
@@ -336,7 +337,7 @@ exports.downloadInternshipSummary = async (req, res) => {
 
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error downloading internship summary:", error);
+    logger.error("Error downloading internship summary:", error);
 
     if (error.message.includes("ไม่พบข้อมูล")) {
       return res.status(404).json({
@@ -380,7 +381,7 @@ exports.previewInternshipSummary = async (req, res) => {
 
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error previewing internship summary:", error);
+    logger.error("Error previewing internship summary:", error);
     res.status(500).json({
       success: false,
       message: "ไม่สามารถแสดงตัวอย่างเอกสารได้",
@@ -402,7 +403,7 @@ exports.getCS05List = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Get CS05 List Error:", error);
+    logger.error("Get CS05 List Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
@@ -425,7 +426,7 @@ exports.getEvaluationStatus = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Get Evaluation Status Error:", error);
+    logger.error("Get Evaluation Status Error:", error);
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
       success: false,
@@ -464,7 +465,7 @@ exports.sendEvaluationForm = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error sending evaluation form:", error);
+    logger.error("Error sending evaluation form:", error);
 
     // จัดการ error เฉพาะสำหรับการปิดการแจ้งเตือน
     if (error.message.includes("ระบบปิดการแจ้งเตือนการประเมินผล")) {
@@ -520,7 +521,7 @@ exports.getSupervisorEvaluationFormDetails = async (req, res) => {
       message: "ดึงข้อมูลสำหรับแบบประเมินผลสำเร็จ",
     });
   } catch (error) {
-    console.error("Error fetching supervisor evaluation form details:", error);
+    logger.error("Error fetching supervisor evaluation form details:", error);
     const statusCode =
       error.message.includes("ไม่ถูกต้อง") || error.message.includes("หมดอายุ")
         ? 404
@@ -550,7 +551,7 @@ exports.submitSupervisorEvaluation = async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error("Submit Supervisor Evaluation Error:", error);
+    logger.error("Submit Supervisor Evaluation Error:", error);
 
     // Use error handling from service layer
     let statusCode = error.statusCode || 500;
@@ -623,7 +624,7 @@ exports.uploadAcceptanceLetter = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Upload Acceptance Letter Error:", error);
+    logger.error("Upload Acceptance Letter Error:", error);
 
     // ลบไฟล์ที่อัปโหลดถ้าเกิดข้อผิดพลาด
     if (req.file && req.file.path) {
@@ -631,7 +632,7 @@ exports.uploadAcceptanceLetter = async (req, res) => {
       try {
         fs.unlinkSync(req.file.path);
       } catch (unlinkError) {
-        console.error("Error deleting uploaded file:", unlinkError);
+        logger.error("Error deleting uploaded file:", unlinkError);
       }
     }
 
@@ -673,7 +674,7 @@ exports.getAcceptanceLetterStatus = async (req, res) => {
       data: status,
     });
   } catch (error) {
-    console.error("Get Acceptance Letter Status Error:", error);
+    logger.error("Get Acceptance Letter Status Error:", error);
 
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
@@ -731,7 +732,7 @@ exports.downloadAcceptanceLetter = async (req, res) => {
 
     return res.sendFile(path.resolve(fileInfo.filePath));
   } catch (error) {
-    console.error("Download Acceptance Letter Error:", error);
+    logger.error("Download Acceptance Letter Error:", error);
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
       success: false,
@@ -802,7 +803,7 @@ exports.getReferralLetterStatus = async (req, res) => {
       message: "ตรวจสอบสถานะหนังสือส่งตัวสำเร็จ",
     });
   } catch (error) {
-    console.error("[DEBUG] Controller getReferralLetterStatus Error:", error);
+    logger.error("Controller getReferralLetterStatus Error:", error);
 
     // จัดการ error แบบละเอียด
     let statusCode = 500;
@@ -865,7 +866,7 @@ exports.markReferralLetterDownloaded = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Mark Referral Letter Downloaded Error:", error);
+    logger.error("Mark Referral Letter Downloaded Error:", error);
 
     // จัดการ error ตาม status code
     const statusCode = error.message.includes("ไม่พบ")
@@ -916,8 +917,8 @@ exports.downloadReferralLetter = async (req, res) => {
         documentId
       );
     } catch (markError) {
-      console.warn(
-        "⚠️ ไม่สามารถอัปเดตสถานะการดาวน์โหลดได้:",
+      logger.warn(
+        "ไม่สามารถอัปเดตสถานะการดาวน์โหลดได้:",
         markError.message
       );
       // ไม่ throw error เพราะ PDF สร้างสำเร็จแล้ว
@@ -935,7 +936,7 @@ exports.downloadReferralLetter = async (req, res) => {
     // ส่ง PDF buffer
     return res.send(pdfData.pdfBuffer);
   } catch (error) {
-    console.error("Download Referral Letter Error:", error);
+    logger.error("Download Referral Letter Error:", error);
 
     // จัดการ error ตาม status code
     if (error.response?.status) {
@@ -1030,7 +1031,7 @@ exports.downloadCooperationLetter = async (req, res) => {
     // ส่ง PDF buffer
     return res.send(pdfData.pdfBuffer);
   } catch (error) {
-    console.error("Download Cooperation Letter Error:", error);
+    logger.error("Download Cooperation Letter Error:", error);
 
     const statusCode = error.message.includes("ไม่พบ")
       ? 404
@@ -1075,7 +1076,7 @@ exports.markReferralLetterDownloaded = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Mark Referral Letter Downloaded Error:", error);
+    logger.error("Mark Referral Letter Downloaded Error:", error);
 
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
@@ -1101,7 +1102,7 @@ exports.getCertificateData = async (req, res) => {
       message: "ดึงข้อมูลหนังสือรับรองเรียบร้อยแล้ว",
     });
   } catch (error) {
-    console.error("Get Certificate Data Error:", error);
+    logger.error("Get Certificate Data Error:", error);
     const statusCode = error.message.includes("ไม่พบ")
       ? 404
       : error.message.includes("ยังไม่พร้อม")
@@ -1132,7 +1133,7 @@ exports.previewCertificate = async (req, res) => {
     );
     res.send(result.pdfBuffer);
   } catch (error) {
-    console.error("Preview Certificate Controller Error:", error);
+    logger.error("Preview Certificate Controller Error:", error);
     res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "ไม่สามารถแสดงตัวอย่างหนังสือรับรองได้",
@@ -1159,7 +1160,7 @@ exports.downloadCertificate = async (req, res) => {
     res.setHeader("Content-Length", result.pdfBuffer.length);
     res.send(result.pdfBuffer);
   } catch (error) {
-    console.error("Download Certificate Controller Error:", error);
+    logger.error("Download Certificate Controller Error:", error);
     res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "ไม่สามารถดาวน์โหลดหนังสือรับรองได้",
@@ -1187,7 +1188,7 @@ exports.previewCertificateData = async (req, res) => {
       message: "ดึงข้อมูลตัวอย่างหนังสือรับรองเรียบร้อยแล้ว",
     });
   } catch (error) {
-    console.error("Preview Certificate Data Error:", error);
+    logger.error("Preview Certificate Data Error:", error);
     const statusCode = error.message.includes("ไม่พบ")
       ? 404
       : error.message.includes("ยังไม่พร้อม")
@@ -1218,7 +1219,7 @@ exports.markCertificateDownloaded = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Mark Certificate Downloaded Error:", error);
+    logger.error("Mark Certificate Downloaded Error:", error);
     const statusCode = error.message.includes("ไม่พบ") ? 404 : 500;
     return res.status(statusCode).json({
       success: false,
@@ -1286,7 +1287,7 @@ exports.submitCertificateRequest = async (req, res) => {
       message: "ส่งคำขอหนังสือรับรองการฝึกงานเรียบร้อยแล้ว",
     });
   } catch (error) {
-    console.error("Submit Certificate Request Error:", error);
+    logger.error("Submit Certificate Request Error:", error);
     const statusCode = error.message.includes("ไม่ผ่านเงื่อนไข")
       ? 400
       : error.message.includes("ไม่พบ")

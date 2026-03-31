@@ -18,6 +18,7 @@ const multer = require('multer');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const { buildAllowedOrigins } = require('./config/corsOrigins');
+const logger = require('./utils/logger');
 
 // Routes & middleware
 const { authenticateToken } = require('./middleware/authMiddleware');
@@ -47,7 +48,7 @@ const app = express();
 
 // CORS middleware — ต้อง mount ก่อน routes ทุกตัว
 const allowedOrigins = buildAllowedOrigins();
-console.log('🌍 Allowed Origins:', allowedOrigins);
+logger.info('Allowed Origins:', allowedOrigins);
 app.use(cors({
   origin: function (origin, callback) {
     // อนุญาต request ที่ไม่มี origin (mobile apps, Postman, curl)
@@ -57,8 +58,8 @@ app.use(cors({
     if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
-      console.warn(`⚠️  CORS blocked origin: ${origin}`);
-      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+      logger.warn(`CORS blocked origin: ${origin}`);
+      logger.warn(`Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },

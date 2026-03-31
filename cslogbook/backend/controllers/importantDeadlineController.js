@@ -2,6 +2,7 @@ const importantDeadlineService = require('../services/importantDeadlineService')
 const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
 const { Document } = require('../models');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
+const logger = require('../utils/logger');
 
 const resolveDocumentCreatedAttribute = () => {
   const attrs = Document?.rawAttributes;
@@ -89,7 +90,7 @@ exports.create = async (req, res) => {
     }
     res.status(201).json({ success: true, data: { ...deadline.toJSON(), ...local } });
   } catch (error) {
-  console.error('[importantDeadlineController.create] Error:', error.message, error.stack);
+  logger.error('[importantDeadlineController.create] Error:', error.message, error.stack);
   res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -341,7 +342,7 @@ module.exports.getAllForStudent = async (req, res) => {
 
     res.json({ success: true, data: enriched });
   } catch (error) {
-    console.error('[getAllForStudent] Error:', error);
+    logger.error('[getAllForStudent] Error:', error);
     res.status(400).json({ success: false, message: error.message });
   }
 };

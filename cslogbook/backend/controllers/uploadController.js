@@ -1,6 +1,7 @@
 const fs = require('fs');
 const { UploadHistory, User } = require('../models');
 const { processStudentCsvUpload } = require('../services/studentUploadService');
+const logger = require('../utils/logger');
 
 const uploadCSV = async (req, res) => {
   try {
@@ -26,7 +27,7 @@ const uploadCSV = async (req, res) => {
     res.json({ success: true, results, summary });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    logger.error('Upload error:', error);
     res.status(500).json({
       error: 'Error uploading CSV file',
       details: error.message
@@ -37,7 +38,7 @@ const uploadCSV = async (req, res) => {
         await fs.promises.unlink(req.file.path);
       }
     } catch (unlinkError) {
-      console.error('Error deleting temporary file:', unlinkError);
+      logger.error('Error deleting temporary file:', unlinkError);
       // ไม่ throw error เพราะเป็นเพียงการ cleanup
     }
   }

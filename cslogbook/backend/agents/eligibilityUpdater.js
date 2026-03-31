@@ -10,7 +10,7 @@ const logger = require('../utils/logger');
 // ฟังก์ชันปรับปรุงสถานะสิทธิ์อัตโนมัติสำหรับนักศึกษาทั้งหมด
 async function updateAllStudentsEligibility() {
   try {
-    console.log('เริ่มการปรับปรุงสถานะสิทธิ์อัตโนมัติ');
+    logger.info('เริ่มการปรับปรุงสถานะสิทธิ์อัตโนมัติ');
     
     const students = await Student.findAll();
     let updatedCount = 0;
@@ -32,12 +32,12 @@ async function updateAllStudentsEligibility() {
           isEligibleProject: projectCheck.eligible
         });
         
-        console.log(`อัปเดตสถานะสิทธิ์นักศึกษา ${student.studentCode}: ฝึกงาน=${internshipCheck.eligible}, โครงงาน=${projectCheck.eligible}`);
+        logger.info(`อัปเดตสถานะสิทธิ์นักศึกษา ${student.studentCode}: ฝึกงาน=${internshipCheck.eligible}, โครงงาน=${projectCheck.eligible}`);
         updatedCount++;
       }
     }
     
-    console.log(`ปรับปรุงสถานะสิทธิ์สำเร็จ ${updatedCount} คน จากทั้งหมด ${students.length} คน`);
+    logger.info(`ปรับปรุงสถานะสิทธิ์สำเร็จ ${updatedCount} คน จากทั้งหมด ${students.length} คน`);
     return {
       success: true,
       updated: updatedCount,
@@ -45,7 +45,7 @@ async function updateAllStudentsEligibility() {
     };
     
   } catch (error) {
-    console.error('Error updating student eligibilities:', error);
+    logger.error('Error updating student eligibilities:', error);
     return {
       success: false,
       error: error.message
@@ -56,7 +56,7 @@ async function updateAllStudentsEligibility() {
 // ฟังก์ชันตรวจสอบสิทธิ์ของนักศึกษารายบุคคล
 async function updateStudentEligibility(studentCode) {
   try {
-    console.log(`ตรวจสอบสิทธิ์นักศึกษา ${studentCode}`);
+    logger.info(`ตรวจสอบสิทธิ์นักศึกษา ${studentCode}`);
     
     const student = await Student.findOne({ where: { studentCode } });
     
@@ -93,7 +93,7 @@ async function updateStudentEligibility(studentCode) {
     };
     
   } catch (error) {
-    console.error(`Error updating eligibility for student ${studentCode}:`, error);
+    logger.error(`Error updating eligibility for student ${studentCode}:`, error);
     return {
       success: false,
       studentCode,

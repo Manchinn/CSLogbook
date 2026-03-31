@@ -1,4 +1,5 @@
 const { Model, DataTypes } = require('sequelize');
+const logger = require('../utils/logger');
 
 module.exports = (sequelize) => {
     class Student extends Model {
@@ -90,14 +91,14 @@ module.exports = (sequelize) => {
                     requiredTotalCredits = studentSpecificCurriculum.internshipBaseCredits;
                     requiredMajorCreditsForInternship = studentSpecificCurriculum.internshipMajorBaseCredits;
                     curriculumName = studentSpecificCurriculum.name;
-                    console.log(`Student.js: Internship Eligibility - Using student's assigned curriculum`, {
+                    logger.info(`Student.js: Internship Eligibility - Using student's assigned curriculum`, {
                         studentCode: this.studentCode,
                         curriculumName: curriculumName,
                         curriculumId: studentSpecificCurriculum.curriculumId
                     });
                 } else {
                     // กรณีไม่พบ Curriculum ที่ผูกกับนักศึกษา
-                    console.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode}. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
+                    logger.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode}. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
 
                     // 1. ดึง Academic record ล่าสุด (เพื่อหา active curriculum id)
                     const academicSettingsFallback = await Academic.findOne({ order: [['created_at', 'DESC']] });
@@ -114,23 +115,23 @@ module.exports = (sequelize) => {
                             requiredTotalCredits = activeSystemCurriculum.internshipBaseCredits;
                             requiredMajorCreditsForInternship = activeSystemCurriculum.internshipMajorBaseCredits;
                             curriculumName = activeSystemCurriculum.name;
-                            console.log(`Student.js: Fallback to Active System Curriculum: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
+                            logger.info(`Student.js: Fallback to Active System Curriculum: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         } else {
                             // 5. ไม่พบ curriculum ที่ active ตาม id ที่ได้
-                            console.error(`Student.js: ไม่พบ Curriculum ที่ active ตาม activeCurriculumId (${academicSettingsFallback.activeCurriculumId}) ในระบบ`);
+                            logger.error(`Student.js: ไม่พบ Curriculum ที่ active ตาม activeCurriculumId (${academicSettingsFallback.activeCurriculumId}) ในระบบ`);
                         }
                     } else {
                         // 6. ไม่พบค่า activeCurriculumId ใน Academic record
-                        console.error('Student.js: ไม่พบค่า activeCurriculumId ใน Academic record');
+                        logger.error('Student.js: ไม่พบค่า activeCurriculumId ใน Academic record');
                     }
                 }
 
                 if (requiredTotalCredits === undefined || requiredTotalCredits === null) {
-                    console.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับการฝึกงานได้');
+                    logger.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับการฝึกงานได้');
                     return { eligible: false, reason: 'ระบบไม่สามารถกำหนดเกณฑ์หน่วยกิตฝึกงานได้', canAccessFeature: false, canRegister: false };
                 }
 
-                console.log('Student.js - checkInternshipEligibility (using specific/fallback curriculum):', {
+                logger.info('Student.js - checkInternshipEligibility (using specific/fallback curriculum):', {
                     studentTotalCredits: this.totalCredits,
                     requiredTotalCredits: requiredTotalCredits,
                     studentMajorCredits: this.majorCredits,
@@ -157,14 +158,14 @@ module.exports = (sequelize) => {
                     }
                 }
 
-                console.log('Student.js - Passed INTERNSHIP credit checks.');
+                logger.info('Student.js - Passed INTERNSHIP credit checks.');
                 return {
                     eligible: true,
                     reason: `ผ่านเกณฑ์หน่วยกิต`,
                 };
 
             } catch (error) {
-                console.error('Error in Student.checkInternshipEligibility:', error);
+                logger.error('Error in Student.checkInternshipEligibility:', error);
                 return {
                     eligible: false,
                     reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ฝึกงาน (Student.js)',
@@ -211,9 +212,9 @@ module.exports = (sequelize) => {
                     requiredMajorCredits = studentSpecificCurriculum.projectMajorBaseCredits;
                     requiresInternshipCompletion = studentSpecificCurriculum.requireInternshipBeforeProject;
                     curriculumName = studentSpecificCurriculum.name;
-                    console.log(`Student.js: Project eligibility for student ${this.studentCode}, Curriculum: ${curriculumName} (ID: ${studentSpecificCurriculum.curriculumId})`);
+                    logger.info(`Student.js: Project eligibility for student ${this.studentCode}, Curriculum: ${curriculumName} (ID: ${studentSpecificCurriculum.curriculumId})`);
                 } else {
-                    console.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode} สำหรับโครงงาน. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
+                    logger.warn(`Student.js: ไม่พบ Curriculum ที่ผูกกับนักศึกษา ${this.studentCode} สำหรับโครงงาน. กำลังพยายามใช้ Active Curriculum ของระบบ.`);
                     const academicSettingsFallback = await Academic.findOne({ order: [['created_at', 'DESC']] });
                     if (academicSettingsFallback?.activeCurriculumId) {
                         const activeSystemCurriculum = await sequelize.models.Curriculum.findOne({
@@ -224,20 +225,20 @@ module.exports = (sequelize) => {
                             requiredMajorCredits = activeSystemCurriculum.projectMajorBaseCredits;
                             requiresInternshipCompletion = activeSystemCurriculum.requireInternshipBeforeProject;
                             curriculumName = activeSystemCurriculum.name;
-                            console.log(`Student.js: Fallback to Active System Curriculum for Project: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
+                            logger.info(`Student.js: Fallback to Active System Curriculum for Project: ${curriculumName} (ID: ${activeSystemCurriculum.curriculumId})`);
                         }
                     }
                 }
 
                 if (requiredTotalCredits === undefined || requiredTotalCredits === null) {
-                    console.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับโครงงานได้');
+                    logger.error('Student.js: ไม่สามารถกำหนดเกณฑ์หน่วยกิตรวมสำหรับโครงงานได้');
                     return { eligible: false, reason: 'ระบบไม่สามารถกำหนดเกณฑ์หน่วยกิตโครงงานได้' };
                 }
                 if (requiredMajorCredits === undefined || requiredMajorCredits === null) {
-                    console.warn('Student.js: ไม่ได้กำหนดเกณฑ์หน่วยกิตวิชาภาคสำหรับโครงงานในหลักสูตรนี้ จะไม่นำมาพิจารณา');
+                    logger.warn('Student.js: ไม่ได้กำหนดเกณฑ์หน่วยกิตวิชาภาคสำหรับโครงงานในหลักสูตรนี้ จะไม่นำมาพิจารณา');
                 }
 
-                console.log('Student.js - checkProjectEligibility (using specific/fallback curriculum):', {
+                logger.info('Student.js - checkProjectEligibility (using specific/fallback curriculum):', {
                     studentTotalCredits: this.totalCredits,
                     requiredTotalCredits: requiredTotalCredits,
                     studentMajorCredits: this.majorCredits,
@@ -284,7 +285,7 @@ module.exports = (sequelize) => {
                     }
                 }
 
-                console.log('Student.js - Passed PROJECT credit checks.');
+                logger.info('Student.js - Passed PROJECT credit checks.');
                 return {
                     eligible: true,
                     reason: `ผ่านเกณฑ์หน่วยกิต`,
@@ -294,7 +295,7 @@ module.exports = (sequelize) => {
                 };
 
             } catch (error) {
-                console.error('Error in Student.checkProjectEligibility:', error);
+                logger.error('Error in Student.checkProjectEligibility:', error);
                 return {
                     eligible: false,
                     reason: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์โครงงาน (Student.js)',

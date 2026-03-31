@@ -33,12 +33,6 @@ exports.calculateWorkdays = async (startDate, endDate) => {
 };
 
 /**
- * คำนวณจำนวนชั่วโมงทำงาน
- * @param {string} timeIn - เวลาเข้างาน (HH:mm)
- * @param {string} timeOut - เวลาออกงาน (HH:mm)
- * @returns {number} จำนวนชั่วโมงทำงาน
- */
-/**
  * จัดรูปแบบวันที่เป็นภาษาไทย เช่น "1 มกราคม พ.ศ. 2568"
  * @param {Date|string} date - วันที่
  * @returns {string}
@@ -60,21 +54,3 @@ exports.formatThaiDate = (date) => {
   return `${day} ${month} พ.ศ. ${year}`;
 };
 
-exports.calculateWorkHours = (timeIn, timeOut) => {
-  if (!timeIn || !timeOut) return 0;
-  
-  const [inHour, inMinute] = timeIn.split(':').map(Number);
-  const [outHour, outMinute] = timeOut.split(':').map(Number);
-  
-  let hours = outHour - inHour;
-  let minutes = outMinute - inMinute;
-  
-  if (minutes < 0) {
-    hours -= 1;
-    minutes += 60;
-  }
-  
-  // คำนวณชั่วโมงรวม
-  const totalHours = hours + (minutes / 60);
-  return parseFloat(totalHours.toFixed(1));
-};

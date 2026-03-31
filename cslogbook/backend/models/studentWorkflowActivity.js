@@ -1,5 +1,6 @@
 'use strict';
 const { Model, DataTypes } = require('sequelize');
+const logger = require('../utils/logger');
 
 module.exports = (sequelize) => {
   class StudentWorkflowActivity extends Model {
@@ -26,7 +27,7 @@ module.exports = (sequelize) => {
           }
         });
       } catch (error) {
-        console.error('Error in getCurrentStepDefinition:', error);
+        logger.error('Error in getCurrentStepDefinition:', error);
         return null;
       }
     }

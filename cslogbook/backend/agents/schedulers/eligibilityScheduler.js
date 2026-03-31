@@ -23,7 +23,7 @@ const scheduleEligibilityUpdate = () => {
       }
     } catch (error) {
       logger.error(`เกิดข้อผิดพลาดในการรันงานปรับปรุงสถานะสิทธิ์: ${error.message}`);
-      console.error('Error in eligibility update job:', error);
+      logger.error('Error in eligibility update job:', error);
     }
   }, {
     timezone: 'Asia/Bangkok' // ตั้งเป็นเวลาประเทศไทย
