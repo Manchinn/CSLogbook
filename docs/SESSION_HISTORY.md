@@ -72,7 +72,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 64 | 03-31 | Topic Exam Export Split: แยก export เป็น 2 ปุ่ม (Export รายชื่อสอบ + Export ผลสอบ), fix formatThaiDate import — 3 commits |
 | 65 | 03-31 | PR Review Fixes: DB-level filters, search sanitization, export tests — commit ccfd0a5b |
 | 66 | 03-31 | Dead code + validation: ลบ flattenProjects helper, เพิ่ม pagination validation — commit 63b58b7b |
-| 67 | 03-31 | Codebase Audit: ลบ dead code 5 items (workflowStepService ทั้งไฟล์, legacyNavigation ทั้งไฟล์, calculateWorkHours, checkProjectMember, FullTableSkeleton), แปลง console.log→logger ~85 จุดใน 15 ไฟล์, แก้ any→proper types 4 จุดใน teacherService + extract mapRawDefenseRequest helper — 22 files, -109 lines net |
+| 67 | 03-31 | Codebase Audit & Refactor: ลบ dead code 5 items (workflowStepService, legacyNavigation, calculateWorkHours, checkProjectMember, FullTableSkeleton), แปลง console.log→logger ~85 จุดใน 15 ไฟล์, แก้ any→proper types 4 จุดใน teacherService + extract mapRawDefenseRequest helper, split documentService.js (1,938→5 modules+facade) + meetingService.js (1,509→4 modules+facade), ตรวจ reportService TODO 4 ตัว (1 ทำไปแล้ว, 3 พร้อม implement) — 34 files, commit b29f1726 |
 
 ### Pending
 
