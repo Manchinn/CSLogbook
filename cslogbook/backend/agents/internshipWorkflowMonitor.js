@@ -7,7 +7,7 @@
 
 const cron = require('node-cron');
 const logger = require('../utils/logger');
-const { Internship, Student, StudentWorkflowActivity } = require('../models');
+const { InternshipDocument, Document, Student, StudentWorkflowActivity } = require('../models');
 const internshipLogbookService = require('../services/internshipLogbookService');
 const dayjs = require('dayjs');
 const { Op } = require('sequelize');
@@ -87,14 +87,18 @@ class InternshipWorkflowMonitor {
 
       for (const activity of activities) {
         try {
-          // หา internship ของนักศึกษา
-          const internship = await Internship.findOne({
+          // หา internship ของนักศึกษา (InternshipDocument ไม่มี studentId ตรง ต้อง join ผ่าน Document)
+          const internship = await InternshipDocument.findOne({
+            include: [{
+              model: Document,
+              as: 'document',
+              where: { userId: activity.student.userId },
+              attributes: ['documentId', 'userId']
+            }],
             where: {
-              studentId: activity.studentId,
-              // ค้นหาการฝึกงานที่ active (ไม่ยกเลิก)
               [Op.or]: [
-                { endDate: { [Op.gte]: dayjs().subtract(30, 'day').toDate() } }, // endDate ยังไม่ผ่านไปนานเกิน 30 วัน
-                { endDate: null } // หรือยังไม่มี endDate
+                { endDate: { [Op.gte]: dayjs().subtract(30, 'day').toDate() } },
+                { endDate: null }
               ]
             },
             order: [['created_at', 'DESC']]

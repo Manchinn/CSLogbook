@@ -118,7 +118,18 @@ class AcademicSemesterScheduler {
    */
   calculateAcademicYear(semester1Range, fallbackYear) {
     if (semester1Range && semester1Range.start && semester1Range.start.isValid()) {
-      const gregorianYear = semester1Range.start.year();
+      const startMonth = semester1Range.start.month(); // 0-indexed
+      // ปีการศึกษาไทย semester 1 เริ่ม มิถุนายน (month=5) เป็นต้นไป
+      // ถ้า start อยู่ช่วง Jan-May ให้ใช้ปีก่อนหน้า (เช่น Jan 2026 → academic year 2568 ไม่ใช่ 2569)
+      let gregorianYear = semester1Range.start.year();
+      if (startMonth < 5) {
+        gregorianYear -= 1;
+        logger.warn('AcademicSemesterScheduler: semester1 start อยู่ก่อนมิถุนายน — ปรับ academicYear ลง 1', {
+          ...AGENT_META,
+          start: semester1Range.start.format(),
+          adjustedYear: gregorianYear
+        });
+      }
       if (!Number.isNaN(gregorianYear)) {
         return gregorianYear + 543;
       }
@@ -174,8 +185,13 @@ class AcademicSemesterScheduler {
         updates.academicYear = computedAcademicYear;
       }
 
-      if (!current.isCurrent) {
-        updates.isCurrent = true;
+      // ตรวจสอบว่ามีมากกว่า 1 record ที่ isCurrent=true หรือไม่
+      const currentCount = await Academic.count({ where: { isCurrent: true } });
+      if (currentCount > 1) {
+        logger.warn('AcademicSemesterScheduler: พบหลาย record ที่ isCurrent=true', {
+          ...AGENT_META,
+          count: currentCount
+        });
       }
 
       if (Object.keys(updates).length === 0) {

@@ -3,7 +3,10 @@ const { Model, DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
     class ImportantDeadline extends Model {
         static associate(models) {
-            // ความสัมพันธ์กับโมเดลอื่น (ถ้ามี)
+            ImportantDeadline.hasMany(models.DeadlineWorkflowMapping, {
+                foreignKey: 'important_deadline_id',
+                as: 'deadlineWorkflowMappings'
+            });
         }
     }
 

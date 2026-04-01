@@ -12,7 +12,7 @@
  */
 
 const cron = require('node-cron');
-const { ProjectWorkflowState, ProjectDocument, WorkflowStepDefinition, ImportantDeadline } = require('../models');
+const { ProjectWorkflowState, ProjectDocument, WorkflowStepDefinition, ImportantDeadline, DeadlineWorkflowMapping } = require('../models');
 const { Op } = require('sequelize');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -165,23 +165,27 @@ class ProjectDeadlineMonitor {
    */
   async processDeadlineAt(now, yearFilter) {
     try {
-      // Find deadlines that just passed (within last 24 hours)
+      // Find deadlines that have passed (no lower bound — idempotent via pending state check)
       const passedDeadlines = await ImportantDeadline.findAll({
         where: {
-          deadlineAt: {
-            [Op.lte]: now.toDate(),
-            [Op.gte]: now.subtract(1, 'day').toDate()
-          },
+          deadlineAt: { [Op.lte]: now.toDate() },
           relatedTo: { [Op.in]: ['project1', 'project2'] },
           academicYear: yearFilter
-        }
+        },
+        include: [{
+          model: DeadlineWorkflowMapping,
+          as: 'deadlineWorkflowMappings',
+          required: false,
+          attributes: ['documentSubtype']
+        }]
       });
 
-      logger.info(`Found ${passedDeadlines.length} deadlines that recently passed (soft)`);
+      logger.info(`Found ${passedDeadlines.length} deadlines that have passed (soft)`);
 
       for (const deadline of passedDeadlines) {
         try {
-          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name);
+          const documentSubtype = deadline.deadlineWorkflowMappings?.[0]?.documentSubtype || null;
+          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name, documentSubtype);
           if (!mapping) continue;
 
           // Find pending step
@@ -228,10 +232,10 @@ class ProjectDeadlineMonitor {
               });
 
               this.statistics.stateTransitions++;
-              logger.info(`Transitioned project ${projectState.project_id} to late: ${mapping.lateState}`);
+              logger.info(`Transitioned project ${projectState.projectId} to late: ${mapping.lateState}`);
             } catch (updateError) {
               this.statistics.errors++;
-              logger.error(`Error transitioning project ${projectState.project_id}:`, updateError);
+              logger.error(`Error transitioning project ${projectState.projectId}:`, updateError);
             }
           }
         } catch (deadlineError) {
@@ -249,23 +253,27 @@ class ProjectDeadlineMonitor {
    */
   async processEndDate(now, yearFilter) {
     try {
-      // Find deadlines whose end_date just passed
+      // Find deadlines whose end_date has passed (no lower bound — idempotent via state check)
       const closedDeadlines = await ImportantDeadline.findAll({
         where: {
-          windowEndAt: {
-            [Op.lte]: now.toDate(),
-            [Op.gte]: now.subtract(1, 'day').toDate()
-          },
+          windowEndAt: { [Op.lte]: now.toDate() },
           relatedTo: { [Op.in]: ['project1', 'project2'] },
           academicYear: yearFilter
-        }
+        },
+        include: [{
+          model: DeadlineWorkflowMapping,
+          as: 'deadlineWorkflowMappings',
+          required: false,
+          attributes: ['documentSubtype']
+        }]
       });
 
-      logger.info(`Found ${closedDeadlines.length} deadlines that recently closed (hard)`);
+      logger.info(`Found ${closedDeadlines.length} deadlines that have closed (hard)`);
 
       for (const deadline of closedDeadlines) {
         try {
-          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name);
+          const documentSubtype = deadline.deadlineWorkflowMappings?.[0]?.documentSubtype || null;
+          const mapping = getStateMappingForDeadline(deadline.relatedTo, deadline.name, documentSubtype);
           if (!mapping) continue;
 
           // Find overdue step
@@ -315,14 +323,12 @@ class ProjectDeadlineMonitor {
               });
 
               this.statistics.stateTransitions++;
-              this.statistics.newlyOverdue++; // Count as newly overdue
-              logger.warn(`Marked project ${projectState.project_id} as OVERDUE: ${mapping.overdueState}`);
-              
-              // Send notification for overdue
+              logger.warn(`Marked project ${projectState.projectId} as OVERDUE: ${mapping.overdueState}`);
+
               await this.notifyOverdue(projectState, [deadline]);
             } catch (updateError) {
               this.statistics.errors++;
-              logger.error(`Error marking project ${projectState.project_id} as overdue:`, updateError);
+              logger.error(`Error marking project ${projectState.projectId} as overdue:`, updateError);
             }
           }
         } catch (deadlineError) {
@@ -372,7 +378,7 @@ class ProjectDeadlineMonitor {
             await state.update({ isOverdue: result.isOverdue });
           }
 
-          // นับสถิติ (skip if already counted in state transition)
+          // นับสถิติ (Step 1 commit แล้ว → wasOverdue จะเป็น true หาก Step 1 จัดการไปแล้ว ไม่ double-count)
           if (result.isOverdue && !wasOverdue) {
             this.statistics.newlyOverdue++;
             await this.notifyOverdue(state, result.overdueDeadlines);

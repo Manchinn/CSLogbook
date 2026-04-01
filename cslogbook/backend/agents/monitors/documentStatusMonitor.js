@@ -64,7 +64,7 @@ class DocumentStatusMonitor {
       // ค้นหาเอกสารที่ค้างการตรวจสอบนานเกินกำหนด
       const stuckDocuments = await Document.findAll({
         where: {
-          status: 'pending_review',
+          status: 'pending',
           updated_at: {
             [Op.lte]: cutoffDate
           }
@@ -84,10 +84,27 @@ class DocumentStatusMonitor {
       // แจ้งเตือนผู้ตรวจแต่ละคนเกี่ยวกับเอกสารที่ค้าง
       const teacherMap = new Map();
       
-      // จัดกลุ่มเอกสารตามผู้ตรวจ
+      // กรองเอกสารที่เคยแจ้งเตือนไปแล้วภายใน 24 ชม. (dedup)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const filteredDocuments = [];
       for (const doc of stuckDocuments) {
+        const recentLog = await DocumentLog.findOne({
+          where: {
+            documentId: doc.documentId,
+            actionType: 'update',
+            comment: { [Op.like]: '%แจ้งเตือนถึงผู้ตรวจ%' },
+            created_at: { [Op.gte]: oneDayAgo }
+          }
+        });
+        if (!recentLog) filteredDocuments.push(doc);
+      }
+
+      logger.info(`DocumentStatusMonitor: After dedup: ${filteredDocuments.length} documents (filtered from ${stuckDocuments.length})`);
+
+      // จัดกลุ่มเอกสารตามผู้ตรวจ
+      for (const doc of filteredDocuments) {
         if (!doc.reviewer) continue;
-        
+
         if (!teacherMap.has(doc.reviewer.userId)) {
           teacherMap.set(doc.reviewer.userId, {
             teacher: doc.reviewer,
@@ -109,7 +126,7 @@ class DocumentStatusMonitor {
         
         documents.forEach((doc, index) => {
           const daysOverdue = Math.floor((new Date() - new Date(doc.updated_at)) / (1000 * 60 * 60 * 24));
-          message += `${index + 1}. เอกสาร: ${doc.title} (รหัส: ${doc.document_id})\n`;
+          message += `${index + 1}. เอกสาร: ${doc.documentName} (รหัส: ${doc.documentId})\n`;
           message += `   ส่งเมื่อ: ${new Date(doc.updated_at).toLocaleDateString()}\n`;
           message += `   ค้างมาแล้ว: ${daysOverdue} วัน\n\n`;
         });
@@ -134,11 +151,9 @@ class DocumentStatusMonitor {
         for (const doc of documents) {
           // เพิ่มบันทึกการแจ้งเตือนลงใน DocumentLog
           await DocumentLog.create({
-            document_id: doc.documentId,
-            action: 'notification_sent',
-            description: `ระบบส่งการแจ้งเตือนถึงผู้ตรวจเนื่องจากเอกสารค้างการตรวจเกิน ${this.config.documentsStuckInReviewDays} วัน`,
-            created_by: 'system',
-            created_at: new Date()
+            documentId: doc.documentId,
+            actionType: 'update',
+            comment: `ระบบส่งการแจ้งเตือนถึงผู้ตรวจเนื่องจากเอกสารค้างการตรวจเกิน ${this.config.documentsStuckInReviewDays} วัน`
           });
         }
       }

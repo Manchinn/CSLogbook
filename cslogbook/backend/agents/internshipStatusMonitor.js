@@ -141,9 +141,10 @@ class InternshipStatusMonitor {
               newStatus = 'in_progress';
             }
           }
-          // ✅ Priority 3: ยังไม่ถึง startDate (pending_approval)
+          // ✅ Priority 3: ยังไม่ถึง startDate — ไม่ downgrade ถ้าอยู่ in_progress อยู่แล้ว
+          // (กรณี CS05 ใบใหม่กว่ามี startDate ในอนาคต แต่นักศึกษากำลังฝึกงานอยู่จริง)
           else {
-            if (student.internshipStatus !== 'pending_approval') {
+            if (student.internshipStatus !== 'pending_approval' && student.internshipStatus !== 'in_progress') {
               newStatus = 'pending_approval';
             }
           }

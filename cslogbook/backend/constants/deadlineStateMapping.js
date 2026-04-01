@@ -2,7 +2,7 @@
  * Deadline State Mapping Configuration
  * 
  * Maps ImportantDeadline names to their corresponding workflow states
- * Used by DeadlineStatusUpdater agent to automatically transition project states
+ * Used by ProjectDeadlineMonitor agent to automatically transition project states
  * 
  * Structure:
  * - pendingState: Normal submission state (before deadline_at)
@@ -16,22 +16,25 @@ module.exports = {
     // Phase 1: Proposal Submission
     PROPOSAL_SUBMISSION: {
       deadlineField: 'PROJECT_1_PROPOSAL_DEADLINE',
+      documentSubtype: 'PROJECT1_PROPOSAL',
       pendingState: 'PROJECT_PROPOSAL_PENDING_STUDENT_SUBMISSION',
       lateState: 'PROJECT_PROPOSAL_PENDING_LATE_SUBMISSION',
       overdueState: 'PROJECT_PROPOSAL_OVERDUE'
     },
-    
+
     // Phase 2: Defense Request
     DEFENSE_REQUEST: {
       deadlineField: 'PROJECT_1_DEFENSE_REQUEST_DEADLINE',
+      documentSubtype: 'PROJECT1_DEFENSE_REQUEST',
       pendingState: 'PROJECT_DEFENSE_PENDING_STUDENT_SUBMISSION',
       lateState: 'PROJECT_DEFENSE_PENDING_LATE_SUBMISSION',
       overdueState: 'PROJECT_DEFENSE_OVERDUE'
     },
-    
+
     // Phase 3: Final Document Submission
     FINAL_DOCUMENT: {
       deadlineField: 'PROJECT_1_FINAL_DOCUMENT_DEADLINE',
+      documentSubtype: 'PROJECT1_FINAL_REPORT',
       pendingState: 'PROJECT_FINAL_DOCUMENT_PENDING_SUBMISSION',
       lateState: 'PROJECT_FINAL_DOCUMENT_PENDING_LATE_SUBMISSION',
       overdueState: 'PROJECT_FINAL_DOCUMENT_OVERDUE'
@@ -43,22 +46,25 @@ module.exports = {
     // Phase 1: Thesis Proposal Submission
     PROPOSAL_SUBMISSION: {
       deadlineField: 'THESIS_PROPOSAL_DEADLINE',
+      documentSubtype: 'THESIS_PROPOSAL',
       pendingState: 'THESIS_PROPOSAL_PENDING_STUDENT_SUBMISSION',
       lateState: 'THESIS_PROPOSAL_PENDING_LATE_SUBMISSION',
       overdueState: 'THESIS_PROPOSAL_OVERDUE'
     },
-    
+
     // Phase 2: Thesis Defense Request
     DEFENSE_REQUEST: {
       deadlineField: 'THESIS_DEFENSE_REQUEST_DEADLINE',
+      documentSubtype: 'THESIS_DEFENSE_REQUEST',
       pendingState: 'THESIS_DEFENSE_PENDING_STUDENT_SUBMISSION',
       lateState: 'THESIS_DEFENSE_PENDING_LATE_SUBMISSION',
       overdueState: 'THESIS_DEFENSE_OVERDUE'
     },
-    
+
     // Phase 3: Final Thesis Submission
     FINAL_DOCUMENT: {
       deadlineField: 'THESIS_FINAL_DOCUMENT_DEADLINE',
+      documentSubtype: 'THESIS_FINAL_REPORT',
       pendingState: 'THESIS_FINAL_DOCUMENT_PENDING_SUBMISSION',
       lateState: 'THESIS_FINAL_DOCUMENT_PENDING_LATE_SUBMISSION',
       overdueState: 'THESIS_FINAL_DOCUMENT_OVERDUE'
@@ -70,19 +76,29 @@ module.exports = {
  * Helper function: Get state mapping for a deadline
  * @param {string} workflowType - 'project1' or 'project2'
  * @param {string} deadlineName - Name from ImportantDeadline.name
+ * @param {string} [documentSubtype] - documentSubtype from DeadlineWorkflowMapping (preferred match key)
  * @returns {object|null} Mapping object or null if not found
  */
-function getStateMappingForDeadline(workflowType, deadlineName) {
+function getStateMappingForDeadline(workflowType, deadlineName, documentSubtype) {
   const normalizedWorkflow = workflowType.toUpperCase().replace(/(\d)/, '_$1');
   const workflowMapping = module.exports[normalizedWorkflow];
-  
+
   if (!workflowMapping) {
     return null;
   }
 
-  // Search through all phases for matching deadline
+  // Priority 1: Match by documentSubtype (reliable — from DeadlineWorkflowMapping)
+  if (documentSubtype) {
+    for (const [phaseName, mapping] of Object.entries(workflowMapping)) {
+      if (mapping.documentSubtype === documentSubtype) {
+        return mapping;
+      }
+    }
+  }
+
+  // Priority 2: Fallback to deadlineField substring match (legacy)
   for (const [phaseName, mapping] of Object.entries(workflowMapping)) {
-    if (deadlineName.includes(mapping.deadlineField) || 
+    if (deadlineName.includes(mapping.deadlineField) ||
         mapping.deadlineField.includes(deadlineName)) {
       return mapping;
     }

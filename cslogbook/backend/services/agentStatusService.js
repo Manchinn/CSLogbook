@@ -117,9 +117,6 @@ class AgentStatusService {
         const displayNames = {
             deadlineReminder: 'ตัวแจ้งเตือนกำหนดเวลา',
             documentMonitor: 'ตัวตรวจสอบสถานะเอกสาร',
-            securityMonitor: 'ตัวตรวจสอบความปลอดภัย',
-            logbookQualityMonitor: 'ตัวตรวจสอบคุณภาพ Logbook',
-            eligibilityChecker: 'ตัวตรวจสอบสิทธิ์',
             eligibilityScheduler: 'ตัวจัดการสิทธิ์อัตโนมัติ',
             projectPurgeScheduler: 'ตัวล้างข้อมูลโครงงาน',
             academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา',
@@ -140,9 +137,6 @@ class AgentStatusService {
         const descriptions = {
             deadlineReminder: 'แจ้งเตือนนักศึกษาเกี่ยวกับกำหนดส่งเอกสารที่ใกล้จะถึง',
             documentMonitor: 'ตรวจสอบเอกสารที่ค้างการตรวจสอบเป็นเวลานาน',
-            securityMonitor: 'ตรวจสอบการเข้าสู่ระบบที่ผิดปกติและความปลอดภัย',
-            logbookQualityMonitor: 'วิเคราะห์และให้ข้อเสนอแนะเกี่ยวกับคุณภาพของ Logbook',
-            eligibilityChecker: 'ตรวจสอบสิทธิ์ของนักศึกษาในการฝึกงานและทำโครงงาน',
             eligibilityScheduler: 'อัปเดตสิทธิ์ของนักศึกษาอัตโนมัติตามเงื่อนไข',
             projectPurgeScheduler: 'ล้างข้อมูลโครงงานที่หมดอายุออกจากระบบ',
             academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษาอัตโนมัติ',
@@ -163,9 +157,6 @@ class AgentStatusService {
         const schedules = {
             deadlineReminder: 'ทุก 12 ชั่วโมง',
             documentMonitor: 'ทุก 30 นาที',
-            securityMonitor: 'ทุก 1 ชั่วโมง',
-            logbookQualityMonitor: 'ทุก 24 ชั่วโมง',
-            eligibilityChecker: 'ทุก 7 วัน',
             eligibilityScheduler: 'ทุกเดือน (วันที่ 1 เวลา 00:00 น.)',
             projectPurgeScheduler: 'ทุกวัน (เวลา 02:15 น.)',
             academicSemesterScheduler: 'ทุกวัน (เวลา 00:05 น.)',

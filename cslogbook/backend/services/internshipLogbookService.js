@@ -1402,10 +1402,10 @@ class InternshipLogbookService {
       // เงื่อนไข 1: ใกล้ถึง endDate (เหลือ 7 วัน)
       let shouldUpdateToSummaryPending = false;
       const now = dayjs();
-      const endDate = dayjs(internship.endDate);
-      const daysUntilEnd = endDate.diff(now, 'day');
+      const endDate = internship.endDate ? dayjs(internship.endDate) : null;
+      const daysUntilEnd = endDate ? endDate.diff(now, 'day') : null;
 
-      if (daysUntilEnd <= 7 && daysUntilEnd >= 0) {
+      if (daysUntilEnd !== null && daysUntilEnd <= 7 && daysUntilEnd >= 0) {
         shouldUpdateToSummaryPending = true;
         logger.info(`Internship ${internshipId} is ${daysUntilEnd} days from end date`);
       }

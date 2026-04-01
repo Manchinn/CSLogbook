@@ -5,12 +5,7 @@
 
 const deadlineReminderAgent = require('./schedulers/deadlineReminderAgent');
 const documentStatusMonitor = require('./monitors/documentStatusMonitor');
-const securityMonitor = require('./monitors/securityMonitor');
-const logbookQualityMonitor = require('./monitors/logbookQualityMonitor');
-const eligibilityChecker = require('./schedulers/eligibilityChecker');
-// เพิ่ม eligibilityScheduler
 const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
-// เพิ่ม project purge scheduler
 const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const projectDeadlineMonitor = require('./projectDeadlineMonitor');
@@ -27,34 +22,37 @@ class AgentManager {
     this.agents = {
       deadlineReminder: deadlineReminderAgent,
       documentMonitor: documentStatusMonitor,
-      securityMonitor: securityMonitor,           // เพิ่ม Security Monitor Agent
-      logbookQualityMonitor: logbookQualityMonitor, // เพิ่ม Logbook Quality Monitor
-      eligibilityChecker: eligibilityChecker,      // เพิ่ม Eligibility Checker Agent
-      // เพิ่ม eligibilityScheduler
       eligibilityScheduler: {
-        start: () => {
+        _isRunning: false,
+        start: function() {
           logger.info('Starting eligibility scheduler for automatic student eligibility updates');
           eligibilityScheduler.scheduleEligibilityUpdate();
+          this._isRunning = true;
           return true;
         },
-        stop: () => {
+        stop: function() {
           logger.info('Stopping eligibility scheduler');
-          // ไม่จำเป็นต้องหยุดเนื่องจากเป็น cron job
+          eligibilityScheduler.stopEligibilityUpdate();
+          this._isRunning = false;
           return true;
         },
-        isRunning: true
+        get isRunning() { return this._isRunning; }
       },
       projectPurgeScheduler: {
-        start: () => {
+        _isRunning: false,
+        start: function() {
           logger.info('Starting project purge scheduler');
           projectPurgeScheduler.scheduleProjectPurge();
+          this._isRunning = true;
           return true;
         },
-        stop: () => {
-          logger.info('Stopping project purge scheduler (cron จะยัง active หาก library ไม่รองรับ cancel)');
+        stop: function() {
+          logger.info('Stopping project purge scheduler');
+          projectPurgeScheduler.stopProjectPurge();
+          this._isRunning = false;
           return true;
         },
-        isRunning: true
+        get isRunning() { return this._isRunning; }
       },
       academicSemesterScheduler: {
         start: () => {
@@ -156,22 +154,23 @@ class AgentManager {
       logger.warn('AgentManager: Agents are not running');
       return;
     }
-    
+
     logger.info('AgentManager: Stopping all agents');
-    
-    // หยุดการทำงานของทุก agent
-    for (const [name, agent] of Object.entries(this.agents)) {
-      try {
-        agent.stop();
-        logger.info(`AgentManager: Successfully stopped ${name} agent`);
-      } catch (error) {
-        logger.error(`AgentManager: Error stopping ${name} agent:`, error);
+
+    try {
+      for (const [name, agent] of Object.entries(this.agents)) {
+        try {
+          agent.stop();
+          logger.info(`AgentManager: Successfully stopped ${name} agent`);
+        } catch (error) {
+          logger.error(`AgentManager: Error stopping ${name} agent:`, error);
+        }
       }
+    } finally {
+      this.isRunning = false;
+      const duration = (new Date() - this.startTime) / 1000 / 60;
+      logger.info(`AgentManager: All agents stopped after running for ${duration.toFixed(2)} minutes`);
     }
-    
-    this.isRunning = false;
-    const duration = (new Date() - this.startTime) / 1000 / 60;
-    logger.info(`AgentManager: All agents stopped after running for ${duration.toFixed(2)} minutes`);
   }
   
   /**
@@ -246,21 +245,27 @@ class AgentManager {
     if (!this.agents[agentName]) {
       throw new Error(`Agent '${agentName}' not found`);
     }
-    
+
+    // Stop ก่อน — ถ้า throw จะไม่ schedule start
     try {
       if (this.agents[agentName].isRunning) {
         this.agents[agentName].stop();
         logger.info(`AgentManager: Stopped ${agentName} agent for restart`);
       }
-      
-      setTimeout(() => {
-        this.agents[agentName].start();
-        logger.info(`AgentManager: Restarted ${agentName} agent`);
-      }, 2000); // รอ 2 วินาทีก่อนเริ่มใหม่
     } catch (error) {
-      logger.error(`AgentManager: Error restarting ${agentName} agent:`, error);
+      logger.error(`AgentManager: Error stopping ${agentName} for restart:`, error);
       throw error;
     }
+
+    // Start หลัง stop สำเร็จเท่านั้น
+    setTimeout(() => {
+      try {
+        this.agents[agentName].start();
+        logger.info(`AgentManager: Restarted ${agentName} agent`);
+      } catch (error) {
+        logger.error(`AgentManager: Error starting ${agentName} on restart:`, error);
+      }
+    }, 2000);
   }
 }
 

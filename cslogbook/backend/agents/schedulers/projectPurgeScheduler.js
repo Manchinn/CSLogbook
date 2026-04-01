@@ -11,8 +11,8 @@ const { ProjectDocument, ProjectMember, ProjectTrack } = require('../../models')
 
 // โหลดแบบ lazy เฉพาะตอน purge เพื่อลด circular require
 function loadExtraModels() {
-  const { ProjectMilestone, ProjectArtifact, Meeting } = require('../../models');
-  return { ProjectMilestone, ProjectArtifact, Meeting };
+  const { ProjectMilestone, ProjectArtifact, Meeting, ProjectWorkflowState, ProjectDefenseRequest, ProjectExamResult } = require('../../models');
+  return { ProjectMilestone, ProjectArtifact, Meeting, ProjectWorkflowState, ProjectDefenseRequest, ProjectExamResult };
 }
 
 const RETENTION_DAYS = parseInt(process.env.PROJECT_FAILED_PURGE_DAYS || '7', 10); // ค่าเริ่มต้น 7 วัน
@@ -37,16 +37,18 @@ async function purgeOnce() {
     }
 
     const ids = targets.map(p => p.projectId);
-    const { ProjectMilestone, ProjectArtifact, Meeting } = loadExtraModels();
+    const { ProjectMilestone, ProjectArtifact, Meeting, ProjectWorkflowState, ProjectDefenseRequest, ProjectExamResult } = loadExtraModels();
 
     logger.info(`[ProjectPurgeScheduler] เริ่ม purge โครงงาน ${ids.length} รายการ: ${ids.join(',')}`);
 
-    // ลบแบบ manual cascade (ตามที่ระบบยังไม่ได้ประกาศ FK cascade ทุกตัว) – ใช้ transaction ต่อ project เพื่อจำกัดผลกระทบ
     let success = 0;
     for (const proj of targets) {
       const t = await ProjectDocument.sequelize.transaction();
       try {
         const pid = proj.projectId;
+        await ProjectWorkflowState.destroy({ where: { projectId: pid }, transaction: t });
+        await ProjectDefenseRequest.destroy({ where: { projectId: pid }, transaction: t });
+        if (ProjectExamResult) await ProjectExamResult.destroy({ where: { projectId: pid }, transaction: t });
         await ProjectMember.destroy({ where: { projectId: pid }, transaction: t });
         await ProjectTrack.destroy({ where: { projectId: pid }, transaction: t });
         await ProjectMilestone.destroy({ where: { projectId: pid }, transaction: t });
@@ -70,16 +72,24 @@ async function purgeOnce() {
   }
 }
 
+let cronTask = null;
+
 function scheduleProjectPurge() {
-  cron.schedule(SCHEDULE, () => {
+  cronTask = cron.schedule(SCHEDULE, () => {
     logger.info(`[ProjectPurgeScheduler] เริ่มงาน purge ตาม schedule (${SCHEDULE}, retention=${RETENTION_DAYS}d)`);
     purgeOnce().catch(err => logger.error('[ProjectPurgeScheduler] purgeOnce throw', { error: err.message }));
   }, { timezone: 'Asia/Bangkok' });
   logger.info(`[ProjectPurgeScheduler] ตั้ง cron สำเร็จ (${SCHEDULE})`);
-  // อาจ run ครั้งแรกเมื่อเริ่มระบบ (optional) – เปิดใช้ถ้าต้องการ:
   if (process.env.PROJECT_FAILED_PURGE_RUN_ON_START === '1') {
     purgeOnce();
   }
 }
 
-module.exports = { scheduleProjectPurge, purgeOnce };
+function stopProjectPurge() {
+  if (cronTask) {
+    cronTask.stop();
+    cronTask = null;
+  }
+}
+
+module.exports = { scheduleProjectPurge, stopProjectPurge, purgeOnce };
