@@ -9,8 +9,7 @@ const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
 const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const projectDeadlineMonitor = require('./projectDeadlineMonitor');
-const internshipWorkflowMonitor = require('./internshipWorkflowMonitor');
-const internshipStatusMonitor = require('./internshipStatusMonitor');
+const internshipLifecycleMonitor = require('./internshipLifecycleMonitor');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -83,37 +82,21 @@ class AgentManager {
           return projectDeadlineMonitor.isRunning;
         }
       },
-      internshipWorkflowMonitor: {
+      internshipLifecycleMonitor: {
         start: () => {
-          logger.info('Starting internship workflow monitor');
-          internshipWorkflowMonitor.start();
+          logger.info('Starting internship lifecycle monitor');
+          internshipLifecycleMonitor.start();
           return true;
         },
         stop: () => {
-          logger.info('Stopping internship workflow monitor');
-          internshipWorkflowMonitor.stop();
+          logger.info('Stopping internship lifecycle monitor');
+          internshipLifecycleMonitor.stop();
           return true;
         },
         get isRunning() {
-          return internshipWorkflowMonitor.isRunning || false;
+          return internshipLifecycleMonitor.isRunning || false;
         }
       },
-      internshipStatusMonitor: {
-        start: () => {
-          logger.info('Starting internship status monitor');
-          internshipStatusMonitor.start();
-          return true;
-        },
-        stop: () => {
-          logger.info('Stopping internship status monitor');
-          internshipStatusMonitor.stop();
-          return true;
-        },
-        get isRunning() {
-          return internshipStatusMonitor.isRunning || false;
-        }
-      },
-      // เพิ่ม agent อื่นๆ ที่นี่
     };
     
     this.isRunning = false;

@@ -29,8 +29,8 @@ class AcademicSemesterScheduler {
    * @returns {boolean}
    */
   isEnabled() {
-    const envValue = (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || 'true').toLowerCase();
-    return envValue !== 'false';
+    const envValue = (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || 'false').toLowerCase();
+    return envValue === 'true';
   }
 
   /**

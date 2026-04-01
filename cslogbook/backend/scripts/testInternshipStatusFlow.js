@@ -11,7 +11,7 @@
 const { sequelize } = require('../config/database');
 const { User, Student, Document, InternshipDocument, InternshipCertificateRequest } = require('../models');
 const internshipAdminService = require('../services/internshipAdminService');
-const internshipStatusMonitor = require('../agents/internshipStatusMonitor');
+const internshipLifecycleMonitor = require('../agents/internshipLifecycleMonitor');
 const documentService = require('../services/documentService');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -86,7 +86,7 @@ async function testInternshipStatusFlow() {
     
     console.log('   🔄 กำลังเรียก Agent ทันที...');
     try {
-      await internshipStatusMonitor.runNow();
+      await internshipLifecycleMonitor.runNow();
       console.log('   ✅ Agent ทำงานเสร็จแล้ว ตรวจสอบ logs เพื่อดูผลลัพธ์\n');
     } catch (agentError) {
       console.log(`   ⚠️  Agent Error: ${agentError.message}\n`);

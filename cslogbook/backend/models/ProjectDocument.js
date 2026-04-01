@@ -160,6 +160,12 @@ module.exports = (sequelize) => {
             allowNull: true,
             field: 'archived_at'
         },
+        purgedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'purged_at',
+            comment: 'เวลาที่ข้อมูล bulky (artifacts, milestones, tracks, meetings) ถูกล้าง'
+        },
         // ผลสอบหัวข้อ
         examResult: {
             type: DataTypes.ENUM('passed','failed'),

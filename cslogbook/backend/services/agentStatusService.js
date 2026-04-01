@@ -121,8 +121,7 @@ class AgentStatusService {
             projectPurgeScheduler: 'ตัวล้างข้อมูลโครงงาน',
             academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา',
             projectDeadlineMonitor: 'ตัวตรวจสอบ Deadline โครงงาน',
-            internshipWorkflowMonitor: 'ตัวตรวจสอบ Workflow ฝึกงาน',
-            internshipStatusMonitor: 'ตัวตรวจสอบสถานะฝึกงาน'
+            internshipLifecycleMonitor: 'ตัวจัดการ Lifecycle การฝึกงาน'
         };
 
         return displayNames[agentName] || agentName;
@@ -141,8 +140,7 @@ class AgentStatusService {
             projectPurgeScheduler: 'ล้างข้อมูลโครงงานที่หมดอายุออกจากระบบ',
             academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษาอัตโนมัติ',
             projectDeadlineMonitor: 'ตรวจสอบและอัปเดตสถานะโครงงานที่เลย deadline',
-            internshipWorkflowMonitor: 'ตรวจสอบและอัปเดต workflow การฝึกงานที่ใกล้สิ้นสุด',
-            internshipStatusMonitor: 'ตรวจสอบและอัปเดตสถานะการฝึกงานอัตโนมัติ'
+            internshipLifecycleMonitor: 'อัปเดตสถานะและ workflow การฝึกงานอัตโนมัติ (status + summary pending)'
         };
 
         return descriptions[agentName] || 'ไม่มีคำอธิบาย';
@@ -161,8 +159,7 @@ class AgentStatusService {
             projectPurgeScheduler: 'ทุกวัน (เวลา 02:15 น.)',
             academicSemesterScheduler: 'ทุกวัน (เวลา 00:05 น.)',
             projectDeadlineMonitor: 'ทุกชั่วโมง',
-            internshipWorkflowMonitor: 'ทุกวัน (เวลา 02:00 น.)',
-            internshipStatusMonitor: 'ทุกวัน (เวลา 02:00 น.)'
+            internshipLifecycleMonitor: 'ทุกวัน (เวลา 02:00 น.)'
         };
 
         return schedules[agentName] || 'ไม่ระบุ';
