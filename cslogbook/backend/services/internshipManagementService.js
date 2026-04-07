@@ -252,7 +252,7 @@ class InternshipManagementService {
           as: "documents",
           where: {
             documentName: "CS05",
-            status: ["approved", "supervisor_approved", "supervisor_evaluated", "cancelled"], // ✅ เพิ่ม cancelled เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้
+            status: ["approved", "acceptance_approved", "supervisor_evaluated", "referral_ready", "referral_downloaded", "completed", "cancelled"],
           },
           required: true,
           include: [

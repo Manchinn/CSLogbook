@@ -33,10 +33,10 @@ class InternshipDocumentService {
           "pending",
           "approved",
           "rejected",
-          "acceptance_pending",
           "acceptance_approved",
-          "supervisor_approved",
           "supervisor_evaluated",
+          "referral_ready",
+          "referral_downloaded",
         ],
       },
       include: [

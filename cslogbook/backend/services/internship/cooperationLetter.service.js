@@ -23,14 +23,11 @@ const GARUDA_IMAGE = path.join(__dirname, "../../assets/garuda.png");
  */
 const CS05_POST_APPROVAL_STATUSES = new Set([
   "approved",
-  "acceptance_pending",
   "acceptance_approved",
-  "referral_letter_pending",
-  "referral_letter_ready",
-  "active",
-  "completed",
-  "supervisor_approved",
   "supervisor_evaluated",
+  "referral_ready",
+  "referral_downloaded",
+  "completed",
 ]);
 
 // ===== PDF Layout Helpers =====
