@@ -18,15 +18,11 @@ import styles from "./flow.module.css";
 /** CS05 status ที่แสดง download panel (ทุก status หลัง approved ขึ้นไป) */
 const STATUSES_WITH_DOWNLOADS = new Set([
   "approved",
-  "acceptance_pending",
   "acceptance_approved",
-  "referral_letter_pending",
-  "referral_letter_ready",
-  "active",
-  "completed",
-  // รองรับ status ทั่วไปของ Document model
-  "supervisor_approved",
   "supervisor_evaluated",
+  "referral_ready",
+  "referral_downloaded",
+  "completed",
 ]);
 
 const acceptanceTemplateUrl =
