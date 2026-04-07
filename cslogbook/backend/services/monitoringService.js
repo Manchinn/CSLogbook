@@ -58,9 +58,12 @@ class MonitoringService {
   }
 
   parseLine(raw) {
-    const match = raw.match(/^\[(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\]\s(\w+):\s(.*)$/);
+    // รองรับ Winston format: [2026-04-07 15:41:12.052] INFO: message {"service":"cslogbook"...}
+    const match = raw.match(/^\[(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})(?:\.\d+)?\]\s(\w+):\s(.*)$/);
     if (match) {
-      return { timestamp: match[1], level: match[2], message: match[3], raw };
+      // ตัด trailing JSON metadata ออก (ไม่จำเป็นใน UI)
+      const message = match[3].replace(/\s*\{["\s]*service["\s]*:.*\}\s*$/, '').trim();
+      return { timestamp: match[1], level: match[2], message, raw };
     }
     return { timestamp: '', level: 'INFO', message: raw, raw };
   }
