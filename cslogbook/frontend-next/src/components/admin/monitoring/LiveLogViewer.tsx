@@ -32,7 +32,7 @@ export function LiveLogViewer({ token, initialLines }: Props) {
   const handleFileChange = (file: string) => { setLogFile(file); clearLines(); };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,.08)" }}>
+    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,.08)", minWidth: 0, overflow: "hidden" }}>
       <h2 style={{ fontSize: 15, color: "#666", marginBottom: 14, textTransform: "uppercase", fontWeight: 600 }}>Live Log Viewer</h2>
       <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ width: 10, height: 10, borderRadius: "50%", background: connected ? "#22c55e" : "#ef4444", display: "inline-block", animation: connected ? "pulse 1.5s infinite" : "none" }} />
@@ -46,7 +46,7 @@ export function LiveLogViewer({ token, initialLines }: Props) {
         <input type="text" placeholder="Search logs..." value={search} onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1, minWidth: 150, padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
       </div>
-      <div style={{ background: "#1e1e2e", borderRadius: 8, padding: 16, fontFamily: '"Cascadia Code","Fira Code",monospace', fontSize: 12, lineHeight: 1.8, color: "#cdd6f4", maxHeight: 400, overflowY: "auto" }}>
+      <div style={{ background: "#1e1e2e", borderRadius: 8, padding: 16, fontFamily: '"Cascadia Code","Fira Code",monospace', fontSize: 12, lineHeight: 1.8, color: "#cdd6f4", maxHeight: 400, overflowY: "auto", overflowX: "auto" }}>
         {filtered.length === 0 && <div style={{ color: "#6c7086" }}>No logs to display</div>}
         {filtered.map((line, i) => (
           <div key={i} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
