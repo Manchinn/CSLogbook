@@ -139,9 +139,9 @@ export const INTERNSHIP_DOCUMENT_TRANSITIONS: Record<InternshipDocumentStatus, I
   /** @phantom — implicit re-submit, no explicit code path */
   [InternshipDocumentStatus.REJECTED]: [InternshipDocumentStatus.DRAFT],
   [InternshipDocumentStatus.SUPERVISOR_EVALUATED]: [InternshipDocumentStatus.COMPLETED],
-  /** @phantom — referral_ready not set by any code, used in query filter only */
+  /** referral_ready — ใช้ใน query filter (documentApprovalService, cooperationLetter, referralLetter) */
   [InternshipDocumentStatus.ACCEPTANCE_APPROVED]: [InternshipDocumentStatus.REFERRAL_READY],
-  /** @phantom — referral_downloaded is frontend-only, not persisted */
+  /** referral_downloaded — set โดย referralLetter.service.js:markDownloaded (return value, ไม่ update CS05 document โดยตรง) */
   [InternshipDocumentStatus.REFERRAL_READY]: [InternshipDocumentStatus.REFERRAL_DOWNLOADED],
   [InternshipDocumentStatus.REFERRAL_DOWNLOADED]: [],
   [InternshipDocumentStatus.COMPLETED]: [],
@@ -256,10 +256,10 @@ export const STATUS_UI_CONFIG: Record<string, StatusUIEntry> = {
   pending:              { label: 'รอดำเนินการ',           labelEn: 'Pending',               tone: 'warning' },
   approved:             { label: 'อนุมัติแล้ว',            labelEn: 'Approved',              tone: 'success' },
   rejected:             { label: 'ไม่อนุมัติ',             labelEn: 'Rejected',              tone: 'danger' },
-  supervisor_evaluated: { label: 'หัวหน้าภาคตรวจแล้ว',    labelEn: 'Supervisor Evaluated',  tone: 'info' },
-  acceptance_approved:  { label: 'อนุมัติให้รับเล่ม',      labelEn: 'Acceptance Approved',   tone: 'success' },
-  referral_ready:       { label: 'พร้อมส่งต่อ',           labelEn: 'Referral Ready',        tone: 'info' },
-  referral_downloaded:  { label: 'ดาวน์โหลดแล้ว',         labelEn: 'Referral Downloaded',   tone: 'info' },
+  supervisor_evaluated: { label: 'ประเมินแล้ว',            labelEn: 'Supervisor Evaluated',  tone: 'success' },
+  acceptance_approved:  { label: 'ตอบรับแล้ว',            labelEn: 'Acceptance Approved',   tone: 'success' },
+  referral_ready:       { label: 'หนังสือส่งตัวพร้อม',     labelEn: 'Referral Ready',        tone: 'info' },
+  referral_downloaded:  { label: 'ดาวน์โหลดหนังสือส่งตัวแล้ว', labelEn: 'Referral Downloaded', tone: 'success' },
   cancelled:            { label: 'ยกเลิก',                labelEn: 'Cancelled',             tone: 'danger' },
 
   // ── Project Document ──
@@ -430,6 +430,9 @@ const TRANSITION_MAPS: Record<string, Record<string, string[]>> = {
 
 /**
  * ตรวจว่า from → to เป็น valid transition หรือไม่
+ *
+ * NOTE: ยังไม่ถูกเรียกใช้ใน codebase — เตรียมไว้สำหรับ frontend validation
+ * ก่อนส่ง API request เพื่อลด unnecessary round-trip
  *
  * @param track  ชื่อ track เช่น 'defense_request', 'project_workflow'
  * @param fromStatus  สถานะปัจจุบัน
