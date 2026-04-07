@@ -46,7 +46,7 @@ export default function MonitoringPage() {
 
   return (
     <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24, maxWidth: "100%", overflow: "hidden" }}>
         <h1 style={{ fontSize: 22, marginBottom: 20, color: "#1a1a2e" }}>
           System Monitoring
           <span style={{ background: "#1a1a2e", color: "#fff", fontSize: 11, padding: "3px 10px", borderRadius: 6, marginLeft: 8 }}>
@@ -54,7 +54,7 @@ export default function MonitoringPage() {
           </span>
         </h1>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16, minWidth: 0 }}>
           <SystemHealthCard stats={healthData} isLoading={healthLoading} />
           <AgentStatusCard agents={agentData} token={token} isLoading={agentLoading} onRefresh={() => refetchAgents()} />
         </div>

@@ -1,4 +1,4 @@
-const { User, Student, Admin, Teacher } = require('../models');
+const { User, Student, Admin, Teacher, SystemLog } = require('../models');
 const jwt = require('jsonwebtoken');
 const { sendLoginNotification } = require('../utils/mailer');
 const logger = require('../utils/logger');
@@ -320,6 +320,14 @@ class AuthService {
         role: user.role,
         timestamp: moment().tz('Asia/Bangkok').format()
       });
+
+      // 8. บันทึก SystemLog (audit trail)
+      SystemLog.create({
+        actionType: 'LOGIN',
+        actionDescription: `เข้าสู่ระบบ — ${user.firstName} ${user.lastName} (${user.role})`,
+        userId: user.userId,
+        ipAddress: null
+      }).catch(err => logger.warn('SystemLog login write failed:', err.message));
 
       return {
         success: true,
