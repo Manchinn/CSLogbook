@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const path = require('path');
 const internshipService = require('../../services/internshipService');
 const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/auditLog');
 
 // root ของ uploads directory (รองรับทั้ง env var และ default)
 const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
@@ -209,6 +210,7 @@ exports.approveByHead = async (req, res) => {
       logger.warn('Notification failed (CS05 approve):', notifyErr.message);
     }
 
+  logAction('APPROVE_CS05', `อนุมัติ คพ.05 #${id}`, { userId: req.user.userId, ipAddress: req.ip });
   return res.json({ success: true, message: 'อนุมัติ คพ.05 สำเร็จ' });
   } catch (error) {
     logger.error('CP05 approveByHead error:', error);
@@ -273,6 +275,7 @@ exports.reject = async (req, res) => {
       logger.warn('Notification failed (CS05 reject):', notifyErr.message);
     }
 
+    logAction('REJECT_CS05', `ส่งกลับ คพ.05 #${id}`, { userId: req.user.userId, ipAddress: req.ip });
     return res.json({ success: true, message: 'ปฏิเสธ คพ.05 สำเร็จ', notificationSent });
   } catch (error) {
     logger.error('CP05 reject error:', error);

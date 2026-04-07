@@ -5,6 +5,7 @@
 
 const agentStatusService = require('../services/agentStatusService');
 const logger = require('../utils/logger');
+const { logAction } = require('../utils/auditLog');
 
 class AgentStatusController {
     /**
@@ -80,6 +81,7 @@ class AgentStatusController {
             
             const result = await agentStatusService.restartAgent(agentName);
             
+            logAction('RESTART_AGENT', `รีสตาร์ท agent: ${agentName}`, { userId: req.user.userId, ipAddress: req.ip });
             res.json({
                 success: true,
                 message: result.message

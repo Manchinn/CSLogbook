@@ -1,5 +1,6 @@
 const projectSystemTestService = require('../services/projectSystemTestService');
 const logger = require('../utils/logger');
+const { logAction } = require('../utils/auditLog');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 
 const buildResponse = (res, promise) => {
@@ -39,13 +40,20 @@ module.exports = {
     return buildResponse(res, projectSystemTestService.submitAdvisorDecision(projectId, req.user, payload));
   },
 
-  submitStaffDecision(req, res) {
+  async submitStaffDecision(req, res) {
     const projectId = req.params.id;
     const payload = {
       decision: req.body?.decision,
       note: req.body?.note
     };
-    return buildResponse(res, projectSystemTestService.submitStaffDecision(projectId, req.user, payload));
+    try {
+      const data = await projectSystemTestService.submitStaffDecision(projectId, req.user, payload);
+      logAction('DECIDE_SYSTEM_TEST', `เจ้าหน้าที่ ${payload.decision} คำขอทดสอบระบบ projectId=${projectId}`, { userId: req.user.userId });
+      return res.json({ success: true, data });
+    } catch (error) {
+      logger.error('projectSystemTestController error', { error: error.message });
+      return res.status(400).json({ success: false, message: error.message || 'ไม่สามารถดำเนินการได้' });
+    }
   },
 
   uploadEvidence(req, res) {

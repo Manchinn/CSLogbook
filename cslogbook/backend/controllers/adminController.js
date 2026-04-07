@@ -2,6 +2,7 @@
 const adminService = require('../services/adminService');
 const { updateAllStudentsEligibility, updateStudentEligibility } = require('../agents/eligibilityUpdater');
 const logger = require('../utils/logger');
+const { logAction } = require('../utils/auditLog');
 
 // Controller exports
 module.exports = {
@@ -92,6 +93,7 @@ module.exports = {
       
       if (result.success) {
         logger.info(`Admin: อัปเดตสิทธิ์สำเร็จ ${result.updated}/${result.total} คน`);
+        logAction('UPDATE_ELIGIBILITY_BULK', 'อัปเดตสิทธิ์นักศึกษาทั้งหมด', { userId: req.user.userId, ipAddress: req.ip });
         res.json({
           success: true,
           message: `อัปเดตสิทธิ์สำเร็จ ${result.updated}/${result.total} คน`,
@@ -135,6 +137,7 @@ module.exports = {
       
       if (result.success) {
         logger.info(`Admin: อัปเดตสิทธิ์นักศึกษา ${studentCode} สำเร็จ`);
+        logAction('UPDATE_ELIGIBILITY', `อัปเดตสิทธิ์นักศึกษา ${studentCode}`, { userId: req.user.userId, ipAddress: req.ip });
         res.json({
           success: true,
           message: `อัปเดตสิทธิ์นักศึกษา ${studentCode} สำเร็จ`,

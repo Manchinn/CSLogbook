@@ -14,6 +14,7 @@ const { Op } = require('sequelize');
 const notificationService = require('../notificationService');
 const logger = require('../../utils/logger');
 const { ensureMeetingAccess } = require('./meetingCoreService');
+const { logAction } = require('../../utils/auditLog');
 const { serializeLog } = require('./meetingSerializer');
 
 async function updateLogApproval(projectId, meetingId, logId, actor, payload = {}) {
@@ -91,6 +92,12 @@ async function updateLogApproval(projectId, meetingId, logId, actor, payload = {
   });
 
   logger.info('meetingService.updateLogApproval success', { meetingId, logId, decision, actorId: actor.userId });
+
+  if (decision === 'approved') {
+    logAction('APPROVE_MEETING_LOG', `อนุมัติบันทึกพบอาจารย์ logId=${logId}`, { userId: actor.userId });
+  } else if (decision === 'rejected') {
+    logAction('REJECT_MEETING_LOG', `ส่งกลับบันทึกพบอาจารย์ logId=${logId}`, { userId: actor.userId });
+  }
 
   if (decision === 'rejected' && updated?.recordedBy) {
     try {

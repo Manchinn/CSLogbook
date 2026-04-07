@@ -2,6 +2,7 @@
 const { Teacher } = require('../models');
 const projectDocumentService = require('../services/projectDocumentService');
 const logger = require('../utils/logger');
+const { logAction } = require('../utils/auditLog');
 
 module.exports = {
   async recordResult(req, res) {
@@ -62,6 +63,7 @@ module.exports = {
         actorUser: req.user,
         allowOverwrite: Boolean(allowOverwrite) // รองรับการแก้ไขผล
       });
+      logAction('RECORD_TOPIC_EXAM', `บันทึกผลสอบหัวข้อ projectId=${req.params.id}`, { userId: req.user.userId });
       return res.json({ success: true, data: project });
     } catch (error) {
       logger.error('recordResult error', { error: error.message });

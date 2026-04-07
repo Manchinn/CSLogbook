@@ -322,12 +322,8 @@ class AuthService {
       });
 
       // 8. บันทึก SystemLog (audit trail)
-      SystemLog.create({
-        actionType: 'LOGIN',
-        actionDescription: `เข้าสู่ระบบ — ${user.firstName} ${user.lastName} (${user.role})`,
-        userId: user.userId,
-        ipAddress: null
-      }).catch(err => logger.warn('SystemLog login write failed:', err.message));
+      const { logAction } = require('../utils/auditLog');
+      logAction('LOGIN', `เข้าสู่ระบบ — ${user.firstName} ${user.lastName} (${user.role})`, { userId: user.userId });
 
       return {
         success: true,

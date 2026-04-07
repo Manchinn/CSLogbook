@@ -18,6 +18,7 @@ const projectDocumentService = require('./projectDocumentService');
 const projectWorkflowService = require('./projectWorkflowService');
 const documentService = require('./documentService');
 const dayjs = require('dayjs');
+const { logAction } = require('../utils/auditLog');
 
 const DEFENSE_READY_STATUSES = ['staff_verified', 'scheduled', 'completed'];
 const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
@@ -533,6 +534,7 @@ class ProjectExamResultService {
       await transaction.commit();
 
       logger.info(`ผลสอบ ${examType} ถูกบันทึกสำหรับโครงงาน ${normalizedProjectId}: ${result}`);
+      logAction('RECORD_EXAM_RESULT', `บันทึกผลสอบ ${examType} = ${result} projectId=${normalizedProjectId}`, { userId: recordedByUserId });
       return examResult;
     } catch (error) {
       await transaction.rollback();

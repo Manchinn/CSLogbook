@@ -1,5 +1,6 @@
 const internshipLogbookService = require('../../services/internshipLogbookService');
 const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/auditLog');
 
 // ============= Controller สำหรับสมุดบันทึกประจำวัน =============
 
@@ -405,6 +406,8 @@ exports.approveTimeSheetEntry = async (req, res) => {
         const { comment } = req.body;
 
         const result = await internshipLogbookService.approveTimeSheetEntry(teacherId, logId, comment);
+
+        logAction('APPROVE_TIMESHEET', 'อนุมัติ logbook entry', { userId: req.user.userId });
 
         return res.json({
             success: true,

@@ -4,7 +4,7 @@
 
 const ssoService = require('../services/ssoService');
 const authService = require('../services/authService');
-const { SystemLog } = require('../models');
+const { logAction } = require('../utils/auditLog');
 const logger = require('../utils/logger');
 const moment = require('moment-timezone');
 
@@ -179,12 +179,7 @@ exports.callback = async (req, res) => {
     });
 
     // บันทึก SystemLog (audit trail)
-    SystemLog.create({
-      actionType: 'LOGIN',
-      actionDescription: `เข้าสู่ระบบผ่าน SSO — ${user.firstName} ${user.lastName} (${user.role})`,
-      userId: user.userId,
-      ipAddress: req.ip || null
-    }).catch(err => logger.warn('SystemLog SSO login write failed:', err.message));
+    logAction('LOGIN', `เข้าสู่ระบบผ่าน SSO — ${user.firstName} ${user.lastName} (${user.role})`, { userId: user.userId, ipAddress: req.ip });
 
     // สร้าง redirect URL พร้อม token
     const redirectPath = stateData.redirectPath || '/dashboard';

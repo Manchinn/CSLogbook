@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const path = require('path');
 const internshipManagementService = require('../../services/internshipManagementService');
 const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/auditLog');
 
 // root ของ uploads directory (รองรับทั้ง env var และ default)
 const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
@@ -295,6 +296,7 @@ exports.approveByHead = async (req, res) => {
       logger.warn('Notification failed (Acceptance approve):', notifyErr.message);
     }
 
+    logAction('APPROVE_ACCEPTANCE', `อนุมัติหนังสือตอบรับ #${id}`, { userId: req.user.userId, ipAddress: req.ip });
     return res.json({ success: true, message: 'อนุมัติหนังสือตอบรับนักศึกษาสำเร็จ' });
   } catch (error) {
     logger.error('Acceptance approveByHead error:', error);
@@ -346,6 +348,7 @@ exports.reject = async (req, res) => {
     } catch (notifyErr) {
       logger.warn('Notification failed (Acceptance reject):', notifyErr.message);
     }
+    logAction('REJECT_ACCEPTANCE', `ส่งกลับหนังสือตอบรับ #${id}`, { userId: req.user.userId, ipAddress: req.ip });
     return res.json({ success: true, message: 'ปฏิเสธ Acceptance Letter สำเร็จ', notificationSent });
   } catch (error) {
     logger.error('Acceptance reject error:', error);

@@ -8,6 +8,7 @@ const {
     ProjectExamResult,
 } = require('../../models');
 const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/auditLog');
 const notificationService = require('../notificationService');
 const projectDocumentService = require('../projectDocumentService');
 
@@ -136,6 +137,7 @@ async function approveDocument(documentId, reviewerId) {
         }
 
         logger.info(`Document approved: ${documentId} by ${reviewerId}`);
+        logAction('APPROVE_DOCUMENT', `อนุมัติเอกสาร documentId=${documentId}`, { userId: reviewerId });
         return { message: 'อนุมัติเอกสารเรียบร้อยแล้ว' };
     } catch (error) {
         logger.error('Error approving document:', error);
@@ -216,6 +218,7 @@ async function rejectDocument(documentId, reviewerId, reason = null) {
             }
         }
 
+        logAction('REJECT_DOCUMENT', `ส่งกลับเอกสาร documentId=${documentId}`, { userId: reviewerId });
         return {
             message: 'ปฏิเสธเอกสารเรียบร้อยแล้ว',
             reviewComment: document.reviewComment,

@@ -17,6 +17,7 @@ const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const { ExcelExportBuilder } = require('../utils/excelExportBuilder');
+const { logAction } = require('../utils/auditLog');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const { checkDefenseRequestDeadline, createDeadlineTag } = require('../utils/requestDeadlineChecker');
@@ -904,6 +905,7 @@ class ProjectDefenseRequestService {
       await t.commit();
 
       logger.info('verifyDefenseRequest success', { projectId, defenseType, staffUserId: actorUser?.userId || null });
+      logAction('VERIFY_DEFENSE', `เจ้าหน้าที่ตรวจสอบคำขอสอบ projectId=${projectId}`, { userId: actorUser?.userId || null });
 
       const serialized = this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
       return serialized;
@@ -957,6 +959,7 @@ class ProjectDefenseRequestService {
       await t.commit();
 
       logger.info('rejectDefenseRequest success', { projectId, defenseType, staffUserId: actorUser?.userId || null });
+      logAction('REJECT_DEFENSE', `ส่งกลับคำขอสอบ projectId=${projectId}`, { userId: actorUser?.userId || null });
 
       return this.serializeRequest(await request.reload({ include: this.buildRequestInclude() }));
     } catch (error) {
@@ -1118,6 +1121,12 @@ class ProjectDefenseRequestService {
         defenseType,
         decision: normalizedDecision
       });
+
+      if (normalizedDecision === 'approved') {
+        logAction('APPROVE_DEFENSE', `อาจารย์อนุมัติคำขอสอบ projectId=${projectId}`, { userId: teacherId });
+      } else {
+        logAction('REJECT_DEFENSE', `อาจารย์ส่งกลับคำขอสอบ projectId=${projectId}`, { userId: teacherId });
+      }
 
       if (hasRejected) {
         try {

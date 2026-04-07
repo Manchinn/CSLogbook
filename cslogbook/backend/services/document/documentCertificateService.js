@@ -7,6 +7,7 @@ const {
     Notification,
 } = require('../../models');
 const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/auditLog');
 
 /**
  * ดึงรายการคำขอหนังสือรับรองทั้งหมด
@@ -483,6 +484,7 @@ async function approveCertificateRequest(requestId, processorId, certificateNumb
         // สร้างการแจ้งเตือน
         await createCertificateApprovalNotification(request);
 
+        logAction('APPROVE_CERTIFICATE', `อนุมัติหนังสือรับรอง requestId=${requestId}`, { userId: processorId });
         logger.info(`Certificate request approved: ${requestId} by ${processorId}`);
         return request;
     } catch (error) {
@@ -525,6 +527,7 @@ async function rejectCertificateRequest(requestId, processorId, remarks = null) 
         // สร้างการแจ้งเตือน
         await createCertificateRejectionNotification(request, remarks);
 
+        logAction('REJECT_CERTIFICATE', `ส่งกลับหนังสือรับรอง requestId=${requestId}`, { userId: processorId });
         logger.info(`Certificate request rejected: ${requestId} by ${processorId}`);
         return request;
     } catch (error) {

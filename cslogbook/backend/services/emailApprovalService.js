@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const dayjs = require("dayjs");
 const { Op } = require("sequelize");
 const logger = require("../utils/logger");
+const { logAction } = require("../utils/auditLog");
 const {
   InternshipLogbook,
   ApprovalToken,
@@ -431,6 +432,8 @@ class EmailApprovalService {
         logger.error('EmailApprovalService: email_approval_result_failed', { error: err.message });
       });
 
+      logAction('APPROVE_TIMESHEET', `อนุมัติ timesheet ${logIds.length} รายการ`, { userId: approvalToken.supervisorId });
+
       return {
         success: true,
         message: "อนุมัติบันทึกการฝึกงานเรียบร้อยแล้ว",
@@ -543,6 +546,8 @@ class EmailApprovalService {
       ).catch(err => {
         logger.error('EmailApprovalService: email_rejection_result_failed', { error: err.message });
       });
+
+      logAction('REJECT_TIMESHEET', `ส่งกลับ timesheet ${logIds.length} รายการ`, { userId: rejectionToken.supervisorId });
 
       return {
         success: true,
