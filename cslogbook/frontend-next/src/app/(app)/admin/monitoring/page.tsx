@@ -45,7 +45,7 @@ export default function MonitoringPage() {
   });
 
   return (
-    <RoleGuard roles={["admin"]}>
+    <RoleGuard roles={["admin", "teacher"]} teacherTypes={["support"]}>
       <div style={{ padding: 24 }}>
         <h1 style={{ fontSize: 22, marginBottom: 20, color: "#1a1a2e" }}>
           System Monitoring

@@ -281,7 +281,10 @@ monitoringNs.use((socket, next) => {
   try {
     const jwtLib = require('jsonwebtoken');
     const payload = jwtLib.verify(token, process.env.JWT_SECRET);
-    if (payload.role !== 'admin') return next(new Error('Admin access required'));
+    // อนุญาต admin หรือ teacher:support (เจ้าหน้าที่)
+    const isAdmin = payload.role === 'admin';
+    const isSupport = payload.role === 'teacher' && payload.teacherType === 'support';
+    if (!isAdmin && !isSupport) return next(new Error('Admin access required'));
     socket.data.userId = payload.userId || payload.id;
     socket.data.role = payload.role;
     next();
