@@ -271,6 +271,51 @@ io.on('connection', (socket) => {
   });
 });
 
+// === Monitoring Socket.io namespace (admin-only) ===
+const monitoringNs = io.of('/monitoring');
+const monitoringService = require('./services/monitoringService');
+
+monitoringNs.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const jwtLib = require('jsonwebtoken');
+    const payload = jwtLib.verify(token, process.env.JWT_SECRET);
+    if (payload.role !== 'admin') return next(new Error('Admin access required'));
+    socket.data.userId = payload.userId || payload.id;
+    socket.data.role = payload.role;
+    next();
+  } catch (e) {
+    next(new Error('Invalid token'));
+  }
+});
+
+monitoringNs.on('connection', (socket) => {
+  logger.info(`[Monitoring] Admin connected userId=${socket.data.userId}`);
+  let currentWatcher = null;
+
+  socket.on('tail', (fileName) => {
+    if (currentWatcher) { currentWatcher.stop(); currentWatcher = null; }
+    try {
+      currentWatcher = monitoringService.createLogWatcher(fileName, (logLine) => {
+        socket.emit('log_line', logLine);
+      });
+      logger.info(`[Monitoring] Tailing ${fileName} for userId=${socket.data.userId}`);
+    } catch (err) {
+      socket.emit('error', { message: err.message });
+    }
+  });
+
+  socket.on('stop_tail', () => {
+    if (currentWatcher) { currentWatcher.stop(); currentWatcher = null; }
+  });
+
+  socket.on('disconnect', () => {
+    if (currentWatcher) { currentWatcher.stop(); currentWatcher = null; }
+    logger.info(`[Monitoring] Admin disconnected userId=${socket.data.userId}`);
+  });
+});
+
 // Logging middleware
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.url}`, req.body);

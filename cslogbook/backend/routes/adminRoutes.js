@@ -167,6 +167,10 @@ router.get('/agent-status/notifications', adminAuth, agentStatusController.getAg
 router.get('/agent-status/email-stats', adminAuth, agentStatusController.getEmailStats);
 router.post('/agent-status/:agentName/restart', adminAuth, agentStatusController.restartAgent);
 
+// === Monitoring Routes ===
+const monitoringRoutes = require('./admin/monitoringRoutes');
+router.use('/monitoring', adminAuth, monitoringRoutes);
+
 // === Project Management Routes ===
 // ค้นหานักศึกษา
 router.get('/projects/student/:studentCode', adminAuth, projectManagementController.findStudentByCode);
