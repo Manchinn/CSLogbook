@@ -310,6 +310,7 @@ function buildAdminMenu(): MenuNode[] {
       ],
     },
     menuLink("upload", "อัปโหลดรายชื่อนักศึกษา", "/admin/upload"),
+    menuLink("monitoring", "System Monitoring", "/admin/monitoring"),
     {
       key: "settings",
       label: "ตั้งค่าระบบ",
