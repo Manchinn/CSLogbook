@@ -27,8 +27,10 @@ const FONT_BOLD = path.join(__dirname, "../fonts/Loma-Bold.otf");
 const ACTIVE_CS05_STATUSES = [
   "pending",
   "approved",
-  "supervisor_approved",
+  "acceptance_approved",
   "supervisor_evaluated",
+  "referral_ready",
+  "referral_downloaded",
 ];
 
 class InternshipLogbookService {

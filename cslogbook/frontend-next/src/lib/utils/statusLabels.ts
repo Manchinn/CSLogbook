@@ -14,6 +14,10 @@ export const STATUS_LABELS: Record<string, string> = {
   inactive:      "ไม่ใช้งาน",
   completed:     "เสร็จสิ้น",
   cancelled:     "ยกเลิก",
+  supervisor_evaluated:  "ประเมินแล้ว",
+  acceptance_approved:   "ตอบรับแล้ว",
+  referral_ready:        "หนังสือส่งตัวพร้อม",
+  referral_downloaded:   "ดาวน์โหลดหนังสือส่งตัวแล้ว",
 
   // Internship workflow
   not_started:       "ยังไม่เริ่ม",
@@ -108,6 +112,10 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   staff_verified:     "success",
   staff_approved:     "success",
   evidence_submitted: "success",
+  supervisor_evaluated: "success",
+  acceptance_approved:  "success",
+  referral_ready:       "info",
+  referral_downloaded:  "success",
   submitted:          "info",
   eligible:           "success",
   ready:              "success",
