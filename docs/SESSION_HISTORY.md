@@ -73,6 +73,7 @@ Branch: `claude/claude-md-mm56ik11ksjo6flh-JgWXL`
 | 65 | 03-31 | PR Review Fixes: DB-level filters, search sanitization, export tests — commit ccfd0a5b |
 | 66 | 03-31 | Dead code + validation: ลบ flattenProjects helper, เพิ่ม pagination validation — commit 63b58b7b |
 | 67 | 03-31 | Codebase Audit & Refactor: ลบ dead code 5 items (workflowStepService, legacyNavigation, calculateWorkHours, checkProjectMember, FullTableSkeleton), แปลง console.log→logger ~85 จุดใน 15 ไฟล์, แก้ any→proper types 4 จุดใน teacherService + extract mapRawDefenseRequest helper, split documentService.js (1,938→5 modules+facade) + meetingService.js (1,509→4 modules+facade), ตรวจ reportService TODO 4 ตัว (1 ทำไปแล้ว, 3 พร้อม implement) — 34 files, commit b29f1726 |
+| 68 | 04-07 | Logic Verification & Fixes: ตรวจสอบ logic ทั้ง 3 tracks ด้วย parallel agents (11 agents total) — พบ+แก้ invalid Document.status 7 files (supervisor_approved, acceptance_pending, referral_letter_ready), เพิ่ม 4 Thai labels, sync STATUS_UI_CONFIG, สร้าง EligibilityGuard + TokenCleanupScheduler, ตรวจ DB table usage (5 unused models documented) — 5 commits |
 
 ### Pending
 
@@ -1399,3 +1400,54 @@ Header → Stepper → Gate Warning → Rejection → Error → Status Card → 
 |---|---|
 | Defense hardcode | ลบ `EXPORT_DEFAULT_STATUSES` hardcode — ให้ export ใช้ status ตาม UI filter |
 | Certificates search | เพิ่ม search param ตลอด stack: FE type → FE component → BE controller → BE service query |
+
+---
+
+## Session 63 (claude, 2026-04-05) — Screenshot UAT: Thesis chapter 5 (fig-5-44 to 5-57)
+
+**เป้าหมาย:** ถ่าย screenshot สำหรับบทที่ 5 ของปริญญานิพนธ์ ครอบคลุม flow ปริญญานิพนธ์ (fig-5-44 ถึง 5-57) ที่มีสถานะว่างเปล่าหรือขาดข้อมูล UAT
+
+### สิ่งที่ทำ
+
+**1. Insert UAT test data เข้า production DB (via SSH heredoc SQL)**
+- `defense_requests`: KP02 (project_id=153, advisor_in_review), KP03 (project_id=154, staff_verified)
+- `test_requests`: uat_thesis system-test (project_id=154, advisor_in_review)
+- แก้ปัญหา: `project_id cannot be null` (role='owner' → 'leader'), duplicate entry THESIS (insert first + UPDATE)
+- ยืนยัน: defense_scheduled_at=2026-04-20, room=ห้อง CS-301
+
+**2. Playwright Python screenshot automation**
+- ติดตั้ง Playwright + Chromium ใน sandbox (`pip install playwright --break-system-packages`)
+- แก้ปัญหา login: `input[name="username"]` (type=None field), `wait_for_url(lambda)`
+- แก้ปัญหา React #310 (`/project/phase2/thesis-defense` direct URL): navigate ผ่าน `/project/phase1` → click KP03 card แทน
+- แก้ปัญหา URL ผิด: `/teacher/system-test` → `/teacher/system-test/advisor-queue`
+
+**3. Thai font rendering fix**
+- ปัญหา: sidebar items + buttons แสดงเป็น □□□□ ใน headless Chromium (web font ไม่ load, ไม่มี Thai fallback)
+- แก้: ดาวน์โหลด NotoSansThai + Sarabun → `~/.local/share/fonts/` + `fc-cache`
+- ผล: Thai text render ครบทุกภาพ
+
+**4. Screenshots ที่ถ่ายใหม่ใน session นี้**
+
+| ภาพ | เนื้อหา | หมายเหตุ |
+|-----|---------|----------|
+| fig-5-44 | teacher: คำขอสอบ คพ.02 (list) | retake + font fix |
+| fig-5-45 | teacher: modal อนุมัติ คพ.02 | retake + fix selector (table tbody button) |
+| fig-5-49 | teacher: คำขอทดสอบระบบ (list) | retake + correct URL |
+| fig-5-51 | student: คำขอสอบ คพ.03 (view) | retake via phase1→KP03 card |
+| fig-5-52 | student: คำขอสอบ คพ.03 (scroll) | retake |
+| fig-5-53 | teacher: คำขอสอบ คพ.03 (list) | retake + correct URL |
+| fig-5-55 | admin: รายการผลสอบปริญญานิพนธ์ | insert UAT data + filter=all |
+| fig-5-56 | admin: drawer รายละเอียดผลสอบ UAT | บันทึกแล้ว disabled (exam date future) → ใช้ รายละเอียด แทน |
+| fig-5-57 | admin: modal อัปเดตสถานะเล่ม UAT | dropdown + buttons ครบ |
+
+**5. ตรวจพบ screenshots น่าสงสัย (size duplicate)**
+- กลุ่ม 108KB: fig-5-09, 5-10, 5-11 (KP05 steps)
+- กลุ่ม 98KB: fig-5-14, 5-15, 5-16 (logbook pages)
+- กลุ่ม 83KB: fig-5-33, 5-34, 5-35 (topic proposal steps)
+- กลุ่ม 297KB: fig-5-12, 5-20, 5-27, 5-30 (stepper/full-page shots)
+- รอ user ยืนยันว่าต้อง retake หรือไม่
+
+### Scripts ที่สร้าง (ใน session sandbox)
+- `retake.py`, `retake2.py` — teacher + student pages (earlier attempt)
+- `retake_final.py` — comprehensive retake หลัง font fix
+- `take5557.py`, `take57.py`, `retake_admin.py`, `retake_admin2.py`, `fix5657.py`, `fix56.py` — admin screenshots iterations
