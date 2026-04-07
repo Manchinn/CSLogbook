@@ -10,6 +10,7 @@ const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
 const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const projectDeadlineMonitor = require('./projectDeadlineMonitor');
 const internshipLifecycleMonitor = require('./internshipLifecycleMonitor');
+const tokenCleanupScheduler = require('./schedulers/tokenCleanupScheduler');
 const logger = require('../utils/logger');
 const agentConfig = require('./config');
 
@@ -96,6 +97,22 @@ class AgentManager {
         get isRunning() {
           return internshipLifecycleMonitor.isRunning || false;
         }
+      },
+      tokenCleanupScheduler: {
+        _isRunning: false,
+        start: function() {
+          logger.info('Starting token cleanup scheduler');
+          tokenCleanupScheduler.scheduleTokenCleanup();
+          this._isRunning = true;
+          return true;
+        },
+        stop: function() {
+          logger.info('Stopping token cleanup scheduler');
+          tokenCleanupScheduler.stopTokenCleanup();
+          this._isRunning = false;
+          return true;
+        },
+        get isRunning() { return this._isRunning; }
       },
     };
     
