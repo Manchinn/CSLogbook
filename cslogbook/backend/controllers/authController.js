@@ -66,6 +66,11 @@ exports.refreshToken = async (req, res) => {
             });
         }
 
+        // Blacklist old token เมื่อ refresh สำเร็จ
+        if (req.user?.jti && req.user?.exp) {
+            tokenBlacklist.add(req.user.jti, req.user.exp * 1000);
+        }
+
         res.json({
             success: true,
             token: result.data.token

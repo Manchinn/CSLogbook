@@ -1,6 +1,9 @@
 node_modules/
 .claude/
 
+# Token blacklist persistence (auto-generated)
+cslogbook/backend/data/token-blacklist.json
+
 # Playwright E2E — track source, ignore artifacts
 playwright-e2e/node_modules/
 playwright-e2e/test-results/

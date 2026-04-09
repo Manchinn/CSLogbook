@@ -43,6 +43,10 @@ const mockDocumentLogCreate = jest.fn().mockResolvedValue({});
 const mockCertRequestFindByPk = jest.fn();
 const mockNotificationCreate = jest.fn().mockResolvedValue({});
 
+jest.mock('../utils/auditLog', () => ({
+  logAction: jest.fn(),
+}));
+
 jest.mock('../models', () => {
   const actualSequelize = require('sequelize');
   return {
@@ -60,6 +64,9 @@ jest.mock('../models', () => {
     },
     InternshipDocument: {},
     StudentWorkflowActivity: {},
+    SystemLog: {
+      create: jest.fn().mockResolvedValue({}),
+    },
     Notification: {
       create: mockNotificationCreate,
     },

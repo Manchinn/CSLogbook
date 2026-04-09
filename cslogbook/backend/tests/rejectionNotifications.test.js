@@ -48,6 +48,10 @@ const mockProjectMemberFindAll = jest.fn().mockResolvedValue([
   },
 ]);
 
+jest.mock('../utils/auditLog', () => ({
+  logAction: jest.fn(),
+}));
+
 jest.mock('../models', () => {
   const actualSequelize = require('sequelize');
   return {
@@ -72,6 +76,9 @@ jest.mock('../models', () => {
         get: function() { return this; },
       }),
       findAll: jest.fn(),
+    },
+    SystemLog: {
+      create: jest.fn().mockResolvedValue({}),
     },
     ProjectMember: {
       findAll: mockProjectMemberFindAll,
