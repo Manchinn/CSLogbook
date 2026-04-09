@@ -1376,12 +1376,21 @@ class InternshipLogbookService {
    */
   async checkAndUpdateSummaryPending(internshipId) {
     try {
-      const { Internship } = require('../models');
-      const internship = await Internship.findByPk(internshipId, {
-        include: [{ model: Student, as: 'student' }]
+      const internship = await InternshipDocument.findByPk(internshipId, {
+        include: [{
+          model: Document,
+          as: 'document',
+          include: [{
+            model: User,
+            as: 'owner',
+            include: [{ model: Student, as: 'student' }]
+          }]
+        }]
       });
 
-      if (!internship || !internship.student) {
+      // ดึง student ผ่าน chain: InternshipDocument → Document → User → Student
+      const student = internship?.document?.owner?.student;
+      if (!internship || !student) {
         logger.warn(`Internship ${internshipId} not found or no student`);
         return;
       }
@@ -1391,7 +1400,7 @@ class InternshipLogbookService {
       const { StudentWorkflowActivity } = require('../models');
       const activity = await StudentWorkflowActivity.findOne({
         where: {
-          studentId: internship.student.studentId,
+          studentId: student.studentId,
           workflowType: 'internship'
         }
       });
@@ -1429,7 +1438,7 @@ class InternshipLogbookService {
       // Update workflow ถ้าตรงเงื่อนไข
       if (shouldUpdateToSummaryPending) {
         await workflowService.updateStudentWorkflowActivity(
-          internship.student.studentId,
+          student.studentId,
           'internship',
           'INTERNSHIP_SUMMARY_PENDING',
           'awaiting_student_action',
@@ -1440,7 +1449,7 @@ class InternshipLogbookService {
             triggeredAt: new Date().toISOString()
           }
         );
-        logger.info(`Updated workflow to SUMMARY_PENDING for student ${internship.student.studentId}`);
+        logger.info(`Updated workflow to SUMMARY_PENDING for student ${student.studentId}`);
         return true;
       }
 

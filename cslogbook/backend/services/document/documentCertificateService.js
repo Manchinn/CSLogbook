@@ -130,7 +130,7 @@ async function getCertificateRequests(filters = {}, pagination = {}) {
  */
 async function getCertificateRequestDetail(requestId) {
     try {
-        const { InternshipCertificateRequest, Internship, InternshipEvaluation, InternshipDocument: InternshipDocModel } = require('../../models');
+        const { InternshipCertificateRequest, InternshipEvaluation } = require('../../models');
 
         const request = await InternshipCertificateRequest.findByPk(requestId, {
             include: [
@@ -146,19 +146,11 @@ async function getCertificateRequestDetail(requestId) {
         });
         if (!request) throw new Error('ไม่พบคำขอหนังสือรับรอง');
 
-        // ดึงข้อมูล internship หลัก + รายละเอียดจาก internship_documents
-        let internshipInfo = null;
-        let internshipDoc = null; // จากตาราง internship_documents (InternshipDocument model)
+        // ดึงข้อมูลจาก InternshipDocument (ตาราง internship_documents)
+        let internshipDoc = null;
         try {
-            if (Internship && request.internshipId) {
-                internshipInfo = await Internship.findByPk(request.internshipId);
-            }
-        } catch (e) {
-            logger.warn('ไม่สามารถดึงข้อมูล Internship เพิ่มเติม:', e.message);
-        }
-        try {
-            if (InternshipDocModel && request.internshipId) {
-                internshipDoc = await InternshipDocModel.findOne({ where: { internshipId: request.internshipId } });
+            if (request.internshipId) {
+                internshipDoc = await InternshipDocument.findOne({ where: { internshipId: request.internshipId } });
             }
         } catch (e) {
             logger.warn('ไม่สามารถดึงข้อมูล InternshipDocument:', e.message);
@@ -290,10 +282,10 @@ async function getCertificateRequestDetail(requestId) {
                 internshipPosition: internshipDoc?.internshipPosition || null, // ตำแหน่งที่ฝึกงาน
             },
             internship: {
-                companyName: internshipDoc?.companyName || internshipInfo?.companyName || null,
-                location: internshipDoc?.companyAddress || internshipInfo?.province || null, // ใช้ address เป็นที่ตั้ง
-                startDate: internshipDoc?.startDate || internshipInfo?.startDate || null,
-                endDate: internshipDoc?.endDate || internshipInfo?.endDate || null,
+                companyName: internshipDoc?.companyName || null,
+                location: internshipDoc?.companyAddress || null,
+                startDate: internshipDoc?.startDate || null,
+                endDate: internshipDoc?.endDate || null,
                 totalHours: approvedHours, // ✅ ใช้ approved hours แทน
                 _originalTotalHours: request.totalHours, // เก็บค่าเดิม (ถ้าต้องการ debug)
                 internshipId: request.internshipId || internshipDoc?.internshipId || null,
@@ -337,8 +329,8 @@ async function getCertificateRequestDetail(requestId) {
  */
 async function getInternshipSummary(internshipId) {
     try {
-        const { Internship, InternshipEvaluation, InternshipCertificateRequest } = require('../../models');
-        const internship = Internship ? await Internship.findByPk(internshipId) : null;
+        const { InternshipEvaluation, InternshipCertificateRequest } = require('../../models');
+        const internship = await InternshipDocument.findByPk(internshipId);
         if (!internship) throw new Error('ไม่พบข้อมูลการฝึกงาน');
 
         // ดึง evaluation ล่าสุด
@@ -444,19 +436,17 @@ async function approveCertificateRequest(requestId, processorId, certificateNumb
             processedBy: processorId,
         });
 
-        // ✅ Update workflow และ Student.internshipStatus - การฝึกงานเสร็จสมบูรณ์
+        // ✅ Update workflow และ Student.internshipStatus — การฝึกงานเสร็จสมบูรณ์
         try {
-            const { Internship, Student: StudentModel } = require('../../models');
-            const internship = await Internship.findByPk(request.internshipId, {
-                include: [{ model: StudentModel, as: 'student' }]
-            });
+            // InternshipCertificateRequest มี studentId ตรง — ไม่ต้อง join ผ่าน InternshipDocument
+            const studentRecord = await Student.findByPk(request.studentId);
 
-            if (internship?.student) {
+            if (studentRecord) {
                 const workflowService = require('../workflowService');
 
                 // 1. อัพเดท workflow
                 await workflowService.updateStudentWorkflowActivity(
-                    internship.student.studentId,
+                    studentRecord.studentId,
                     'internship',
                     'INTERNSHIP_COMPLETED',
                     'completed',
@@ -468,13 +458,13 @@ async function approveCertificateRequest(requestId, processorId, certificateNumb
                     }
                 );
 
-                // 2. ✅ อัพเดท Student.internshipStatus เป็น 'completed'
-                await StudentModel.update(
+                // 2. อัพเดท Student.internshipStatus เป็น 'completed'
+                await Student.update(
                     { internshipStatus: 'completed' },
-                    { where: { studentId: internship.student.studentId } }
+                    { where: { studentId: studentRecord.studentId } }
                 );
 
-                logger.info(`Updated workflow and student status to COMPLETED for student ${internship.student.studentId} (certificate approved)`);
+                logger.info(`Updated workflow and student status to COMPLETED for student ${studentRecord.studentId} (certificate approved)`);
             }
         } catch (workflowError) {
             logger.error('Error updating workflow and student status after certificate approval:', workflowError);

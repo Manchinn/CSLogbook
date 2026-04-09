@@ -47,11 +47,11 @@ const sequelize = buildSequelizeInstance();
 
 if (!isTestEnv) {
     sequelize.afterConnect(() => {
-      console.log('New connection established');
+      logger.debug('New database connection established');
     });
 
     sequelize.beforeDisconnect(() => {
-      console.log('Connection terminated');
+      logger.debug('Database connection terminated');
     });
 }
 

@@ -1,6 +1,6 @@
-const { ProjectDocument, ProjectMember, ProjectWorkflowState, Timeline, WorkflowDefinition } = require('../models');
+const { ProjectDocument, ProjectMember, ProjectWorkflowState, TimelineStep } = require('../models');
 const { Op } = require('sequelize');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 const logger = require('../utils/logger');
 
 /**
@@ -96,20 +96,19 @@ async function transitionToProject2(projectId, options = {}) {
             await workflowState.update({ currentPhase: 'IN_PROGRESS' }, { transaction });
         }
 
-        // สร้าง Timeline entry สำหรับ transition
-        await Timeline.create({
-            student_id: project.members?.[0]?.student_id, // หัวหน้าทีม
-            category: 'project',
-            activity_type: 'project_transition',
-            description: `โครงงานเปลี่ยนจาก Project 1 เป็น Project 2 (ปริญญานิพนธ์) ${transitionType === 'auto' ? 'อัตโนมัติ' : 'โดยแอดมิน'}`,
-            metadata: {
-                project_id: originalProjectId,
-                transition_type: transitionType,
-                transitioned_by: transitionedBy,
-                old_project_type: 'project1',
-                new_project_type: 'project2'
-            }
-        }, { transaction });
+        // สร้าง TimelineStep entry สำหรับ transition
+        const leadMember = project.members?.[0];
+        if (leadMember?.student_id) {
+            await TimelineStep.create({
+                studentId: leadMember.student_id,
+                type: 'project',
+                stepOrder: 0,
+                name: 'Project Transition',
+                description: `โครงงานเปลี่ยนจาก Project 1 เป็น Project 2 (ปริญญานิพนธ์) ${transitionType === 'auto' ? 'อัตโนมัติ' : 'โดยแอดมิน'}`,
+                status: 'completed',
+                date: new Date(),
+            }, { transaction });
+        }
 
         // Initialize Project 2 workflow in timeline (if needed)
         // This would be handled by timelineService.initializeStudentTimeline
