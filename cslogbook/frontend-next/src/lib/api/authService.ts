@@ -96,12 +96,11 @@ type VerifyTokenResponse = {
   };
 };
 
+// JWT payload ลดเหลือเฉพาะ identity + role fields (ไม่มี PII เช่น name/email)
+// PII ดึงจาก verify-token endpoint และ login response body แทน
 type TokenClaims = {
   userId?: string;
   role?: AppRole;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
   studentId?: number;
   studentCode?: string;
   teacherId?: number;
@@ -110,7 +109,6 @@ type TokenClaims = {
   teacherPosition?: string;
   canAccessTopicExam?: boolean;
   canExportProject1?: boolean;
-  isSystemAdmin?: boolean;
 };
 
 function decodeTokenClaims(token: string): TokenClaims {
@@ -121,9 +119,6 @@ function decodeTokenClaims(token: string): TokenClaims {
     return {
       userId: decoded.userId ?? decoded.userID ?? decoded.id,
       role: decoded.role,
-      email: decoded.email,
-      firstName: decoded.firstName,
-      lastName: decoded.lastName,
       studentId: decoded.studentId,
       studentCode: decoded.studentCode,
       teacherId: decoded.teacherId,
@@ -132,7 +127,6 @@ function decodeTokenClaims(token: string): TokenClaims {
       teacherPosition: decoded.teacherPosition,
       canAccessTopicExam: decoded.canAccessTopicExam,
       canExportProject1: decoded.canExportProject1,
-      isSystemAdmin: decoded.isSystemAdmin,
     };
   } catch (error) {
     console.warn("Failed to decode token claims", error);

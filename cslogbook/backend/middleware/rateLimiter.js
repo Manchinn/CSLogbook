@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // จำกัด 5 ครั้งต่อ IP
+    max: 15, // จำกัด 15 ครั้งต่อ IP ต่อ 15 นาที
     standardHeaders: true,
     legacyHeaders: false,
     // เพิ่ม handler สำหรับ error

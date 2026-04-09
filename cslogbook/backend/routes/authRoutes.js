@@ -23,27 +23,48 @@ router.post('/logout', authenticateToken, logout);
 router.post('/password/change/init', authenticateToken, passwordController.initTwoStepChange);
 router.post('/password/change/confirm', authenticateToken, passwordController.confirmTwoStepChange);
 
-// Token verification route
-router.get('/verify-token', authenticateToken, (req, res) => {
-    res.json({
-        valid: true,
-        user: {
-            userId: req.user.userId,
-            role: req.user.role,
-            email: req.user.email,
-            firstName: req.user.firstName,
-            lastName: req.user.lastName,
-            studentId: req.user.studentId,
-            studentCode: req.user.studentCode,
-            teacherId: req.user.teacherId,
-            teacherCode: req.user.teacherCode,
-            teacherType: req.user.teacherType,
-            teacherPosition: req.user.teacherPosition,
-            canAccessTopicExam: req.user.canAccessTopicExam,
-            canExportProject1: req.user.canExportProject1,
-            isSystemAdmin: req.user.isSystemAdmin
+// Token verification route — ดึงข้อมูลจาก DB เพราะ JWT ไม่มี PII แล้ว
+const { User, Student, Teacher, Admin } = require('../models');
+
+router.get('/verify-token', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findOne({ where: { userId: req.user.userId, activeStatus: true } });
+        if (!user) {
+            return res.status(401).json({ valid: false, message: 'ไม่พบผู้ใช้ในระบบ' });
         }
-    });
+
+        const base = {
+            userId: user.userId,
+            role: user.role,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+        };
+
+        let roleFields = {};
+        if (user.role === 'student') {
+            const s = await Student.findOne({ where: { userId: user.userId } });
+            roleFields = { studentId: s?.studentId, studentCode: s?.studentCode };
+        } else if (user.role === 'teacher') {
+            const t = await Teacher.findOne({ where: { userId: user.userId } });
+            roleFields = {
+                teacherId: t?.teacherId,
+                teacherCode: t?.teacherCode,
+                teacherType: t?.teacherType,
+                teacherPosition: t?.position,
+                canAccessTopicExam: Boolean(t?.canAccessTopicExam),
+                canExportProject1: Boolean(t?.canExportProject1),
+                isSystemAdmin: t?.teacherType === 'support',
+            };
+        } else if (user.role === 'admin') {
+            const a = await Admin.findOne({ where: { userId: user.userId } });
+            roleFields = { adminId: a?.adminId, isSystemAdmin: true };
+        }
+
+        res.json({ valid: true, user: { ...base, ...roleFields } });
+    } catch (error) {
+        res.status(500).json({ valid: false, message: 'เกิดข้อผิดพลาดในการตรวจสอบ token' });
+    }
 });
 
 

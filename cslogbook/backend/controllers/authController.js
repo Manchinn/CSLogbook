@@ -1,6 +1,8 @@
+const jwt = require('jsonwebtoken');
 const authService = require('../services/authService');
 const logger = require('../utils/logger');
 const moment = require('moment-timezone');
+const tokenBlacklist = require('../utils/tokenBlacklist');
 
 exports.login = async (req, res, next) => {
     try {
@@ -86,7 +88,21 @@ exports.logout = async (req, res) => {
             timestamp: moment().tz('Asia/Bangkok').format()
         });
 
-        // Add logout logic here if needed (e.g., blacklist token, clear session)
+        // Blacklist token จนกว่าจะหมดอายุ
+        const token = req.headers['authorization']?.split(' ')[1];
+        if (token) {
+            const decoded = jwt.decode(token);
+            if (decoded?.jti && decoded?.exp) {
+                tokenBlacklist.add(decoded.jti, decoded.exp * 1000);
+            }
+        }
+
+        // บันทึก SystemLog (audit trail)
+        try {
+            const { logAction } = require('../utils/auditLog');
+            logAction('LOGOUT', `ออกจากระบบ — userId: ${req.user?.userId}`, { userId: req.user?.userId });
+        } catch (_) { /* audit log is optional */ }
+
         res.json({
             success: true,
             message: 'ออกจากระบบเรียบร้อยแล้ว'

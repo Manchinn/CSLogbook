@@ -10,8 +10,11 @@ if (!process.env.NODE_ENV) {
 
 // Set default values for required environment variables if not present
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'your-super-secret-jwt-key-must-be-at-least-32-characters-long';
-  console.warn('⚠️  JWT_SECRET not found, using default value. Please set JWT_SECRET in your .env file for production.');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET is required in production — set it in .env.production');
+  }
+  process.env.JWT_SECRET = 'dev-only-default-jwt-key-must-be-at-least-32-characters-long';
+  console.warn('⚠️  JWT_SECRET not found, using dev default. Set JWT_SECRET in .env for production.');
 }
 
 if (!process.env.PORT) {

@@ -161,29 +161,6 @@ const csvUpload = multer({
     }
 });
 
-// 🆕 ฟังก์ชันสำหรับจัดการ custom request สำหรับหนังสือตอบรับ
-const createAcceptanceLetterRequest = async ({ file, documentId, onSuccess, onError }) => {
-    try {
-        const formData = new FormData();
-        formData.append('acceptanceLetter', file); // ใช้ fieldname ที่ถูกต้อง
-        formData.append('documentId', documentId);
-        formData.append('documentType', 'INTERNSHIP');
-        formData.append('category', 'acceptance-letter');
-
-        // เรียก API ผ่าน service
-        const response = await internshipService.uploadAcceptanceLetter(formData);
-        
-        if (response.success) {
-            onSuccess(response.data);
-        } else {
-            throw new Error(response.message || 'ไม่สามารถอัปโหลดหนังสือตอบรับได้');
-        }
-    } catch (error) {
-        console.error('Error uploading acceptance letter:', error);
-        onError(error);
-    }
-};
-
 // ฟังก์ชันลบไฟล์เก่า
 const deleteOldFile = async (filePath) => {
     try {
@@ -252,27 +229,7 @@ module.exports = {
     CSV_UPLOAD_CONFIG,
     ensureDirectoryExists,
     deleteOldFile,
-    createAcceptanceLetterRequest, // 🆕 ฟังก์ชันใหม่
-    validateFileType,              // 🆕 ฟังก์ชันใหม่
-    validateFileSize,              // 🆕 ฟังก์ชันใหม่
-    generateFilePath,              // 🆕 ฟังก์ชันใหม่
-    
-    // 🆕 Custom request functions สำหรับแต่ละประเภท
-    customRequest: async ({ file, onSuccess, onError }) => {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('documentType', 'INTERNSHIP'); 
-            formData.append('category', 'transcript');
-
-            const response = await internshipService.uploadTranscript(file);
-            if (response.success) {
-                onSuccess(response.data);
-            } else {
-                throw new Error(response.message);
-            }
-        } catch (error) {
-            onError(error);
-        }
-    }
+    validateFileType,
+    validateFileSize,
+    generateFilePath
 };

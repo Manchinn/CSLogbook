@@ -1,4 +1,4 @@
-const { Document, Student, User } = require('../models');
+const { Document, Student, User, sequelize } = require('../models');
 const workflowService = require('./workflowService');
 const logger = require('../utils/logger');
 
@@ -7,10 +7,11 @@ class InternshipService {
      * อนุมัติเอกสาร คพ.05
      */
     async approveCS05(documentId, adminId, options = {}) {
+        const transaction = await sequelize.transaction();
         try {
             // 1. เรียกใช้ฟังก์ชันพื้นฐานเพื่ออัปเดตสถานะเอกสาร
-            await this._approveDocumentBase(documentId, adminId);
-            
+            await this._approveDocumentBase(documentId, adminId, { transaction });
+
             // 2. ดึงข้อมูลเอกสารและข้อมูลนักศึกษา
             const document = await Document.findByPk(documentId, {
                 include: [{
@@ -20,24 +21,28 @@ class InternshipService {
                         model: Student,
                         as: 'student'
                     }]
-                }]
+                }],
+                transaction
             });
-            
+
             if (!document) {
                 throw new Error('Document not found after approval');
             }
-            
+
             // 3. จัดการขั้นตอน workflow เมื่ออนุมัติเอกสาร CS05
-            const result = await this.handleCS05Approval(document, adminId, options);
+            const result = await this.handleCS05Approval(document, adminId, { ...options, transaction });
             if (!result) {
                 throw new Error('Failed to handle CS05 approval workflow');
             }
-            
-            return { 
-                success: true, 
-                message: 'อนุมัติ คพ.05 เรียบร้อยแล้ว นักศึกษาจะได้รับการแจ้งเตือนให้ดำเนินการต่อไป' 
+
+            await transaction.commit();
+
+            return {
+                success: true,
+                message: 'อนุมัติ คพ.05 เรียบร้อยแล้ว นักศึกษาจะได้รับการแจ้งเตือนให้ดำเนินการต่อไป'
             };
         } catch (error) {
+            await transaction.rollback();
             logger.error('Error approving CS05:', error);
             throw error;
         }
@@ -47,18 +52,18 @@ class InternshipService {
      * ฟังก์ชันพื้นฐานสำหรับอัปเดตสถานะเอกสารเป็น approved
      * (เรียกใช้ approveDocument ภายใน)
      */
-    async _approveDocumentBase(documentId, adminId) {
-        const document = await Document.findByPk(documentId);
+    async _approveDocumentBase(documentId, adminId, options = {}) {
+        const document = await Document.findByPk(documentId, options.transaction ? { transaction: options.transaction } : undefined);
         if (!document) {
             throw new Error('Document not found');
         }
-        
+
         await document.update({
             status: 'approved',
             reviewerId: adminId,
             reviewDate: new Date()
-        });
-        
+        }, options.transaction ? { transaction: options.transaction } : undefined);
+
         return document;
     }
 
@@ -79,34 +84,37 @@ class InternshipService {
             
                         // 1) ปรับสถานะ workflow ผ่าน workflowService ให้สอดคล้องกับตาราง StudentWorkflowActivity
                         // อัปเดตขั้นตอน "รออนุมัติ" เป็นเสร็จสิ้น
-                                    await workflowService.updateStudentWorkflowActivity(
-                            studentId,
-                            'internship',
-                            'INTERNSHIP_CS05_APPROVAL_PENDING',
-                            'completed',
-                            'in_progress',
-                                        { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null }
-                        );
+            const txOpts = options.transaction ? { transaction: options.transaction } : {};
 
-                        // เพิ่มขั้นตอน "ได้รับอนุมัติ" และทำเครื่องหมายว่าเสร็จสิ้น
-                                    await workflowService.updateStudentWorkflowActivity(
-                            studentId,
-                            'internship',
-                            'INTERNSHIP_CS05_APPROVED',
-                            'completed',
-                            'in_progress',
-                                        { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null }
-                        );
+            await workflowService.updateStudentWorkflowActivity(
+                studentId,
+                'internship',
+                'INTERNSHIP_CS05_APPROVAL_PENDING',
+                'completed',
+                'in_progress',
+                { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null },
+                txOpts
+            );
 
-                        // สร้างขั้นตอนถัดไป "รอหนังสือตอบรับ"
-                                    await workflowService.updateStudentWorkflowActivity(
-                            studentId,
-                            'internship',
-                            'INTERNSHIP_COMPANY_RESPONSE_PENDING',
-                            'awaiting_student_action',
-                            'in_progress',
-                                        { nextAction: 'upload_acceptance_letter' }
-                        );
+            await workflowService.updateStudentWorkflowActivity(
+                studentId,
+                'internship',
+                'INTERNSHIP_CS05_APPROVED',
+                'completed',
+                'in_progress',
+                { approvedBy: adminId, approvedAt: new Date().toISOString(), letterType: options.letterType || null },
+                txOpts
+            );
+
+            await workflowService.updateStudentWorkflowActivity(
+                studentId,
+                'internship',
+                'INTERNSHIP_COMPANY_RESPONSE_PENDING',
+                'awaiting_student_action',
+                'in_progress',
+                { nextAction: 'upload_acceptance_letter' },
+                txOpts
+            );
             
             logger.info(`Workflow updated successfully for student: ${studentId}`);
             

@@ -50,27 +50,8 @@ class AuthService {
       logger.info('AuthService: Verifying password...');
       
       const bcrypt = require('bcrypt');
-      let isValid = await bcrypt.compare(password, hashedPassword);
+      const isValid = await bcrypt.compare(password, hashedPassword);
 
-      if (bcrypt.compare && bcrypt.compare._isMockFunction) {
-        const mockResults = bcrypt.compare.mock.results;
-        if (Array.isArray(mockResults) && mockResults.length) {
-          const lastCall = mockResults[mockResults.length - 1];
-          if (lastCall?.type === 'return') {
-            const returned = lastCall.value;
-            if (returned && typeof returned.then === 'function') {
-              try {
-                isValid = await returned;
-              } catch (mockErr) {
-                isValid = false;
-              }
-            } else if (typeof returned !== 'undefined') {
-              isValid = returned;
-            }
-          }
-        }
-      }
-      
       if (!isValid) {
         logger.warn('AuthService: Invalid password provided');
       } else {
@@ -170,33 +151,22 @@ class AuthService {
       logger.info(`AuthService: Generating token for user: ${user.username}`);
       
       const payload = {
+      jti: crypto.randomUUID(),
       userId: user.userId,
       role: user.role,
-      studentID: user.studentID,
-      // เพิ่มข้อมูลพื้นฐานของผู้ใช้
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      isSystemAdmin: user.role === 'admin' || (user.role === 'teacher' && roleData.teacherType === 'support'),
-      department: roleData.department,
-      // เพิ่มข้อมูลพิเศษตามบทบาท
-      ...(user.role === 'student' && { 
+      ...(user.role === 'student' && {
         studentCode: roleData.studentCode,
         studentId: roleData.studentId,
-        totalCredits: roleData.totalCredits,
-        majorCredits: roleData.majorCredits,
-        isEligibleForInternship: roleData.isEligibleForInternship,
-        isEligibleForProject: roleData.isEligibleForProject
       }),
-      ...(user.role === 'teacher' && { 
+      ...(user.role === 'teacher' && {
         teacherId: roleData.teacherId,
         teacherCode: roleData.teacherCode,
         teacherType: roleData.teacherType,
         teacherPosition: roleData.position,
         canAccessTopicExam: roleData.canAccessTopicExam,
-        canExportProject1: roleData.canExportProject1
+        canExportProject1: roleData.canExportProject1,
       }),
-      ...(user.role === 'admin' && { adminId: roleData.adminId })
+      ...(user.role === 'admin' && { adminId: roleData.adminId }),
     };
 
       const token = jwt.sign(

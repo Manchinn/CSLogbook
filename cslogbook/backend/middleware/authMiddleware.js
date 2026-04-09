@@ -4,6 +4,7 @@ const validateEnv = require('../utils/validateEnv');
 const { CONSTANTS } = require('../utils/studentUtils');
 const authorize = require('./authorize');
 const logger = require('../utils/logger');
+const tokenBlacklist = require('../utils/tokenBlacklist');
 
 // Validate JWT environment variables
 validateEnv('auth');
@@ -26,7 +27,16 @@ const authMiddleware = {
 
       // ตรวจสอบความถูกต้องของ token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
+      // ตรวจสอบว่า token ถูก revoke แล้วหรือไม่
+      if (decoded.jti && tokenBlacklist.has(decoded.jti)) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Token ถูกเพิกถอนแล้ว กรุณาเข้าสู่ระบบใหม่',
+          code: 'TOKEN_REVOKED'
+        });
+      }
+
       // ค้นหาผู้ใช้ในระบบ
       const user = await User.findOne({
         where: { 
@@ -93,8 +103,7 @@ const authMiddleware = {
         next();
       } else {
         return res.status(403).json({
-          message: 'Access denied',
-          details: { userRole, userStudentCode, requestedId }
+          message: 'Access denied'
         });
       }
     } catch (error) {
@@ -103,7 +112,7 @@ const authMiddleware = {
     }
   },
 
-  async checkEligibility(type) {
+  checkEligibility(type) {
     return async (req, res, next) => {
       // ตรวจสอบรหัสนักศึกษา
       if (!req.user?.studentCode) {
@@ -139,8 +148,8 @@ const authMiddleware = {
 
         // ตรวจสอบเงื่อนไข
         const check = eligibilityChecks[type];
-        if (!check || !check.condition) { // Added a check for `check` itself to prevent errors if `type` is invalid
-          return res.status(400).json({ // Changed to 400 for invalid type
+        if (!check) {
+          return res.status(400).json({
             status: 'error',
             message: 'ประเภทการตรวจสอบสิทธิ์ไม่ถูกต้อง',
             code: 'INVALID_ELIGIBILITY_TYPE'
