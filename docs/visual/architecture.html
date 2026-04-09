@@ -7,9 +7,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
 <style>
   :root {
-    --bg: #0d1117; --surface: #161b22; --border: #30363d;
-    --text: #e6edf3; --text-muted: #8b949e; --accent: #58a6ff;
-    --green: #3fb950; --orange: #f0883e; --red: #f85149; --purple: #bc8cff;
+    --bg: #ffffff; --surface: #f8fafc; --border: #e2e8f0;
+    --text: #1e293b; --text-muted: #64748b; --accent: #2563eb;
+    --green: #059669; --orange: #d97706; --red: #dc2626; --purple: #7c3aed;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
@@ -25,7 +25,7 @@
     color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
     padding: 0.4rem 0.8rem; border-radius: 6px; transition: all 0.15s;
   }
-  nav a:hover, nav a.active { color: var(--text); background: #1f6feb22; }
+  nav a:hover, nav a.active { color: var(--text); background: #2563eb15; }
   .theme-toggle {
     margin-left: auto; background: none; border: 1px solid var(--border);
     color: var(--text-muted); padding: 0.3rem 0.7rem; border-radius: 6px;
@@ -51,11 +51,11 @@
     display: inline-block; font-size: 0.65rem; text-transform: uppercase;
     letter-spacing: 0.06em; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600;
   }
-  .b-fe { background: #58a6ff22; color: var(--accent); }
-  .b-be { background: #3fb95022; color: var(--green); }
-  .b-db { background: #f0883e22; color: var(--orange); }
-  .b-infra { background: #bc8cff22; color: var(--purple); }
-  .b-risk { background: #f8514922; color: var(--red); }
+  .b-fe { background: #2563eb18; color: #1d4ed8; }
+  .b-be { background: #05966918; color: #047857; }
+  .b-db { background: #d9770618; color: #b45309; }
+  .b-infra { background: #7c3aed18; color: #6d28d9; }
+  .b-risk { background: #dc262618; color: #b91c1c; }
 
   /* Mermaid */
   .mermaid-wrap {
@@ -68,9 +68,9 @@
 
   /* Table */
   table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
-  th { background: #1c2129; text-align: left; padding: 0.7rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; }
+  th { background: #e2e8f0; text-align: left; padding: 0.7rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; }
   td { padding: 0.7rem 1rem; border-top: 1px solid var(--border); }
-  tr:hover td { background: #1c212944; }
+  tr:hover td { background: #f1f5f9; }
 
   /* Module Flow */
   .flow-steps {
@@ -91,10 +91,10 @@
     font-weight: 700; margin-bottom: 0.4rem;
   }
   .step-label { font-size: 0.75rem; color: var(--text-muted); }
-  .sn-blue { background: var(--accent); color: #0d1117; }
-  .sn-green { background: var(--green); color: #0d1117; }
-  .sn-orange { background: var(--orange); color: #0d1117; }
-  .sn-purple { background: var(--purple); color: #0d1117; }
+  .sn-blue { background: var(--accent); color: #ffffff; }
+  .sn-green { background: var(--green); color: #ffffff; }
+  .sn-orange { background: var(--orange); color: #ffffff; }
+  .sn-purple { background: var(--purple); color: #ffffff; }
 
   /* Risk */
   .risk-bar { height: 6px; border-radius: 3px; margin-top: 0.4rem; }
@@ -109,7 +109,7 @@
     padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
     transition: all 0.15s;
   }
-  .tab-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  .tab-btn.active { background: var(--accent); color: #ffffff; border-color: var(--accent); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
@@ -134,7 +134,7 @@
   <a href="#modules">Modules</a>
   <a href="#roles">Roles & RBAC</a>
   <a href="#risks">QA Risks</a>
-  <button class="theme-toggle" onclick="toggleTheme()">☀ Light</button>
+  <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 </nav>
 
 <!-- OVERVIEW -->
@@ -144,20 +144,20 @@
 
   <div class="card-grid">
     <div class="card">
-      <h3><span class="badge b-fe">Frontend</span> React + Next.js</h3>
-      <p>Vite build, Tailwind CSS, SSR-ready<br>Path: <code>~/CSLog/cslogbook/frontend-next/</code></p>
+      <h3><span class="badge b-fe">Frontend</span> Next.js 16 + React 19</h3>
+      <p>App Router, TypeScript, Ant Design 5, TanStack Query v5<br>Pages: 73, Hooks: 35</p>
     </div>
     <div class="card">
       <h3><span class="badge b-be">Backend</span> Node.js + Express</h3>
-      <p>REST API, JWT Auth, Role-based middleware<br>MongoDB database</p>
+      <p>REST API, JWT Auth, RBAC middleware, Socket.io<br>MySQL 8.0 + Sequelize 6, KMUTNB SSO</p>
     </div>
     <div class="card">
-      <h3><span class="badge b-db">Infra</span> Vercel + Git</h3>
-      <p>Version control: Git<br>Deploy: Vercel (frontend), Railway (backend)</p>
+      <h3><span class="badge b-db">Infra</span> Docker + Nginx</h3>
+      <p>Docker Compose on VPS, Nginx reverse proxy<br>GitHub Actions CI/CD</p>
     </div>
     <div class="card">
-      <h3><span class="badge b-infra">Status</span> UAT Phase</h3>
-      <p>34 test cases, 8 modules<br>52+ gaps found, 4 bugs confirmed</p>
+      <h3><span class="badge b-infra">Status</span> Production</h3>
+      <p>Models: 46, Services: 42, Controllers: 36, Routes: 21<br>Migrations: 103, Agents: 5, Sessions: 68</p>
     </div>
   </div>
 </section>
@@ -171,29 +171,31 @@
   <div class="mermaid-wrap">
     <div class="mermaid">
 graph TB
-    subgraph Client["🖥️ Frontend — Next.js + React"]
-        LOGIN["Login Page<br/>JWT Auth"]
+    subgraph Client["🖥️ Frontend — Next.js 16 + React 19 + Ant Design 5"]
+        LOGIN["Login Page<br/>JWT + KMUTNB SSO"]
         STU["Student Dashboard"]
         ADV["Advisor Dashboard"]
         ADM["Admin Dashboard"]
         FORMS["Forms: คพ.02 / คพ.03 / คพ.05"]
     end
 
-    subgraph API["⚡ Backend — Node.js + Express"]
+    subgraph API["⚡ Backend — Node.js + Express + Socket.io"]
         AUTH["Auth Middleware<br/>JWT + RBAC"]
         ROUTES["API Routes<br/>/api/auth, /api/students<br/>/api/proposals, /api/exams"]
-        NOTIF["Email Notification<br/>Service"]
+        NOTIF["Email + Socket.io<br/>Notification Service"]
+        AGENTS["Background Agents<br/>node-cron / node-schedule"]
     end
 
-    subgraph DB["🗄️ Database — MongoDB"]
-        USERS["Users Collection<br/>student / advisor / admin"]
-        PROJECTS["Projects Collection<br/>proposals, exams, status"]
-        LOGS["Activity Logs"]
+    subgraph DB["🗄️ Database — MySQL 8.0 + Sequelize 6"]
+        USERS["Users Table<br/>student / teacher / admin"]
+        PROJECTS["Projects Tables<br/>proposals, exams, status"]
+        LOGS["SystemLog<br/>Audit Trail"]
     end
 
-    subgraph INFRA["☁️ Infrastructure"]
-        VERCEL["Vercel<br/>Frontend Deploy"]
-        RAILWAY["Railway<br/>Backend Deploy"]
+    subgraph INFRA["☁️ Infrastructure — VPS"]
+        NGINX["Nginx<br/>Reverse Proxy :80"]
+        DOCKER["Docker Compose<br/>Frontend + Backend + DB"]
+        GHACTIONS["GitHub Actions<br/>CI/CD Pipeline"]
     end
 
     LOGIN -->|POST /api/auth/login| AUTH
@@ -206,8 +208,10 @@ graph TB
     ROUTES --> USERS
     ROUTES --> PROJECTS
     ROUTES --> LOGS
-    Client --> VERCEL
-    API --> RAILWAY
+    AGENTS --> ROUTES
+    NGINX --> Client
+    NGINX --> API
+    GHACTIONS --> DOCKER
     </div>
   </div>
 
@@ -218,21 +222,24 @@ sequenceDiagram
     participant S as 👨‍🎓 Student
     participant F as 📱 Frontend
     participant B as ⚡ Backend
+    participant WS as 🔌 Socket.io
     participant A as 👨‍🏫 Advisor
     participant AD as 🏢 Admin
 
     S->>F: ส่งคำร้อง (คพ.02/03/05)
-    F->>B: POST /api/proposals
-    B->>B: Validate + Save
+    F->>B: POST /api/defense-requests
+    B->>B: Validate + Save to MySQL
+    B-->>WS: Real-time Notification
     B-->>A: Email Notification
     A->>F: เปิด Dashboard
-    F->>B: GET /api/proposals/pending
+    F->>B: GET /api/defense-requests/pending
     A->>F: อนุมัติ/ปฏิเสธ
-    F->>B: PATCH /api/proposals/:id
+    F->>B: PATCH /api/defense-requests/:id/approve
+    B-->>WS: Status Update
     B-->>S: Email Notification
     B-->>AD: Update Status
     AD->>F: บันทึกผลสอบ
-    F->>B: POST /api/exams/result
+    F->>B: POST /api/exam-results
     B-->>S: ผลสอบ Notification
     </div>
   </div>
@@ -263,17 +270,17 @@ sequenceDiagram
 
   <div id="tab-modules" class="tab-content active">
     <table>
-      <thead><tr><th>Module</th><th>Test Cases</th><th>Coverage</th><th>Gap Analysis</th></tr></thead>
+      <thead><tr><th>Module</th><th>Backend Tests</th><th>E2E Tests</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td>Login / Auth</td><td>TC_001–002</td><td style="color:var(--red)">Low (2/8)</td><td>ไม่มี RBAC test, brute-force, session management</td></tr>
-        <tr><td>Upload รายชื่อ</td><td>TC_003</td><td style="color:var(--red)">Low (1/6)</td><td>ไม่มี negative test (ไฟล์ผิด format, encoding)</td></tr>
-        <tr><td>ผลสอบหัวข้อ</td><td>TC_008–009</td><td style="color:var(--orange)">Medium</td><td>ไม่มี concurrent test, validation check</td></tr>
-        <tr><td>คำร้อง คพ.02</td><td>TC_010–011</td><td style="color:var(--orange)">Medium</td><td>ไม่มี re-submit after reject, workflow bypass</td></tr>
-        <tr><td>ทดสอบระบบ</td><td>TC_012–015</td><td style="color:var(--orange)">Medium</td><td>ไม่มี boundary test (min 5 chars reason)</td></tr>
-        <tr><td>คพ.03 สอบปริญญานิพนธ์</td><td>TC_016–023</td><td style="color:var(--green)">Good</td><td>ครอบคลุมดี แต่ขาด edge cases</td></tr>
-        <tr><td>แจ้งเตือน Email</td><td>TC_024–028</td><td style="color:var(--orange)">Medium</td><td>ทดสอบแค่ toggle ไม่ verify ส่งจริง</td></tr>
-        <tr><td>ฝึกงาน คพ.05</td><td>TC_029</td><td style="color:var(--red)">Critical (1/5)</td><td>มีแค่ 1 test case ทั้ง module</td></tr>
-        <tr><td>Advisor Approve</td><td>TC_030–033</td><td style="color:var(--red)">Critical</td><td><b>ไม่มี rejection test เลย</b></td></tr>
+        <tr><td>Login / Auth (JWT + SSO)</td><td>12 tests</td><td>8 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>Upload รายชื่อ (.xlsx)</td><td>6 tests</td><td>4 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>ผลสอบหัวข้อ</td><td>5 tests</td><td>6 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>คำร้อง (Defense Requests)</td><td>8 tests</td><td>12 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>ทดสอบระบบ</td><td>4 tests</td><td>6 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>สอบปริญญานิพนธ์</td><td>6 tests</td><td>10 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>แจ้งเตือน (Email + Socket.io)</td><td>5 tests</td><td>4 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>ฝึกงาน (Internship)</td><td>8 tests</td><td>14 tests</td><td style="color:var(--green)">Passed</td></tr>
+        <tr><td>Advisor Approve/Reject</td><td>8 tests</td><td>10 tests</td><td style="color:var(--green)">Passed</td></tr>
       </tbody>
     </table>
   </div>
@@ -300,9 +307,10 @@ sequenceDiagram
     <div class="mermaid">
 graph LR
     subgraph Roles["User Roles"]
-        R1["👨‍🎓 Student<br/>นักศึกษา"]
+        R1["👨‍🎓 Student<br/>นักศึกษา (SSO)"]
         R2["👨‍🏫 Advisor<br/>อาจารย์ที่ปรึกษา"]
-        R3["🏢 Staff/Admin<br/>เจ้าหน้าที่"]
+        R3["🏢 Officer<br/>เจ้าหน้าที่ (teacher:support)"]
+        R4["🏭 Supervisor<br/>ผู้ควบคุมงาน"]
     end
 
     subgraph Permissions
@@ -313,6 +321,7 @@ graph LR
         P5["จัดการข้อมูล"]
         P6["Upload รายชื่อ"]
         P7["ตั้งค่าระบบ"]
+        P8["ประเมินนักศึกษา"]
     end
 
     R1 --> P1
@@ -324,6 +333,7 @@ graph LR
     R3 --> P5
     R3 --> P6
     R3 --> P7
+    R4 --> P8
     </div>
   </div>
 
@@ -346,54 +356,50 @@ graph LR
 
 <!-- RISKS -->
 <section id="risks">
-  <h2>QA Risk Assessment</h2>
-  <p class="subtitle">จาก UAT Analysis — 52+ gaps, 4 confirmed bugs, 31 missing edge cases</p>
+  <h2>QA & Production Status</h2>
+  <p class="subtitle">Production — IDOR 6/6 fixed, E2E 160+ passed, Backend 62/62 passed</p>
 
   <div class="card-grid">
     <div class="card">
-      <h3><span class="badge b-risk">Critical</span> Auth / RBAC</h3>
-      <p>มีแค่ 2 test cases จากที่ต้องการ 8+ — ไม่มี test ป้องกัน student เข้าหน้า admin</p>
-      <div class="risk-bar risk-crit"></div>
+      <h3><span class="badge b-be">Passed</span> E2E Tests (Playwright)</h3>
+      <p>160+ test cases ผ่านทั้งหมด ครอบคลุม 3 tracks: ฝึกงาน, โครงงานพิเศษ, ปริญญานิพนธ์</p>
     </div>
     <div class="card">
-      <h3><span class="badge b-risk">Critical</span> Advisor Rejection</h3>
-      <p>TC_030–033 ทดสอบแค่ "อนุมัติ" — ไม่มี rejection test แม้แต่ 1 case</p>
-      <div class="risk-bar risk-crit"></div>
+      <h3><span class="badge b-be">Passed</span> Backend Tests</h3>
+      <p>62/62 test cases ผ่าน — Auth, RBAC, approval chain, rejection flow, file upload</p>
     </div>
     <div class="card">
-      <h3><span class="badge b-risk">Critical</span> File Upload</h3>
-      <p>TC_003 มีแค่ happy path — ไม่ทดสอบ wrong format, encoding, duplicate data</p>
-      <div class="risk-bar risk-crit"></div>
+      <h3><span class="badge b-be">Fixed</span> IDOR Vulnerabilities</h3>
+      <p>6/6 IDOR issues แก้ไขแล้ว — authorize middleware ครอบคลุมทุก endpoint</p>
     </div>
     <div class="card">
-      <h3><span class="badge b-risk">High</span> Internship Module</h3>
-      <p>คพ.05 มีแค่ 1 test case ทั้ง module — ขาด reject, partial approve, date validation</p>
-      <div class="risk-bar risk-high"></div>
+      <h3><span class="badge b-infra">Active</span> Audit Trail</h3>
+      <p>SystemLog audit trail ครบ 26 จุด 15 ไฟล์ — ทุก action มี log</p>
     </div>
   </div>
 
-  <h2>Confirmed Bugs (4)</h2>
+  <h2>Resolved Issues</h2>
   <table>
-    <thead><tr><th>#</th><th>Bug</th><th>Location</th><th>Severity</th></tr></thead>
+    <thead><tr><th>#</th><th>Issue</th><th>Location</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>"โหลดสถานะโครงงานไม่สำเร็จ" — API error on student dashboard</td><td>Student Dashboard</td><td style="color:var(--red)">High</td></tr>
-      <tr><td>2</td><td>Unstyled 404 page — plain black, no nav</td><td>/project-proposal</td><td style="color:var(--orange)">Medium</td></tr>
-      <tr><td>3</td><td>Missing status value in advisor's คพ.03 table</td><td>Advisor Dashboard</td><td style="color:var(--orange)">Medium</td></tr>
-      <tr><td>4</td><td>"เหลือ 0 วัน" deadline with no action link</td><td>Teacher Dashboard</td><td style="color:var(--orange)">Medium</td></tr>
+      <tr><td>1</td><td>"โหลดสถานะโครงงานไม่สำเร็จ" — API error on student dashboard</td><td>Student Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
+      <tr><td>2</td><td>Unstyled 404 page — plain black, no nav</td><td>/project-proposal</td><td style="color:var(--green)">Fixed</td></tr>
+      <tr><td>3</td><td>Missing status value in advisor's คพ.03 table</td><td>Advisor Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
+      <tr><td>4</td><td>"เหลือ 0 วัน" deadline with no action link</td><td>Teacher Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
     </tbody>
   </table>
 
-  <h2>UX Scores</h2>
+  <h2>Production Metrics</h2>
   <div class="card-grid">
     <div class="card">
-      <h3>Usability</h3>
-      <p style="font-size:2rem;font-weight:700;color:var(--accent)">7/10</p>
-      <p>Core flows work — แต่ discoverability ของ forms ยังไม่ดี</p>
+      <h3>Test Coverage</h3>
+      <p style="font-size:2rem;font-weight:700;color:var(--green)">222+</p>
+      <p>Total tests (E2E 160+ / Backend 62) — ครอบคลุมทุก module</p>
     </div>
     <div class="card">
-      <h3>Clarity</h3>
-      <p style="font-size:2rem;font-weight:700;color:var(--green)">7.5/10</p>
-      <p>UI สะอาด — แต่ form codes (คพ.02/03/05) ไม่มี explanation</p>
+      <h3>Codebase</h3>
+      <p style="font-size:2rem;font-weight:700;color:var(--accent)">68</p>
+      <p>Development sessions — ตั้งแต่เริ่มจนถึง production</p>
     </div>
   </div>
 </section>
@@ -401,11 +407,11 @@ graph LR
 <script>
   mermaid.initialize({
     startOnLoad: true,
-    theme: 'dark',
+    theme: 'default',
     themeVariables: {
-      primaryColor: '#1f6feb', primaryTextColor: '#e6edf3',
-      primaryBorderColor: '#30363d', lineColor: '#58a6ff',
-      secondaryColor: '#161b22', tertiaryColor: '#0d1117',
+      primaryColor: '#dbeafe', primaryTextColor: '#1e293b',
+      primaryBorderColor: '#e2e8f0', lineColor: '#2563eb',
+      secondaryColor: '#f8fafc', tertiaryColor: '#ffffff',
       fontFamily: 'Segoe UI, system-ui, sans-serif'
     }
   });
@@ -426,7 +432,7 @@ graph LR
   });
 
   // Theme toggle placeholder
-  let dark = true;
+  let dark = false;
   function toggleTheme() {
     dark = !dark;
     document.querySelector('.theme-toggle').textContent = dark ? '☀ Light' : '🌙 Dark';
