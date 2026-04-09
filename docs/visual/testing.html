@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Testing & QA</title>
+<link rel="stylesheet" href="notion-style.css">
+</head>
+<body>
+
+<!-- Page Nav (internal section links) -->
+<nav class="page-nav">
+  <div class="container">
+    <a href="#qa-overview">QA Overview</a>
+    <a href="#testing-strategy">Strategy</a>
+    <a href="#test-results">Results</a>
+    <a href="#coverage-metrics">Coverage</a>
+    <a href="#resolved-issues">Issues</a>
+    <a href="#findings">Findings</a>
+    <a href="#problems-solutions">Problems</a>
+    <a href="#test-matrix">Matrix</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>Testing & QA</h1>
+    <p>Production — IDOR 6/6 fixed, E2E 160+ passed, Backend 62/62 passed</p>
+  </div>
+</section>
+
+<!-- Section 1: QA Overview -->
+<section id="qa-overview" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>QA Overview</h2>
+      <p>Production — IDOR 6/6 fixed, E2E 160+ passed, Backend 62/62 passed</p>
+    </div>
+    <div class="grid grid-4">
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--accent);">160+</div>
+        <div class="stat-label">E2E Tests (Playwright)</div>
+        <p style="font-size: 13px; margin-top: 8px;">Test cases passed, covers 3 tracks</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--green);">62/62</div>
+        <div class="stat-label">Backend Tests</div>
+        <p style="font-size: 13px; margin-top: 8px;">Auth, RBAC, approval chain, rejection flow, file upload</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--red);">6/6</div>
+        <div class="stat-label">IDOR Vulnerabilities</div>
+        <p style="font-size: 13px; margin-top: 8px;">Fixed — authorize middleware covers all endpoints</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--purple);">26</div>
+        <div class="stat-label">Audit Trail</div>
+        <p style="font-size: 13px; margin-top: 8px;">SystemLog with 26 points across 15 files</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Testing Strategy -->
+<section id="testing-strategy" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Testing Strategy</h2>
+      <p>Three pillars of quality assurance covering end-to-end, integration, and security</p>
+    </div>
+    <div class="grid grid-3">
+      <!-- E2E Tests -->
+      <div class="card">
+        <span class="badge badge-blue">Playwright</span>
+        <h3 style="margin-top: 12px;">E2E Tests</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Multi-role auth (Student/Teacher/Admin)</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Admin settings & teacher advisor flows</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Meeting-logbook, KP02-defense, Thesis</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Security route-access (40 tests)</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Internship workflow B1-B5 (66 tests)</li>
+          <li style="padding: 8px 0; color: var(--text-secondary); font-size: 14px;">7-step seed pipeline for test data</li>
+        </ul>
+      </div>
+      <!-- Backend Integration Tests -->
+      <div class="card">
+        <span class="badge badge-green">Integration</span>
+        <h3 style="margin-top: 12px;">Backend Integration Tests</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">SQLite in-memory (no MySQL needed)</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Controller → Service → Model coverage</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Rejection flow (25 automated tests)</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">PDF generation + IDOR prevention</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Email & notification service mocks</li>
+          <li style="padding: 8px 0; color: var(--text-secondary); font-size: 14px;">JWT auth + RBAC middleware</li>
+        </ul>
+      </div>
+      <!-- Security Audit -->
+      <div class="card">
+        <span class="badge badge-red">Security</span>
+        <h3 style="margin-top: 12px;">Security Audit</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">IDOR vulnerabilities: 6 found, 6 fixed</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">Route-access matrix: 40 routes reviewed</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">RBAC policy audit (167 → 24 wildcard rules)</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">JWT token claims verification</li>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px;">PDF security — ownership checks on all endpoints</li>
+          <li style="padding: 8px 0; color: var(--text-secondary); font-size: 14px;">Rate limiter & CORS validation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Test Results -->
+<section id="test-results" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Test Results</h2>
+      <p>Aggregate pass rates and coverage metrics across all test suites</p>
+    </div>
+    <div class="grid grid-4 mb-48">
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--green);">160</div>
+        <div class="stat-label">E2E Tests Passed</div>
+        <p style="font-size: 13px; margin-top: 4px;">Playwright</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--orange);">172</div>
+        <div class="stat-label">Tests Skipped</div>
+        <p style="font-size: 13px; margin-top: 4px;">Feature gating</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--teal);">25</div>
+        <div class="stat-label">Backend Tests</div>
+        <p style="font-size: 13px; margin-top: 4px;">Rejection flow</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--red);">6/6</div>
+        <div class="stat-label">IDOR Fixes</div>
+        <p style="font-size: 13px; margin-top: 4px;">Security audit</p>
+      </div>
+    </div>
+
+    <!-- Progress Bars -->
+    <div class="card" style="max-width: 720px; margin: 0 auto;">
+      <h3 class="mb-24">Coverage Progress</h3>
+      <!-- E2E Workflow -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 14px; font-weight: 500;">E2E — Workflow</span>
+          <span style="font-size: 14px; font-weight: 600; color: var(--orange);">93%</span>
+        </div>
+        <div style="background: var(--bg-alt); border-radius: 9999px; height: 8px; overflow: hidden;">
+          <div style="width: 93%; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #dd5b00, #ff8c42);"></div>
+        </div>
+      </div>
+      <!-- E2E Security -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 14px; font-weight: 500;">E2E — Security</span>
+          <span style="font-size: 14px; font-weight: 600; color: var(--green);">100%</span>
+        </div>
+        <div style="background: var(--bg-alt); border-radius: 9999px; height: 8px; overflow: hidden;">
+          <div style="width: 100%; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #1aae39, #4dd66a);"></div>
+        </div>
+      </div>
+      <!-- Backend Rejection flow -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 14px; font-weight: 500;">Backend — Rejection flow</span>
+          <span style="font-size: 14px; font-weight: 600; color: var(--teal);">88%</span>
+        </div>
+        <div style="background: var(--bg-alt); border-radius: 9999px; height: 8px; overflow: hidden;">
+          <div style="width: 88%; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #2a9d99, #4dcbc7);"></div>
+        </div>
+      </div>
+      <!-- IDOR / Auth Security -->
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 14px; font-weight: 500;">IDOR / Auth Security</span>
+          <span style="font-size: 14px; font-weight: 600; color: var(--green);">100%</span>
+        </div>
+        <div style="background: var(--bg-alt); border-radius: 9999px; height: 8px; overflow: hidden;">
+          <div style="width: 100%; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #1aae39, #4dd66a);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 4: Test Coverage Metrics -->
+<section id="coverage-metrics" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Test Coverage Metrics</h2>
+      <p>Overall test count and development velocity</p>
+    </div>
+    <div class="grid grid-2" style="max-width: 640px; margin: 0 auto;">
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--accent);">222+</div>
+        <div class="stat-label">Total Tests</div>
+        <p style="font-size: 13px; margin-top: 8px;">E2E 160+ / Backend 62</p>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number" style="color: var(--deep-navy);">68</div>
+        <div class="stat-label">Development Sessions</div>
+        <p style="font-size: 13px; margin-top: 8px;">Iterative quality improvement</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Resolved Issues -->
+<section id="resolved-issues" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Resolved Issues</h2>
+      <p>Key bugs identified and fixed during testing cycles</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 48px;">#</th>
+            <th>Issue</th>
+            <th>Location</th>
+            <th style="width: 100px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>"โหลดสถานะโครงงานไม่สำเร็จ" (API error)</td>
+            <td>Student Dashboard</td>
+            <td><span class="badge badge-green">Fixed</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Unstyled 404 page</td>
+            <td>/project-proposal</td>
+            <td><span class="badge badge-green">Fixed</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Missing status value in advisor's คพ.03 table</td>
+            <td>Advisor Dashboard</td>
+            <td><span class="badge badge-green">Fixed</span></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>"เหลือ 0 วัน" deadline with no action link</td>
+            <td>Teacher Dashboard</td>
+            <td><span class="badge badge-green">Fixed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 6: Findings & Callout -->
+<section id="findings" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Findings & Highlights</h2>
+      <p>Summary of major discoveries and resolutions from the testing process</p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <h4>Rejection Flow</h4>
+        <p style="font-size: 14px;">19 bugs found & fixed across multi-step rejection workflows covering all 3 tracks</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <h4>Demo Issues Resolved</h4>
+        <p style="font-size: 14px;">BUG-01/02 + FEATURE-01 + UX-01 all resolved and verified in production</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--accent);">
+        <h4>Production Import</h4>
+        <p style="font-size: 14px;">Successful import: 41 projects + 90 internship records with data integrity verified</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Problems & Solutions -->
+<section id="problems-solutions" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Problems & Solutions</h2>
+      <p>Key technical challenges encountered and how they were resolved</p>
+    </div>
+    <div class="two-col">
+      <!-- Problem 01 -->
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <span class="badge badge-red">Problem 01</span>
+        <h4 style="margin-top: 12px;">Thai Font ใน PDF</h4>
+        <p style="font-size: 14px;">pdfkit doesn't support Thai fonts — Thai text not displayed in generated PDF documents</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <span class="badge badge-green">Solution 01</span>
+        <h4 style="margin-top: 12px;">Thai Font ใน PDF</h4>
+        <p style="font-size: 14px;">Added TH Sarabun New + Loma font in Docker image & configured pdfkit to use them</p>
+      </div>
+      <!-- Problem 02 -->
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <span class="badge badge-red">Problem 02</span>
+        <h4 style="margin-top: 12px;">IDOR Vulnerability</h4>
+        <p style="font-size: 14px;">PDF endpoint doesn't verify ownership — User A can view User B's PDF documents</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <span class="badge badge-green">Solution 02</span>
+        <h4 style="margin-top: 12px;">IDOR Vulnerability</h4>
+        <p style="font-size: 14px;">Added ownership check on 6 PDF endpoints + automated security tests to prevent regression</p>
+      </div>
+      <!-- Problem 03 -->
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <span class="badge badge-red">Problem 03</span>
+        <h4 style="margin-top: 12px;">Workflow State Complexity</h4>
+        <p style="font-size: 14px;">State scattered in 3 layers, not synced — phantom status appearing in UI</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <span class="badge badge-green">Solution 03</span>
+        <h4 style="margin-top: 12px;">Workflow State Complexity</h4>
+        <p style="font-size: 14px;">Created workflowStates.ts + WORKFLOW_STATES.md audit for single source of truth</p>
+      </div>
+      <!-- Problem 04 -->
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <span class="badge badge-red">Problem 04</span>
+        <h4 style="margin-top: 12px;">MySQL UTF-8mb4 on Docker</h4>
+        <p style="font-size: 14px;">Thai characters lost during data import via docker exec commands</p>
+      </div>
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <span class="badge badge-green">Solution 04</span>
+        <h4 style="margin-top: 12px;">MySQL UTF-8mb4 on Docker</h4>
+        <p style="font-size: 14px;">Added --default-character-set=utf8mb4 flag to all production MySQL commands</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 8: Module Test Matrix -->
+<section id="test-matrix" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Module Test Matrix</h2>
+      <p>Per-module breakdown of backend and E2E test coverage</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th style="text-align: center;">Backend Tests</th>
+            <th style="text-align: center;">E2E Tests</th>
+            <th style="text-align: center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Login/Auth</td>
+            <td style="text-align: center;">12</td>
+            <td style="text-align: center;">8</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>Upload .xlsx</td>
+            <td style="text-align: center;">6</td>
+            <td style="text-align: center;">4</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>ผลสอบหัวข้อ</td>
+            <td style="text-align: center;">5</td>
+            <td style="text-align: center;">6</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>Defense Requests</td>
+            <td style="text-align: center;">8</td>
+            <td style="text-align: center;">12</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>ทดสอบระบบ</td>
+            <td style="text-align: center;">4</td>
+            <td style="text-align: center;">6</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>สอบปริญญานิพนธ์</td>
+            <td style="text-align: center;">6</td>
+            <td style="text-align: center;">10</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>Email + Socket.io</td>
+            <td style="text-align: center;">5</td>
+            <td style="text-align: center;">4</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>Internship</td>
+            <td style="text-align: center;">8</td>
+            <td style="text-align: center;">14</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+          <tr>
+            <td>Advisor Approve/Reject</td>
+            <td style="text-align: center;">8</td>
+            <td style="text-align: center;">10</td>
+            <td style="text-align: center;"><span class="badge badge-green">Passed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Theme Toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+  <span id="theme-icon">&#9789;</span>
+</button>
+
+<!-- Nav + Theme JS -->
+<script src="nav.js" data-active="testing"></script>
+<script>
+  function toggleTheme() {
+    var html = document.documentElement;
+    var current = html.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('cslogbook-theme', next);
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '\u2600' : '\u263D';
+  }
+  (function () {
+    var saved = localStorage.getItem('cslogbook-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('theme-icon').textContent = saved === 'dark' ? '\u2600' : '\u263D';
+    }
+  })();
+
+  // Page nav active state on scroll
+  (function () {
+    var links = document.querySelectorAll('.page-nav a');
+    var sections = [];
+    links.forEach(function (a) {
+      var id = a.getAttribute('href').replace('#', '');
+      var el = document.getElementById(id);
+      if (el) sections.push({ el: el, link: a });
+    });
+    function onScroll() {
+      var scrollY = window.scrollY + 120;
+      var active = null;
+      sections.forEach(function (s) {
+        if (s.el.offsetTop <= scrollY) active = s;
+      });
+      links.forEach(function (a) { a.classList.remove('active'); });
+      if (active) active.link.classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>

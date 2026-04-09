@@ -1,201 +1,79 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSLogbook — System Architecture</title>
+<title>CSLogbook — Architecture</title>
+<link rel="stylesheet" href="notion-style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
-<style>
-  :root {
-    --bg: #ffffff; --surface: #f8fafc; --border: #e2e8f0;
-    --text: #1e293b; --text-muted: #64748b; --accent: #2563eb;
-    --green: #059669; --orange: #d97706; --red: #dc2626; --purple: #7c3aed;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-
-  /* Nav */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 0.8rem 2rem; display: flex; align-items: center; gap: 1.5rem;
-  }
-  nav .logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
-  nav a {
-    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
-    padding: 0.4rem 0.8rem; border-radius: 6px; transition: all 0.15s;
-  }
-  nav a:hover, nav a.active { color: var(--text); background: #2563eb15; }
-  .theme-toggle {
-    margin-left: auto; background: none; border: 1px solid var(--border);
-    color: var(--text-muted); padding: 0.3rem 0.7rem; border-radius: 6px;
-    cursor: pointer; font-size: 0.8rem;
-  }
-
-  /* Sections */
-  section { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem; }
-  h1 { font-size: 2rem; margin-bottom: 0.3rem; }
-  h2 { font-size: 1.4rem; margin-bottom: 1.2rem; color: var(--accent); }
-  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
-
-  /* Cards */
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 1.4rem; transition: border-color 0.2s;
-  }
-  .card:hover { border-color: var(--accent); }
-  .card h3 { font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-  .card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
-  .badge {
-    display: inline-block; font-size: 0.65rem; text-transform: uppercase;
-    letter-spacing: 0.06em; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600;
-  }
-  .b-fe { background: #2563eb18; color: #1d4ed8; }
-  .b-be { background: #05966918; color: #047857; }
-  .b-db { background: #d9770618; color: #b45309; }
-  .b-infra { background: #7c3aed18; color: #6d28d9; }
-  .b-risk { background: #dc262618; color: #b91c1c; }
-
-  /* Mermaid */
-  .mermaid-wrap {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 2rem; margin: 1.5rem 0;
-    overflow-x: auto;
-  }
-  .mermaid { display: flex; justify-content: center; }
-  .mermaid svg { max-width: 100%; height: auto; }
-
-  /* Table */
-  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
-  th { background: #e2e8f0; text-align: left; padding: 0.7rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; }
-  td { padding: 0.7rem 1rem; border-top: 1px solid var(--border); }
-  tr:hover td { background: #f1f5f9; }
-
-  /* Module Flow */
-  .flow-steps {
-    display: flex; gap: 0; overflow-x: auto; padding: 1rem 0;
-  }
-  .flow-step {
-    flex-shrink: 0; text-align: center; position: relative;
-    padding: 0.8rem 1.2rem; min-width: 120px;
-  }
-  .flow-step::after {
-    content: '→'; position: absolute; right: -8px; top: 50%;
-    transform: translateY(-50%); color: var(--text-muted); font-size: 1.2rem;
-  }
-  .flow-step:last-child::after { display: none; }
-  .step-num {
-    width: 28px; height: 28px; border-radius: 50%; display: inline-flex;
-    align-items: center; justify-content: center; font-size: 0.75rem;
-    font-weight: 700; margin-bottom: 0.4rem;
-  }
-  .step-label { font-size: 0.75rem; color: var(--text-muted); }
-  .sn-blue { background: var(--accent); color: #ffffff; }
-  .sn-green { background: var(--green); color: #ffffff; }
-  .sn-orange { background: var(--orange); color: #ffffff; }
-  .sn-purple { background: var(--purple); color: #ffffff; }
-
-  /* Risk */
-  .risk-bar { height: 6px; border-radius: 3px; margin-top: 0.4rem; }
-  .risk-crit { background: var(--red); width: 90%; }
-  .risk-high { background: var(--orange); width: 65%; }
-  .risk-med { background: #d29922; width: 40%; }
-
-  /* Tab */
-  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-  .tab-btn {
-    background: none; border: 1px solid var(--border); color: var(--text-muted);
-    padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
-    transition: all 0.15s;
-  }
-  .tab-btn.active { background: var(--accent); color: #ffffff; border-color: var(--accent); }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
-</style>
 </head>
 <body>
 
-<script src="nav.js" data-active="architecture"></script>
-<nav>
-  <span class="logo">CSLogbook</span>
-  <a href="#overview">Overview</a>
-  <a href="#architecture">Architecture</a>
-  <a href="#modules">Modules</a>
-  <a href="#roles">Roles & RBAC</a>
-  <a href="#risks">QA</a>
-  <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+<!-- Page Nav (internal section links) -->
+<nav class="page-nav">
+  <div class="container">
+    <a href="#system-architecture">Architecture</a>
+    <a href="#data-flow">Data Flow</a>
+    <a href="#production-infra">Infrastructure</a>
+    <a href="#cicd">CI/CD</a>
+    <a href="#request-flow">Request Flow</a>
+    <a href="#page-structure">Pages</a>
+    <a href="#nginx-routing">Nginx</a>
+    <a href="#docker-health">Docker</a>
+  </div>
 </nav>
 
-<!-- OVERVIEW -->
-<section id="overview">
-  <h1>CSLogbook</h1>
-  <p class="subtitle">ระบบจัดการโครงงานพิเศษและฝึกงาน — ภาควิชาวิทยาการคอมพิวเตอร์</p>
-
-  <div class="card-grid">
-    <div class="card">
-      <h3><span class="badge b-fe">Frontend</span> Next.js 16 + React 19</h3>
-      <p>App Router, TypeScript, Ant Design 5, TanStack Query v5<br>Pages: 73, Hooks: 35</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-be">Backend</span> Node.js + Express</h3>
-      <p>REST API, JWT Auth, RBAC middleware, Socket.io<br>MySQL 8.0 + Sequelize 6, KMUTNB SSO</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-db">Infra</span> Docker + Nginx</h3>
-      <p>Docker Compose on VPS, Nginx reverse proxy<br>GitHub Actions CI/CD</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-infra">Status</span> Production</h3>
-      <p>Models: 46, Services: 42, Controllers: 36, Routes: 21<br>Migrations: 103, Agents: 5, Sessions: 68</p>
-    </div>
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>System Architecture</h1>
+    <p>CSLogbook — Visual architecture reference covering system design, data flow, infrastructure, and deployment pipeline</p>
   </div>
 </section>
 
-<hr>
-
-<!-- ARCHITECTURE -->
-<section id="architecture">
-  <h2>System Architecture</h2>
-
-  <div class="mermaid-wrap">
-    <div class="mermaid">
-graph TB
-    subgraph Client["🖥️ Frontend — Next.js 16 + React 19 + Ant Design 5"]
-        LOGIN["Login Page<br/>JWT + KMUTNB SSO"]
+<!-- Section 1: System Architecture -->
+<section id="system-architecture" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>System Architecture</h2>
+      <p>High-level view of CSLogbook components: Client, API, Database, and Infrastructure</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TB
+    subgraph Client["Client — Frontend"]
+        LOGIN["Login Page\nJWT + KMUTNB SSO"]
         STU["Student Dashboard"]
         ADV["Advisor Dashboard"]
         ADM["Admin Dashboard"]
-        FORMS["Forms: คพ.02 / คพ.03 / คพ.05"]
+        FORMS["Forms\nคพ.02 / คพ.03 / คพ.05"]
     end
 
-    subgraph API["⚡ Backend — Node.js + Express + Socket.io"]
-        AUTH["Auth Middleware<br/>JWT + RBAC"]
-        ROUTES["API Routes<br/>/api/auth, /api/students<br/>/api/proposals, /api/exams"]
-        NOTIF["Email + Socket.io<br/>Notification Service"]
-        AGENTS["Background Agents<br/>node-cron / node-schedule"]
+    subgraph API["API — Backend"]
+        AUTH["Auth Middleware\nJWT + RBAC"]
+        ROUTES["API Routes\n/api/auth, /api/students\n/api/proposals, /api/exams"]
+        NOTIF["Email + Socket.io\nNotification Service"]
+        AGENTS["Background Agents\nnode-cron / node-schedule"]
     end
 
-    subgraph DB["🗄️ Database — MySQL 8.0 + Sequelize 6"]
-        USERS["Users Table<br/>student / teacher / admin"]
-        PROJECTS["Projects Tables<br/>proposals, exams, status"]
-        LOGS["SystemLog<br/>Audit Trail"]
+    subgraph DB["DB — Database"]
+        USERS["Users Table\nstudent / teacher / admin"]
+        PROJECTS["Projects Tables\nproposals, exams, status"]
+        LOGS["SystemLog\nAudit Trail"]
     end
 
-    subgraph INFRA["☁️ Infrastructure — VPS"]
-        NGINX["Nginx<br/>Reverse Proxy :80"]
-        DOCKER["Docker Compose<br/>Frontend + Backend + DB"]
-        GHACTIONS["GitHub Actions<br/>CI/CD Pipeline"]
+    subgraph INFRA["INFRA — Infrastructure"]
+        NGINX["Nginx Reverse Proxy\nport 80"]
+        DOCKER["Docker Compose"]
+        GHACTIONS["GitHub Actions\nCI/CD Pipeline"]
     end
 
-    LOGIN -->|POST /api/auth/login| AUTH
-    AUTH -->|JWT Token| LOGIN
+    LOGIN -->|"POST /api/auth/login"| AUTH
+    AUTH -->|"JWT Token"| LOGIN
     STU --> FORMS
-    FORMS -->|API Calls| ROUTES
-    ADV -->|Approve/Reject| ROUTES
-    ADM -->|Manage| ROUTES
+    FORMS -->|"API Calls"| ROUTES
+    ADV -->|"Approve/Reject"| ROUTES
+    ADM -->|"Manage"| ROUTES
     ROUTES --> NOTIF
     ROUTES --> USERS
     ROUTES --> PROJECTS
@@ -204,231 +82,312 @@ graph TB
     NGINX --> Client
     NGINX --> API
     GHACTIONS --> DOCKER
+      </div>
     </div>
   </div>
+</section>
 
-  <h2>Data Flow — Approval Pipeline</h2>
-  <div class="mermaid-wrap">
-    <div class="mermaid">
+<!-- Section 2: Data Flow — Approval Pipeline -->
+<section id="data-flow" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Data Flow — Approval Pipeline</h2>
+      <p>Sequence of events from student submission through advisor approval to admin recording exam results</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
 sequenceDiagram
-    participant S as 👨‍🎓 Student
-    participant F as 📱 Frontend
-    participant B as ⚡ Backend
-    participant WS as 🔌 Socket.io
-    participant A as 👨‍🏫 Advisor
-    participant AD as 🏢 Admin
+    participant S as Student
+    participant F as Frontend
+    participant B as Backend
+    participant WS as Socket.io
+    participant A as Advisor
+    participant AD as Admin
 
-    S->>F: ส่งคำร้อง (คพ.02/03/05)
+    S->>F: Submit form (คพ.02/03/05)
     F->>B: POST /api/defense-requests
     B->>B: Validate + Save to MySQL
     B-->>WS: Real-time Notification
     B-->>A: Email Notification
-    A->>F: เปิด Dashboard
+    A->>F: Open Dashboard
     F->>B: GET /api/defense-requests/pending
-    A->>F: อนุมัติ/ปฏิเสธ
+    B-->>F: Return pending list
+    A->>F: Approve / Reject
     F->>B: PATCH /api/defense-requests/:id/approve
-    B-->>WS: Status Update
+    B->>B: Update status in MySQL
+    B-->>WS: Status Update → Student
     B-->>S: Email Notification
-    B-->>AD: Update Status
-    AD->>F: บันทึกผลสอบ
+    B-->>AD: Notification (pending action)
+    AD->>F: Open Admin Dashboard
+    AD->>F: Record exam results
     F->>B: POST /api/exam-results
-    B-->>S: ผลสอบ Notification
+    B-->>S: Exam result notification
+      </div>
     </div>
   </div>
 </section>
 
-<hr>
-
-<!-- MODULES -->
-<section id="modules">
-  <h2>8 Modules — Student Workflow</h2>
-  <p class="subtitle">ลำดับขั้นตอนโครงงานพิเศษจากมุมนักศึกษา (8 Steps)</p>
-
-  <div class="flow-steps">
-    <div class="flow-step"><div class="step-num sn-blue">1</div><div class="step-label">ลงทะเบียน<br>โครงงาน</div></div>
-    <div class="flow-step"><div class="step-num sn-blue">2</div><div class="step-label">เลือก<br>ที่ปรึกษา</div></div>
-    <div class="flow-step"><div class="step-num sn-orange">3</div><div class="step-label">สอบหัวข้อ<br>(คพ.02)</div></div>
-    <div class="flow-step"><div class="step-num sn-orange">4</div><div class="step-label">บันทึก<br>การเข้าพบ</div></div>
-    <div class="flow-step"><div class="step-num sn-purple">5</div><div class="step-label">ทดสอบ<br>ระบบ</div></div>
-    <div class="flow-step"><div class="step-num sn-purple">6</div><div class="step-label">สอบ<br>ปริญญานิพนธ์<br>(คพ.03)</div></div>
-    <div class="flow-step"><div class="step-num sn-green">7</div><div class="step-label">ฝึกงาน<br>(คพ.05)</div></div>
-    <div class="flow-step"><div class="step-num sn-green">8</div><div class="step-label">ส่งเล่ม<br>สมบูรณ์</div></div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('tab-modules')">Module Overview</button>
-    <button class="tab-btn" onclick="showTab('tab-forms')">Form Codes</button>
-  </div>
-
-  <div id="tab-modules" class="tab-content active">
-    <table>
-      <thead><tr><th>Module</th><th>Backend Tests</th><th>E2E Tests</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr><td>Login / Auth (JWT + SSO)</td><td>12 tests</td><td>8 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>Upload รายชื่อ (.xlsx)</td><td>6 tests</td><td>4 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>ผลสอบหัวข้อ</td><td>5 tests</td><td>6 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>คำร้อง (Defense Requests)</td><td>8 tests</td><td>12 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>ทดสอบระบบ</td><td>4 tests</td><td>6 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>สอบปริญญานิพนธ์</td><td>6 tests</td><td>10 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>แจ้งเตือน (Email + Socket.io)</td><td>5 tests</td><td>4 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>ฝึกงาน (Internship)</td><td>8 tests</td><td>14 tests</td><td style="color:var(--green)">Passed</td></tr>
-        <tr><td>Advisor Approve/Reject</td><td>8 tests</td><td>10 tests</td><td style="color:var(--green)">Passed</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div id="tab-forms" class="tab-content">
-    <table>
-      <thead><tr><th>Form Code</th><th>ชื่อเต็ม</th><th>ใช้เมื่อ</th><th>Approval Chain</th></tr></thead>
-      <tbody>
-        <tr><td><b>คพ.02</b></td><td>คำร้องขอสอบหัวข้อโครงงาน</td><td>นักศึกษาต้องการสอบเสนอหัวข้อ</td><td>Student → Advisor → Staff</td></tr>
-        <tr><td><b>คพ.03</b></td><td>คำร้องขอสอบปริญญานิพนธ์</td><td>พร้อมสอบจบ</td><td>Student → Advisor → Staff → Committee</td></tr>
-        <tr><td><b>คพ.05</b></td><td>คำร้องฝึกงาน</td><td>ยื่นขอฝึกงาน</td><td>Student → Advisor → Staff</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<hr>
-
-<!-- ROLES -->
-<section id="roles">
-  <h2>Roles & RBAC Matrix</h2>
-
-  <div class="mermaid-wrap">
-    <div class="mermaid">
-graph LR
-    subgraph Roles["User Roles"]
-        R1["👨‍🎓 Student<br/>นักศึกษา (SSO)"]
-        R2["👨‍🏫 Advisor<br/>อาจารย์ที่ปรึกษา"]
-        R3["🏢 Officer<br/>เจ้าหน้าที่ (teacher:support)"]
-        R4["🏭 Supervisor<br/>ผู้ควบคุมงาน"]
-    end
-
-    subgraph Permissions
-        P1["ส่งคำร้อง"]
-        P2["ดูสถานะ"]
-        P3["อนุมัติ/ปฏิเสธ"]
-        P4["บันทึกผลสอบ"]
-        P5["จัดการข้อมูล"]
-        P6["Upload รายชื่อ"]
-        P7["ตั้งค่าระบบ"]
-        P8["ประเมินนักศึกษา"]
-    end
-
-    R1 --> P1
-    R1 --> P2
-    R2 --> P2
-    R2 --> P3
-    R3 --> P3
-    R3 --> P4
-    R3 --> P5
-    R3 --> P6
-    R3 --> P7
-    R4 --> P8
+<!-- Section 3: Production Architecture (Infrastructure) -->
+<section id="production-infra" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Production Architecture</h2>
+      <p>Infrastructure layout showing Nginx reverse proxy routing to application services and data stores</p>
     </div>
-  </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    INET["Internet\ncslogbook.me"]
+    NGINX["Nginx\nport 80"]
+    NEXT["Next.js\n127.0.0.1:3000"]
+    EXPRESS["Express API\n127.0.0.1:5000"]
+    SWAGGER["Swagger\n/api-docs"]
+    STATIC["Static Files\n/uploads/"]
+    MYSQL["MySQL 8.0\nport 3306"]
+    UPLOADS["uploads/ volume"]
 
-  <table>
-    <thead><tr><th>Feature</th><th>👨‍🎓 Student</th><th>👨‍🏫 Advisor</th><th>🏢 Admin</th></tr></thead>
-    <tbody>
-      <tr><td>Login</td><td>✅</td><td>✅</td><td>✅</td></tr>
-      <tr><td>ส่งคำร้อง (คพ.02/03/05)</td><td>✅</td><td>—</td><td>—</td></tr>
-      <tr><td>ดู Progress 8 Steps</td><td>✅</td><td>✅ (ของ advisee)</td><td>✅ (ทั้งหมด)</td></tr>
-      <tr><td>อนุมัติ/ปฏิเสธคำร้อง</td><td>—</td><td>✅</td><td>✅</td></tr>
-      <tr><td>บันทึกผลสอบ</td><td>—</td><td>—</td><td>✅</td></tr>
-      <tr><td>Upload รายชื่อ (.xlsx)</td><td>—</td><td>—</td><td>✅</td></tr>
-      <tr><td>ตั้งค่า (หลักสูตร, ปี, API)</td><td>—</td><td>—</td><td>✅</td></tr>
-      <tr><td>จัดการ Email Notifications</td><td>—</td><td>—</td><td>✅</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<hr>
-
-<!-- RISKS -->
-<section id="risks">
-  <h2>QA & Production Status</h2>
-  <p class="subtitle">Production — IDOR 6/6 fixed, E2E 160+ passed, Backend 62/62 passed</p>
-
-  <div class="card-grid">
-    <div class="card">
-      <h3><span class="badge b-be">Passed</span> E2E Tests (Playwright)</h3>
-      <p>160+ test cases ผ่านทั้งหมด ครอบคลุม 3 tracks: ฝึกงาน, โครงงานพิเศษ, ปริญญานิพนธ์</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-be">Passed</span> Backend Tests</h3>
-      <p>62/62 test cases ผ่าน — Auth, RBAC, approval chain, rejection flow, file upload</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-be">Fixed</span> IDOR Vulnerabilities</h3>
-      <p>6/6 IDOR issues แก้ไขแล้ว — authorize middleware ครอบคลุมทุก endpoint</p>
-    </div>
-    <div class="card">
-      <h3><span class="badge b-infra">Active</span> Audit Trail</h3>
-      <p>SystemLog audit trail ครบ 26 จุด 15 ไฟล์ — ทุก action มี log</p>
-    </div>
-  </div>
-
-  <h2>Resolved Issues</h2>
-  <table>
-    <thead><tr><th>#</th><th>Issue</th><th>Location</th><th>Status</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>"โหลดสถานะโครงงานไม่สำเร็จ" — API error on student dashboard</td><td>Student Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
-      <tr><td>2</td><td>Unstyled 404 page — plain black, no nav</td><td>/project-proposal</td><td style="color:var(--green)">Fixed</td></tr>
-      <tr><td>3</td><td>Missing status value in advisor's คพ.03 table</td><td>Advisor Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
-      <tr><td>4</td><td>"เหลือ 0 วัน" deadline with no action link</td><td>Teacher Dashboard</td><td style="color:var(--green)">Fixed</td></tr>
-    </tbody>
-  </table>
-
-  <h2>Production Metrics</h2>
-  <div class="card-grid">
-    <div class="card">
-      <h3>Test Coverage</h3>
-      <p style="font-size:2rem;font-weight:700;color:var(--green)">222+</p>
-      <p>Total tests (E2E 160+ / Backend 62) — ครอบคลุมทุก module</p>
-    </div>
-    <div class="card">
-      <h3>Codebase</h3>
-      <p style="font-size:2rem;font-weight:700;color:var(--accent)">68</p>
-      <p>Development sessions — ตั้งแต่เริ่มจนถึง production</p>
+    INET --> NGINX
+    NGINX -->|"/"| NEXT
+    NGINX -->|"/api/"| EXPRESS
+    NGINX -->|"/api-docs"| SWAGGER
+    NGINX -->|"/uploads/"| STATIC
+    EXPRESS --> MYSQL
+    EXPRESS --> UPLOADS
+      </div>
     </div>
   </div>
 </section>
+
+<!-- Section 4: CI/CD Pipeline -->
+<section id="cicd" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>CI/CD Pipeline</h2>
+      <p>Automated deployment from git push to production via GitHub Actions and Docker</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    PUSH["git push\nmaster branch"]
+    GHA["GitHub Actions\nCI workflow"]
+    BUILD["Docker Build\nfrontend + backend"]
+    GHCR["GHCR\nContainer Registry"]
+    SSH["SSH to VPS"]
+    COMPOSE["docker compose\nup -d --build"]
+
+    PUSH --> GHA --> BUILD --> GHCR --> SSH --> COMPOSE
+      </div>
+    </div>
+
+    <h3 class="mb-24">Docker Services</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Image</th><th>Port</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>frontend</strong></td><td>ghcr.io/.../frontend</td><td>3000</td><td>Next.js 16 — App Router, React 19, TypeScript</td></tr>
+          <tr><td><strong>backend</strong></td><td>ghcr.io/.../backend</td><td>5000</td><td>Express API — JWT, RBAC, Socket.io, Sequelize 6</td></tr>
+          <tr><td><strong>nginx</strong></td><td>nginx:alpine</td><td>80</td><td>Reverse proxy — routes /, /api/, /socket.io/, /uploads/</td></tr>
+          <tr><td><strong>mysql</strong></td><td>mysql:8.0</td><td>3306</td><td>UTF-8mb4 — Asia/Bangkok timezone</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Frontend-Backend Request Flow -->
+<section id="request-flow" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Frontend-Backend Request Flow</h2>
+      <p>How a request travels from React component through the full stack and back</p>
+    </div>
+
+    <h3 class="mb-16">Frontend Request Chain</h3>
+    <div class="mermaid-wrap mb-32">
+      <div class="mermaid">
+flowchart LR
+    PAGE["Page Component"]
+    HOOK["React Query Hook"]
+    SVC["Service Function"]
+    FETCH["apiFetch\n(JWT injection)"]
+    NGINX["Nginx"]
+    EXPRESS["Express Backend"]
+    RES["Response"]
+
+    PAGE --> HOOK --> SVC --> FETCH --> NGINX --> EXPRESS --> RES
+      </div>
+    </div>
+
+    <h3 class="mb-16">Backend Middleware Pipeline</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    REQ["HTTP Request"]
+    CORS["CORS"]
+    JSON["JSON Parser"]
+    ROUTER["Router"]
+    AUTHTK["authenticateToken"]
+    AUTHZ["authorize"]
+    VALID["Validator"]
+    CTRL["Controller"]
+    SVC["Service"]
+    MODEL["Sequelize Model"]
+    RESP["Response"]
+    ERR["errorHandler"]
+
+    REQ --> CORS --> JSON --> ROUTER --> AUTHTK --> AUTHZ --> VALID --> CTRL --> SVC --> MODEL --> RESP
+    CTRL -.->|"on error"| ERR
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 6: Frontend Page Structure -->
+<section id="page-structure" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Frontend Page Structure</h2>
+      <p>Next.js App Router route groups and their corresponding features</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Route Group</th><th>Sub-routes</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>(auth)/</strong></td><td>login, SSO callback</td><td>Authentication — JWT login + KMUTNB SSO</td></tr>
+          <tr><td><strong>(app)/dashboard</strong></td><td>/</td><td>Main dashboard — role-based landing page</td></tr>
+          <tr><td><strong>(app)/internship*</strong></td><td>คพ.05, logbook, documents</td><td>Internship workflow — application, daily logs, documents</td></tr>
+          <tr><td><strong>(app)/project*</strong></td><td>topic, defense, meetings</td><td>Project/thesis — topic proposal, defense request, advisor meetings</td></tr>
+          <tr><td><strong>(app)/meetings</strong></td><td>list, create</td><td>Meeting management — advisor meeting records</td></tr>
+          <tr><td><strong>(app)/admin</strong></td><td>settings, users, reports</td><td>Admin panel — system settings, user management, reports</td></tr>
+          <tr><td><strong>(app)/reports</strong></td><td>various</td><td>Reports &amp; analytics — export Excel, summary views</td></tr>
+          <tr><td><strong>approval/, evaluate/</strong></td><td>token-based</td><td>Public pages — supervisor evaluation, external approval links</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Nginx Routing -->
+<section id="nginx-routing" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Nginx Routing</h2>
+      <p>Reverse proxy configuration mapping URLs to internal services</p>
+    </div>
+    <div class="card">
+      <pre class="code-block">Internet → Nginx (port 80)
+  ├── /           → Frontend (127.0.0.1:3000)
+  ├── /api/       → Backend  (127.0.0.1:5000)
+  ├── /socket.io/ → Socket.io (127.0.0.1:5000)
+  ├── /api-docs   → Swagger  (127.0.0.1:5000)
+  └── /uploads/   → Static files</pre>
+    </div>
+  </div>
+</section>
+
+<!-- Section 8: Docker Health & Volumes -->
+<section id="docker-health" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Docker Health &amp; Volumes</h2>
+      <p>Container health checks, startup dependencies, and persistent volume configuration</p>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <h3 class="mb-16">Health Checks</h3>
+        <pre class="code-block"># MySQL
+healthcheck:
+  test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
+# Backend
+healthcheck:
+  test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/api/health"]
+  interval: 15s
+  timeout: 5s
+  retries: 3</pre>
+      </div>
+      <div class="card">
+        <h3 class="mb-16">Dependencies &amp; Volumes</h3>
+        <pre class="code-block"># Startup Order
+MySQL  →  Backend  →  Frontend
+  (must be healthy before next starts)
+
+# Persistent Volumes
+volumes:
+  mysql-data:      # Database storage
+  backend-uploads: # Uploaded PDF files
+  backend-logs:    # Winston log files</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Theme Toggle Button -->
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon">&#9789;</span>
+</button>
 
 <script>
+  // Mermaid init with Notion theme
   mermaid.initialize({
     startOnLoad: true,
-    theme: 'default',
+    theme: 'base',
     themeVariables: {
-      primaryColor: '#dbeafe', primaryTextColor: '#1e293b',
-      primaryBorderColor: '#e2e8f0', lineColor: '#2563eb',
-      secondaryColor: '#f8fafc', tertiaryColor: '#ffffff',
-      fontFamily: 'Segoe UI, system-ui, sans-serif'
+      primaryColor: '#f2f9ff',
+      primaryBorderColor: '#0075de',
+      primaryTextColor: 'rgba(0,0,0,0.95)',
+      lineColor: '#a39e98',
+      secondaryColor: '#f6f5f4',
+      tertiaryColor: '#ffffff',
+      noteBkgColor: '#f2f9ff',
+      noteTextColor: 'rgba(0,0,0,0.95)',
+      noteBorderColor: '#0075de',
+      fontFamily: 'Inter, sans-serif'
     }
   });
 
-  function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    event.target.classList.add('active');
-  }
-
-  // Smooth scroll for nav
-  document.querySelectorAll('nav a').forEach(a => {
-    a.addEventListener('click', e => {
-      document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
-      a.classList.add('active');
-    });
-  });
-
-  // Theme toggle placeholder
-  let dark = false;
+  // Theme toggle
   function toggleTheme() {
-    dark = !dark;
-    document.querySelector('.theme-toggle').textContent = dark ? '☀ Light' : '🌙 Dark';
+    var html = document.documentElement;
+    var icon = document.getElementById('theme-icon');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.setAttribute('data-theme', 'light');
+      icon.innerHTML = '&#9789;';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      icon.innerHTML = '&#9788;';
+    }
+    // Re-render mermaid for theme
+    document.querySelectorAll('.mermaid[data-processed]').forEach(function(el) {
+      el.removeAttribute('data-processed');
+    });
   }
+
+  // Page nav active state on scroll
+  (function() {
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('.page-nav a');
+    window.addEventListener('scroll', function() {
+      var scrollPos = window.scrollY + 120;
+      sections.forEach(function(section) {
+        if (section.offsetTop <= scrollPos && (section.offsetTop + section.offsetHeight) > scrollPos) {
+          navLinks.forEach(function(a) { a.classList.remove('active'); });
+          var active = document.querySelector('.page-nav a[href="#' + section.id + '"]');
+          if (active) active.classList.add('active');
+        }
+      });
+    });
+  })();
 </script>
+
+<!-- Shared site nav -->
+<script src="nav.js" data-active="architecture"></script>
 </body>
 </html>

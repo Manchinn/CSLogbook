@@ -10,3 +10,7 @@ playwright-e2e/test-results/
 playwright-e2e/playwright-report/
 playwright-e2e/blob-report/
 playwright-e2e/dist/
+
+# Visual docs — design system reference (not project content)
+docs/visual/DESIGN.md
+docs/visual/notion-style.css

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Overview</title>
+<link rel="stylesheet" href="notion-style.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>CSLogbook</h1>
+    <p>ระบบจัดการกิจกรรมนักศึกษา — ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ</p>
+    <div style="margin-top: 20px;">
+      <span class="badge badge-green">Production — cslogbook.me</span>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Grid -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Codebase at a Glance</h2>
+    </div>
+    <div class="grid grid-3x3" style="gap: 16px;">
+      <div class="card stat-card">
+        <div class="stat-number">46</div>
+        <div class="stat-label">Models</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">42</div>
+        <div class="stat-label">Services</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">36</div>
+        <div class="stat-label">Controllers</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">73</div>
+        <div class="stat-label">Pages</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">35</div>
+        <div class="stat-label">Hooks</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">21</div>
+        <div class="stat-label">API Routes</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">103</div>
+        <div class="stat-label">Migrations</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">8</div>
+        <div class="stat-label">Agents</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-number">3</div>
+        <div class="stat-label">User Roles</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tech Stack Section -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Tech Stack</h2>
+    </div>
+    <div class="grid grid-3">
+      <!-- Backend -->
+      <div class="card">
+        <span class="badge badge-teal mb-16" style="display:inline-block; margin-bottom:16px;">Backend</span>
+        <h3>Server &amp; API</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Node.js 18+ / Express</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Sequelize 6 ORM</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">MySQL 8.0 (UTF-8mb4)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Socket.io (Real-time)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">JWT Authentication</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Swagger/OpenAPI 3.0</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">node-cron (Agents)</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Winston Logger</li>
+        </ul>
+      </div>
+      <!-- Frontend -->
+      <div class="card">
+        <span class="badge badge-purple mb-16" style="display:inline-block; margin-bottom:16px;">Frontend</span>
+        <h3>UI &amp; State</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Next.js 16 (App Router)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">React 19 + TypeScript</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">TanStack Query v5</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Ant Design 5</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">React Context (Auth)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">73 Pages / 35 Hooks</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Responsive Design</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Token-based Public Pages</li>
+        </ul>
+      </div>
+      <!-- Infrastructure -->
+      <div class="card">
+        <span class="badge badge-orange mb-16" style="display:inline-block; margin-bottom:16px;">Infrastructure</span>
+        <h3>Deploy &amp; Ops</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Docker Compose</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Nginx Reverse Proxy</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">GitHub Actions CI/CD</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Let's Encrypt SSL</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">GHCR Container Registry</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">512MB per Container</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Graceful Shutdown</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Health Check Endpoints</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Database Design -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Database Design</h2>
+    </div>
+    <div class="two-col">
+      <!-- Left: Principles -->
+      <div>
+        <h3 class="mb-16">Design Principles</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:10px 0; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">01</span> snake_case columns (created_at, student_id)
+          </li>
+          <li style="padding:10px 0; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">02</span> timestamps: true (created_at / updated_at)
+          </li>
+          <li style="padding:10px 0; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">03</span> Soft constraints via Sequelize associations
+          </li>
+          <li style="padding:10px 0; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">04</span> 103 migration files for schema versioning
+          </li>
+          <li style="padding:10px 0; color:var(--text-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">05</span> In-memory SQLite for automated tests
+          </li>
+          <li style="padding:10px 0; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--teal); font-weight:600;">06</span> UTF-8mb4 for Thai characters
+          </li>
+        </ul>
+      </div>
+      <!-- Right: ER Diagram -->
+      <div>
+        <div class="mermaid-wrap">
+          <div class="mermaid">
+erDiagram
+    User ||--o{ Student : "has"
+    User ||--o{ Teacher : "has"
+    Student ||--o{ Project : "owns"
+    Student ||--o{ Internship : "owns"
+    Project ||--o{ Document : "generates"
+    Project ||--o{ Meeting : "tracks"
+    Project ||--o{ Deadline : "has"
+    Internship ||--o{ Document : "generates"
+    User ||--o{ Notification : "receives"
+          </div>
+        </div>
+        <p class="text-center text-secondary" style="margin-top:12px; font-size:14px; font-weight:500;">
+          46 Sequelize Models, MySQL 8.0 UTF-8mb4, 103 migrations
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tech Stack Grid -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Technology Ecosystem</h2>
+    </div>
+    <div class="grid grid-4" style="gap:16px;">
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Next.js 16</div>
+        <div class="text-secondary" style="font-size:13px;">App Router</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">React 19</div>
+        <div class="text-secondary" style="font-size:13px;">UI Library</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">TypeScript</div>
+        <div class="text-secondary" style="font-size:13px;">Type Safety</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">TanStack Query</div>
+        <div class="text-secondary" style="font-size:13px;">Server State</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Node.js/Express</div>
+        <div class="text-secondary" style="font-size:13px;">REST API</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Sequelize 6</div>
+        <div class="text-secondary" style="font-size:13px;">ORM</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">MySQL 8.0</div>
+        <div class="text-secondary" style="font-size:13px;">Database</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Socket.io</div>
+        <div class="text-secondary" style="font-size:13px;">Real-time</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Docker Compose</div>
+        <div class="text-secondary" style="font-size:13px;">Containers</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">Nginx</div>
+        <div class="text-secondary" style="font-size:13px;">Reverse Proxy</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">GitHub Actions</div>
+        <div class="text-secondary" style="font-size:13px;">CI/CD</div>
+      </div>
+      <div class="card text-center" style="padding:20px;">
+        <div style="font-size:1.5rem; margin-bottom:4px; font-weight:700;">KMUTNB SSO</div>
+        <div class="text-secondary" style="font-size:13px;">Authentication</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Codebase Charts -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Codebase Breakdown</h2>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <h4 class="text-center mb-16">Backend Components</h4>
+        <div class="chart-container" style="max-width:100%;">
+          <canvas id="backendChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h4 class="text-center mb-16">Frontend Pages</h4>
+        <div class="chart-container">
+          <canvas id="frontendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="section text-center" style="padding:40px 0;">
+  <div class="container">
+    <p class="text-muted" style="font-size:14px;">
+      CSLogbook — Full-stack Student Activity Management System — cslogbook.me — CS&amp;IT, KMUTNB — April 2026
+    </p>
+  </div>
+</footer>
+
+<button class="theme-toggle" onclick="toggleTheme()">&#127769;</button>
+
+<script>
+// Theme toggle
+function toggleTheme() {
+  var html = document.documentElement;
+  var current = html.getAttribute('data-theme');
+  var next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('cslogbook-theme', next);
+  initCharts();
+}
+(function() {
+  var saved = localStorage.getItem('cslogbook-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+// Mermaid
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#f2f9ff',
+    primaryBorderColor: '#0075de',
+    primaryTextColor: 'rgba(0,0,0,0.95)',
+    lineColor: '#a39e98',
+    secondaryColor: '#f6f5f4',
+    tertiaryColor: '#ffffff',
+    noteBkgColor: '#f2f9ff',
+    noteTextColor: 'rgba(0,0,0,0.95)',
+    noteBorderColor: '#0075de'
+  },
+  fontFamily: 'Inter, sans-serif'
+});
+
+// Charts
+var backendChartInstance = null;
+var frontendChartInstance = null;
+
+function getChartColors() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    text: isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.95)',
+    textSecondary: isDark ? '#a39e98' : '#615d59',
+    gridColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    teal: '#2a9d99',
+    purple: '#391c57',
+    accent: '#0075de',
+    green: '#1aae39',
+    orange: '#dd5b00',
+    red: '#d63031'
+  };
+}
+
+function initCharts() {
+  var c = getChartColors();
+
+  // Backend bar chart
+  if (backendChartInstance) backendChartInstance.destroy();
+  var ctx1 = document.getElementById('backendChart').getContext('2d');
+  backendChartInstance = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Models', 'Services', 'Controllers', 'Routes', 'Middleware', 'Agents'],
+      datasets: [{
+        label: 'Count',
+        data: [46, 42, 36, 21, 7, 8],
+        backgroundColor: [c.teal, c.accent, c.purple, c.green, c.orange, c.red],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          ticks: { color: c.textSecondary, font: { family: 'Inter', size: 12 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: c.textSecondary, font: { family: 'Inter', size: 12 } },
+          grid: { color: c.gridColor }
+        }
+      }
+    }
+  });
+
+  // Frontend doughnut chart
+  if (frontendChartInstance) frontendChartInstance.destroy();
+  var ctx2 = document.getElementById('frontendChart').getContext('2d');
+  frontendChartInstance = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Admin', 'Student', 'Teacher', 'Dashboard', 'Auth/Public'],
+      datasets: [{
+        data: [27, 31, 5, 4, 6],
+        backgroundColor: [c.teal, c.accent, c.purple, c.green, c.orange],
+        borderWidth: 2,
+        borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#232322' : '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: c.textSecondary,
+            font: { family: 'Inter', size: 12 },
+            padding: 16
+          }
+        }
+      }
+    }
+  });
+}
+
+// Init charts after DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(initCharts, 100);
+});
+</script>
+
+<script src="nav.js" data-active="overview"></script>
+</body>
+</html>

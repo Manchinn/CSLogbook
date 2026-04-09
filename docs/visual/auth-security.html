@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Auth & Security</title>
+<link rel="stylesheet" href="notion-style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  /* Page-specific overrides */
+  .permission-list { list-style: none; padding: 0; margin: 0; }
+  .permission-list li {
+    padding: 6px 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  .permission-list li:last-child { border-bottom: none; }
+  .permission-list li::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .perm-green li::before { background: var(--green); }
+  .perm-purple li::before { background: var(--purple); }
+  .perm-red li::before { background: var(--red); }
+
+  .role-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .check { color: var(--green); font-weight: 700; }
+  .dash { color: var(--text-muted); }
+
+  .pipeline-block {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .pipeline-step {
+    padding: 10px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pipeline-arrow {
+    padding: 0 6px;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .security-card-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 768px) {
+    .pipeline-block { flex-direction: column; align-items: stretch; }
+    .pipeline-arrow { transform: rotate(90deg); text-align: center; padding: 4px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Page Nav (internal section links)
+     ============================================================ -->
+<nav class="page-nav">
+  <div class="container">
+    <a href="#auth-flow">Auth Flow</a>
+    <a href="#jwt-structure">JWT</a>
+    <a href="#token-lifecycle">Token Lifecycle</a>
+    <a href="#middleware-chain">Middleware</a>
+    <a href="#rbac-model">RBAC Model</a>
+    <a href="#rbac-matrix">Permission Matrix</a>
+    <a href="#rbac-graph">RBAC Graph</a>
+    <a href="#permission-resolution">Resolution</a>
+    <a href="#security-features">Security</a>
+    <a href="#charts">Charts</a>
+    <a href="#security-measures">Measures</a>
+  </div>
+</nav>
+
+<!-- ============================================================
+     Hero
+     ============================================================ -->
+<header class="hero">
+  <div class="container">
+    <span class="badge badge-red">Security Documentation</span>
+    <h1>Auth & Security</h1>
+    <p>Authentication, Authorization, Token lifecycle และ Security measures ของ CSLogbook</p>
+  </div>
+</header>
+
+<!-- ============================================================
+     Section 1: Authentication Flow
+     ============================================================ -->
+<section id="auth-flow" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-blue">Section 1</span>
+      <h2>Authentication Flow</h2>
+      <p>Login ด้วย Username/Password และ KMUTNB SSO OAuth</p>
+    </div>
+
+    <!-- Login Flow -->
+    <h3 class="mb-16">Login Flow (Username/Password)</h3>
+    <div class="mermaid-wrap mb-32">
+      <div class="mermaid">
+sequenceDiagram
+    participant C as Client (Browser)
+    participant B as Backend (Express)
+    participant DB as MySQL
+
+    C->>B: POST /api/auth/login {username, password}
+    B->>DB: SELECT user WHERE username
+    DB-->>B: user record
+    B->>B: bcrypt.compare(password, hash)
+    alt password match
+        B->>B: jwt.sign({userId, role, ...})
+        B-->>C: {success: true, token: "eyJ..."}
+        C->>C: localStorage.setItem("cslogbook:auth-token", token)
+    else password mismatch
+        B-->>C: {success: false, message: "Invalid credentials"}
+    end
+      </div>
+    </div>
+
+    <!-- SSO Flow -->
+    <h3 class="mb-16">SSO Flow (KMUTNB)</h3>
+    <div class="mermaid-wrap mb-32">
+      <div class="mermaid">
+sequenceDiagram
+    participant U as User (Browser)
+    participant FE as Frontend (Next.js)
+    participant BE as Backend (Express)
+    participant SSO as KMUTNB SSO Server
+
+    U->>FE: Click "Login with SSO"
+    FE->>SSO: 1. Redirect to SSO /authorize?client_id&redirect_uri
+    U->>SSO: 2. Login at KMUTNB SSO
+    SSO->>FE: 3. Callback with authorization code
+    FE->>BE: 4. POST /api/auth/sso {code}
+    BE->>SSO: 5. Exchange code for access_token
+    SSO-->>BE: {access_token, user_info}
+    BE->>BE: 6. Find or create user + generate JWT
+    BE-->>FE: {success: true, token: "eyJ..."}
+    FE->>FE: Store token in localStorage
+      </div>
+    </div>
+
+    <!-- Auth Pipeline -->
+    <h3 class="mb-16">Auth Pipeline</h3>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-num" style="background:var(--accent);color:#fff">1</div>
+        <span>Login / SSO</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <div class="step-num" style="background:var(--teal);color:#fff">2</div>
+        <span>JWT Token Generation</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <div class="step-num" style="background:var(--green);color:#fff">3</div>
+        <span>Store in localStorage</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <div class="step-num" style="background:var(--orange);color:#fff">4</div>
+        <span>API Request + Authorization Header</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <div class="step-num" style="background:var(--purple);color:#fff">5</div>
+        <span>Verify & RBAC</span>
+      </div>
+    </div>
+    <p class="text-muted" style="font-size:13px">KMUTNB SSO or Email/Password &rarr; JWT &rarr; localStorage &rarr; Authorization: Bearer &lt;token&gt; &rarr; authenticateToken + authorize</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 2: JWT Token Structure
+     ============================================================ -->
+<section id="jwt-structure" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-teal">Section 2</span>
+      <h2>JWT Token Structure</h2>
+      <p>Slim payload design &mdash; role-based fields included conditionally</p>
+    </div>
+
+    <div class="code-block">
+<pre>{
+  "jti": "unique-id",
+  "userId": 1,
+  "role": "student|teacher|admin",
+
+  // student-specific
+  "studentId": 1,
+  "studentCode": "6504062610xxx",
+
+  // teacher-specific
+  "teacherId": 1,
+  "teacherPermissions": ["teacher:type", "teacher:position:*"],
+
+  // admin-specific
+  "isAdmin": true,
+
+  "iat": 1234567890,
+  "exp": 1234567890
+}</pre>
+    </div>
+
+    <div class="grid grid-3 mt-24">
+      <div class="card">
+        <h4>Student Token</h4>
+        <p>Contains <code>studentId</code> + <code>studentCode</code> for data scoping</p>
+      </div>
+      <div class="card">
+        <h4>Teacher Token</h4>
+        <p>Contains <code>teacherId</code> + <code>teacherPermissions[]</code> for sub-role access</p>
+      </div>
+      <div class="card">
+        <h4>Admin Token</h4>
+        <p>Contains <code>isAdmin: true</code> for full system access (teacher:support role)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 3: Token Lifecycle & Blacklist
+     ============================================================ -->
+<section id="token-lifecycle" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-orange">Section 3</span>
+      <h2>Token Lifecycle & Blacklist</h2>
+      <p>State transitions ของ JWT token ตั้งแต่สร้างจนหมดอายุ</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> Active : jwt.sign()
+    Active --> Active : API request (valid)
+    Active --> Blacklisted : Logout / Force revoke
+    Active --> Expired : Token TTL exceeded
+    Blacklisted --> [*] : Rejected on next request
+    Expired --> [*] : Rejected on next request
+
+    note right of Blacklisted
+        Persisted in data/token-blacklist.json
+        Checked on every authenticateToken() call
+    end note
+      </div>
+    </div>
+
+    <div class="card mt-24">
+      <h4>Blacklist Persistence</h4>
+      <p>Revoked tokens are stored in <code>data/token-blacklist.json</code> on the backend. The blacklist is loaded into memory on server start and checked synchronously on every authenticated request via <code>authenticateToken()</code> middleware.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 4: Middleware Chain
+     ============================================================ -->
+<section id="middleware-chain" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-navy">Section 4</span>
+      <h2>Middleware Chain</h2>
+      <p>Request processing pipeline จาก client ถึง database</p>
+    </div>
+
+    <div class="pipeline-block">
+      <div class="pipeline-step">Request</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--accent)">authenticateToken</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--purple)">authorize</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--orange)">Validator</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--teal)">Controller</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--green)">Service</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step" style="border-color:var(--brown)">Model</div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">Response</div>
+    </div>
+
+    <div class="code-block mt-24">
+<pre>// Route example
+router.get('/api/projects',
+  authenticateToken,              // 1. Verify JWT, attach req.user
+  authorize('admin', 'teacher'),  // 2. Check role
+  validateQuery(projectSchema),   // 3. Joi validation
+  projectController.getAll        // 4. Controller -> Service -> Model
+);</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 5: RBAC Model
+     ============================================================ -->
+<section id="rbac-model" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-purple">Section 5</span>
+      <h2>RBAC Model</h2>
+      <p>Role-Based Access Control &mdash; 3 roles หลักพร้อม sub-permissions</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Sub-permissions</th>
+            <th>Access Level</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-green">student</span></td>
+            <td>&mdash;</td>
+            <td>Own data only</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-purple">teacher</span></td>
+            <td><code>teacher:type</code>, <code>teacher:position:*</code>, <code>teacher:topic_exam_access</code>, <code>teacher:can_export_project1</code></td>
+            <td>Advisee data</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">admin</span> <span class="text-muted">(teacher:support)</span></td>
+            <td>Full access</td>
+            <td>All data</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 6: RBAC Permission Matrix (Role Cards)
+     ============================================================ -->
+<section id="rbac-matrix" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-blue">Section 6</span>
+      <h2>RBAC Permission Matrix</h2>
+      <p>Permissions แยกตาม role</p>
+    </div>
+
+    <div class="grid grid-3">
+      <!-- Student -->
+      <div class="card">
+        <div class="role-card-header">
+          <span class="badge badge-green">Student</span>
+        </div>
+        <ul class="permission-list perm-green">
+          <li>ส่งเอกสาร / เขียน Logbook</li>
+          <li>สร้างโปรเจกต์ / Milestone</li>
+          <li>ลงทะเบียนฝึกงาน</li>
+          <li>ขอ Email Approval</li>
+          <li>ดูข้อมูลตนเอง</li>
+          <li>KP02 Submit / Topic Exam</li>
+        </ul>
+      </div>
+
+      <!-- Teacher -->
+      <div class="card">
+        <div class="role-card-header">
+          <span class="badge badge-purple">Teacher</span>
+        </div>
+        <ul class="permission-list perm-purple">
+          <li>ตรวจเอกสาร / อนุมัติ</li>
+          <li>ดู Logbook / ให้ Approve</li>
+          <li>สอบหัวข้อ / System Test</li>
+          <li>จัดการ Timeline step</li>
+          <li><code>teacher:type</code> (academic / support)</li>
+          <li><code>teacher:position:*</code></li>
+          <li><code>teacher:topic_exam_access</code></li>
+          <li><code>teacher:can_export_project1</code></li>
+        </ul>
+      </div>
+
+      <!-- Admin -->
+      <div class="card">
+        <div class="role-card-header">
+          <span class="badge badge-red">Admin</span>
+        </div>
+        <ul class="permission-list perm-red">
+          <li>จัดการผู้ใช้ทั้งหมด</li>
+          <li>ตั้งค่า Academic / Curriculum</li>
+          <li>จัดการ Workflow / Deadline</li>
+          <li>ดู Reports ทั้งระบบ</li>
+          <li>Upload CSV / Settings</li>
+          <li>Archive Projects</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 7: Permission Matrix Table
+     ============================================================ -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-teal">Section 7</span>
+      <h2>Permission Matrix Table</h2>
+      <p>Feature-level access comparison</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Student</th>
+            <th>Advisor</th>
+            <th>Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Login</td>
+            <td><span class="check">&#10003;</span></td>
+            <td><span class="check">&#10003;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td>ส่งคำร้อง</td>
+            <td><span class="check">&#10003;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td>ดู Progress 8 Steps</td>
+            <td><span class="check">&#10003;</span> (own)</td>
+            <td><span class="check">&#10003;</span> (advisee)</td>
+            <td><span class="check">&#10003;</span> (all)</td>
+          </tr>
+          <tr>
+            <td>อนุมัติ / ปฏิเสธ</td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="check">&#10003;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td>บันทึกผลสอบ</td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td>Upload รายชื่อ</td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td>ตั้งค่า</td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td>จัดการ Email</td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="dash">&mdash;</span></td>
+            <td><span class="check">&#10003;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 8: Mermaid RBAC Graph
+     ============================================================ -->
+<section id="rbac-graph" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-navy">Section 8</span>
+      <h2>RBAC Graph</h2>
+      <p>ความสัมพันธ์ระหว่าง Role กับ Permission</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    S["Student<br/>(นักศึกษา SSO)"]
+    A["Advisor<br/>(อาจารย์ที่ปรึกษา)"]
+    O["Officer<br/>(เจ้าหน้าที่ teacher:support)"]
+    V["Supervisor<br/>(ผู้ควบคุมงาน)"]
+
+    P1(ส่งเอกสาร / Logbook)
+    P2(สร้างโปรเจกต์)
+    P3(อนุมัติเอกสาร)
+    P4(สอบหัวข้อ / ประเมิน)
+    P5(จัดการผู้ใช้)
+    P6(ตั้งค่าระบบ)
+    P7(ดู Reports)
+    P8(ประเมินฝึกงาน)
+
+    S --> P1
+    S --> P2
+    A --> P3
+    A --> P4
+    O --> P3
+    O --> P5
+    O --> P6
+    O --> P7
+    V --> P8
+
+    style S fill:#dcfce7,stroke:#16a34a,color:#15803d
+    style A fill:#f3e8ff,stroke:#9333ea,color:#7e22ce
+    style O fill:#fee2e2,stroke:#dc2626,color:#b91c1c
+    style V fill:#fef3c7,stroke:#d97706,color:#b45309
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 9: Permission Resolution Pipeline
+     ============================================================ -->
+<section id="permission-resolution" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-brown">Section 9</span>
+      <h2>Permission Resolution Pipeline</h2>
+      <p>buildPrincipalKeys() flow และ role resolution hierarchy</p>
+    </div>
+
+    <div class="code-block">
+<pre>// Permission Resolution — buildPrincipalKeys()
+// authorize() middleware resolves permissions in this order:
+
+function buildPrincipalKeys(user) {
+  const keys = [];
+
+  // 1. Base role
+  keys.push(user.role);                    // "student" | "teacher" | "admin"
+
+  // 2. Teacher sub-permissions (from JWT)
+  if (user.teacherPermissions) {
+    user.teacherPermissions.forEach(p => {
+      keys.push(p);                        // "teacher:type", "teacher:position:head"
+    });
+  }
+
+  // 3. Admin shortcut (teacher with support type)
+  if (user.isAdmin || user.teacherPermissions?.includes('teacher:support')) {
+    keys.push('admin');                    // Full access granted
+  }
+
+  return keys;
+}
+
+// Resolution hierarchy:
+//   admin > teacher:position:* > teacher:type > teacher > student
+//
+// Wildcard matching:
+//   "teacher:position:*" matches "teacher:position:head",
+//                                "teacher:position:deputy", etc.
+//
+// Route-level check:
+//   authorize('admin', 'teacher:topic_exam_access')
+//   → user must have at least ONE of the listed keys</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 10: Security Features
+     ============================================================ -->
+<section id="security-features" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-red">Section 10</span>
+      <h2>Security Features</h2>
+      <p>มาตรการรักษาความปลอดภัยของระบบ</p>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="security-card-icon">&#128274;</div>
+        <h4>JWT Auth</h4>
+        <p>JSON Web Token with HMAC-SHA256 signing. Slim payload, role-based claims, configurable expiry.</p>
+      </div>
+      <div class="card">
+        <div class="security-card-icon">&#128737;</div>
+        <h4>IDOR Fixes (6/6)</h4>
+        <p>All 6 identified Insecure Direct Object Reference vulnerabilities patched. Users can only access their own resources.</p>
+      </div>
+      <div class="card">
+        <div class="security-card-icon">&#9202;</div>
+        <h4>Rate Limiter</h4>
+        <p>express-rate-limit middleware prevents brute-force attacks on login and sensitive endpoints.</p>
+      </div>
+      <div class="card">
+        <div class="security-card-icon">&#9989;</div>
+        <h4>Joi Validation</h4>
+        <p>Request body, query, and params validated with Joi schemas + express-validator before reaching controllers.</p>
+      </div>
+      <div class="card">
+        <div class="security-card-icon">&#127760;</div>
+        <h4>CORS Dynamic Origins</h4>
+        <p>corsOrigins.js dynamically whitelists allowed origins. Prevents unauthorized cross-origin requests.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 11: Charts
+     ============================================================ -->
+<section id="charts" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-blue">Section 11</span>
+      <h2>Charts</h2>
+      <p>Visualization ของ permissions และ actions</p>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Bar chart: Permissions by Resource -->
+      <div class="card">
+        <h4 class="mb-16">Permissions by Resource</h4>
+        <div class="chart-container">
+          <canvas id="chart-permissions"></canvas>
+        </div>
+      </div>
+
+      <!-- Doughnut chart: Actions per Role -->
+      <div class="card">
+        <h4 class="mb-16">Actions per Role</h4>
+        <div class="chart-container">
+          <canvas id="chart-roles"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Section 12: Security Measures
+     ============================================================ -->
+<section id="security-measures" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-orange">Section 12</span>
+      <h2>Security Measures</h2>
+      <p>Runtime protection mechanisms</p>
+    </div>
+
+    <div class="card">
+      <h4 class="mb-16">Active Security Measures</h4>
+      <div class="grid grid-3">
+        <div>
+          <h4>Token Expiry Check</h4>
+          <p>Token expiry is verified on every page load via AuthContext. Expired tokens trigger automatic logout and redirect to login.</p>
+        </div>
+        <div>
+          <h4>Automatic Session Expiry</h4>
+          <p>JWT tokens have a configurable TTL. After expiry, the token is rejected by authenticateToken middleware and the user must re-authenticate.</p>
+        </div>
+        <div>
+          <h4>Rate Limiting</h4>
+          <p>Rate limiting is applied to login endpoints and other sensitive routes to prevent brute-force and credential stuffing attacks.</p>
+        </div>
+        <div>
+          <h4>CORS Whitelist</h4>
+          <p>Only whitelisted origins (configured in corsOrigins.js) can make cross-origin requests. Dynamic configuration supports dev and production environments.</p>
+        </div>
+        <div>
+          <h4>KMUTNB SSO Integration</h4>
+          <p>Students authenticate via KMUTNB's official SSO (OAuth). No student passwords stored in CSLogbook database.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Theme Toggle
+     ============================================================ -->
+<button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9789;</button>
+
+<!-- ============================================================
+     Scripts
+     ============================================================ -->
+<script>
+// Theme toggle
+(function () {
+  var saved = localStorage.getItem('cslogbook-theme');
+  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+  var btn = document.getElementById('theme-toggle');
+  btn.addEventListener('click', function () {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('cslogbook-theme', 'light');
+      btn.textContent = '\u263D';
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('cslogbook-theme', 'dark');
+      btn.textContent = '\u2600';
+    }
+    initCharts();
+    // Re-render mermaid for theme
+    reinitMermaid();
+  });
+  if (saved === 'dark') btn.textContent = '\u2600';
+})();
+
+// Mermaid init
+function getMermaidThemeVars() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    theme: 'base',
+    themeVariables: {
+      primaryColor: isDark ? '#1e3a5f' : '#f2f9ff',
+      primaryBorderColor: isDark ? '#62aef0' : '#0075de',
+      primaryTextColor: isDark ? '#f6f5f4' : '#1e293b',
+      lineColor: isDark ? '#a39e98' : '#615d59',
+      secondaryColor: isDark ? '#2a2a29' : '#f6f5f4',
+      tertiaryColor: isDark ? '#232322' : '#ffffff',
+      noteBkgColor: isDark ? '#2a2a29' : '#fef9c3',
+      noteTextColor: isDark ? '#f6f5f4' : '#1e293b',
+      noteBorderColor: isDark ? '#615d59' : '#d97706'
+    }
+  };
+}
+
+function reinitMermaid() {
+  var config = getMermaidThemeVars();
+  config.startOnLoad = false;
+  mermaid.initialize(config);
+  document.querySelectorAll('.mermaid[data-processed]').forEach(function (el) {
+    el.removeAttribute('data-processed');
+    var code = el.getAttribute('data-original') || el.textContent;
+    el.setAttribute('data-original', code);
+    el.innerHTML = code;
+  });
+  // Save originals first time
+  document.querySelectorAll('.mermaid:not([data-original])').forEach(function (el) {
+    el.setAttribute('data-original', el.textContent);
+  });
+  mermaid.run();
+}
+
+(function () {
+  var config = getMermaidThemeVars();
+  config.startOnLoad = true;
+  config.securityLevel = 'loose';
+  mermaid.initialize(config);
+  // Save originals
+  document.querySelectorAll('.mermaid').forEach(function (el) {
+    el.setAttribute('data-original', el.textContent);
+  });
+})();
+
+// Charts
+var permChart, roleChart;
+
+function getChartColors() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    text: isDark ? '#f6f5f4' : '#1e293b',
+    grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    blue: '#0075de',
+    green: '#1aae39',
+    purple: '#7c3aed',
+    teal: '#2a9d99',
+    orange: '#dd5b00',
+    red: '#d63031',
+    navy: '#213183'
+  };
+}
+
+function initCharts() {
+  var c = getChartColors();
+
+  // Destroy existing
+  if (permChart) permChart.destroy();
+  if (roleChart) roleChart.destroy();
+
+  // Bar chart — Permissions by Resource
+  var ctx1 = document.getElementById('chart-permissions').getContext('2d');
+  permChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Projects', 'Internship', 'Documents', 'Users', 'Settings', 'Reports', 'Exams'],
+      datasets: [{
+        label: 'Permission count',
+        data: [8, 6, 7, 4, 3, 5, 4],
+        backgroundColor: [c.blue, c.green, c.purple, c.teal, c.orange, c.navy, c.red],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: c.text, stepSize: 2 },
+          grid: { color: c.grid }
+        },
+        x: {
+          ticks: { color: c.text },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+
+  // Doughnut chart — Actions per Role
+  var ctx2 = document.getElementById('chart-roles').getContext('2d');
+  roleChart = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Student', 'Teacher', 'Admin'],
+      datasets: [{
+        data: [6, 8, 6],
+        backgroundColor: [c.green, c.purple, c.red],
+        borderWidth: 2,
+        borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#232322' : '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: c.text, padding: 16, font: { size: 13 } }
+        }
+      }
+    }
+  });
+}
+
+// Init charts after DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCharts);
+} else {
+  initCharts();
+}
+
+// Page-nav active highlight on scroll
+(function () {
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('.page-nav a');
+
+  function onScroll() {
+    var scrollY = window.scrollY + 120;
+    sections.forEach(function (sec) {
+      var top = sec.offsetTop;
+      var height = sec.offsetHeight;
+      var id = sec.getAttribute('id');
+      if (scrollY >= top && scrollY < top + height) {
+        navLinks.forEach(function (a) {
+          a.classList.remove('active');
+          if (a.getAttribute('href') === '#' + id) a.classList.add('active');
+        });
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+<!-- Shared site nav -->
+<script src="nav.js" data-active="auth-security"></script>
+</body>
+</html>

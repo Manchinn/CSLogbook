@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Features</title>
+<link rel="stylesheet" href="notion-style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+</head>
+<body>
+
+<!-- Page Nav (internal section links) -->
+<nav class="page-nav">
+  <div class="container">
+    <a href="#key-features">Key Features</a>
+    <a href="#notification-socket">Notification</a>
+    <a href="#email-approval">Email Approval</a>
+    <a href="#background-agents">Agents</a>
+    <a href="#pdf-system">PDF System</a>
+    <a href="#admin-management">Admin</a>
+    <a href="#reports-export">Reports</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>Features</h1>
+    <p>CSLogbook — Feature reference covering notifications, document pipeline, agents, PDF generation, admin management, and reports</p>
+  </div>
+</section>
+
+<!-- Section 1: Key Features Overview -->
+<section id="key-features" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Key Features Overview</h2>
+      <p>Core capabilities ที่ขับเคลื่อนระบบ CSLogbook ทั้ง 3 tracks</p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="badge badge-teal" style="display:inline-block; margin-bottom:16px;">Logbook &amp; Meeting</span>
+        <h3>Logbook &amp; Meeting</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Real-time timestamp</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Date validation</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Teacher approval queue</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-blue" style="display:inline-block; margin-bottom:16px;">Document Pipeline</span>
+        <h3>Document Pipeline</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Auto-generate 3 types of official letters</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">TH Sarabun New font</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">ตราครุฑ seal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-orange" style="display:inline-block; margin-bottom:16px;">Notification &amp; Agents</span>
+        <h3>Notification &amp; Agents</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Email (Gmail REST API)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Socket.io real-time</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Cron agents</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-purple" style="display:inline-block; margin-bottom:16px;">Reports &amp; Admin</span>
+        <h3>Reports &amp; Admin</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Dashboard</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Document pipeline report</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">CSV/XLSX export</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Teacher queue summary</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-red" style="display:inline-block; margin-bottom:16px;">Security &amp; Auth</span>
+        <h3>Security &amp; Auth</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">SSO login</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">JWT refresh</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">RBAC middleware</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">IDOR prevention</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Rate limiting</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-green" style="display:inline-block; margin-bottom:16px;">Academic Settings</span>
+        <h3>Academic Settings</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Academic year config</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Dynamic deadlines</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">DeadlineTimeline component</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Thai date input (พ.ศ.)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Notification & Socket.io -->
+<section id="notification-socket" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Notification &amp; Socket.io</h2>
+      <p>Real-time notification pipeline ตั้งแต่ Backend Service จนถึง Frontend UI update</p>
+    </div>
+
+    <div class="mermaid-wrap" style="margin-bottom:32px;">
+      <div class="mermaid">
+sequenceDiagram
+    participant BS as Backend Service
+    participant NS as NotificationService
+    participant DB as MySQL
+    participant SIO as Socket.io
+    participant FE as Frontend
+
+    BS->>NS: triggerNotification(userId, type, data)
+    NS->>DB: Check user notification setting
+    DB-->>NS: setting enabled
+    NS->>DB: INSERT notification record
+    NS->>SIO: emit to room user_{userId}
+    SIO->>FE: workflow_update / approval / deadline
+    FE->>FE: invalidateQueries &amp; UI update
+      </div>
+    </div>
+
+    <!-- Socket.io Namespaces Table -->
+    <h3 style="margin-bottom:16px;">Socket.io Namespaces</h3>
+    <div class="table-wrap" style="margin-bottom:32px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Namespace</th>
+            <th>Auth</th>
+            <th>Events</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/ (default)</code></td>
+            <td>JWT</td>
+            <td>workflow_update, approval, deadline</td>
+            <td>User notifications</td>
+          </tr>
+          <tr>
+            <td><code>/monitoring</code></td>
+            <td>Admin only</td>
+            <td>system_status, agent_log</td>
+            <td>System monitoring</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3 Notification Channel Cards -->
+    <div class="grid grid-3">
+      <div class="card" style="background:var(--warm-dark); color:var(--warm-dark-text); border-color:var(--warm-dark);">
+        <span class="badge badge-teal" style="display:inline-block; margin-bottom:16px;">Real-time</span>
+        <h3 style="color:var(--warm-dark-text);">Socket.io</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Rooms: <code>user_{userId}</code></li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Events: workflow update / approval / deadline</li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Frontend: useEffect + socket listener</li>
+          <li style="padding:6px 0; color:var(--text-muted);">Auto-reconnect</li>
+        </ul>
+      </div>
+      <div class="card" style="background:var(--warm-dark); color:var(--warm-dark-text); border-color:var(--warm-dark);">
+        <span class="badge badge-orange" style="display:inline-block; margin-bottom:16px;">Email</span>
+        <h3 style="color:var(--warm-dark-text);">Gmail REST API</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Migration from nodemailer</li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Base HTML template + retry</li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">Fire-and-forget (non-blocking)</li>
+          <li style="padding:6px 0; color:var(--text-muted);">Trigger on workflow state change</li>
+        </ul>
+      </div>
+      <div class="card" style="background:var(--warm-dark); color:var(--warm-dark-text); border-color:var(--warm-dark);">
+        <span class="badge badge-purple" style="display:inline-block; margin-bottom:16px;">Scheduler</span>
+        <h3 style="color:var(--warm-dark-text);">Background Agents (node-cron)</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">deadlineStatusUpdater</li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">projectDeadlineMonitor</li>
+          <li style="padding:6px 0; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.1);">deadlineReminderAgent</li>
+          <li style="padding:6px 0; color:var(--text-muted);">Filter by active academic year</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Email Approval Flow -->
+<section id="email-approval" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Email Approval Flow</h2>
+      <p>Token-based approval ผ่านอีเมล สำหรับ Supervisor ที่ไม่ต้อง login เข้าระบบ</p>
+    </div>
+
+    <div class="mermaid-wrap" style="margin-bottom:32px;">
+      <div class="mermaid">
+sequenceDiagram
+    participant STU as Student
+    participant BE as Backend
+    participant DB as MySQL
+    participant EMAIL as Email Service
+    participant SUP as Supervisor
+
+    STU->>BE: Submit request
+    BE->>BE: Generate unique token
+    BE->>DB: Save token + expiry
+    BE->>EMAIL: Send approval link
+    EMAIL->>SUP: Email with link
+    SUP->>BE: Click link (validate token)
+    BE->>DB: Mark approved
+    BE-->>SUP: Show success page
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Public Pages (Token-based)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/approval/timesheet/[token]</code></td>
+            <td>Supervisor approves timesheet</td>
+          </tr>
+          <tr>
+            <td><code>/evaluate/supervisor/[token]</code></td>
+            <td>Supervisor evaluates student</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 4: Background Agent System -->
+<section id="background-agents" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Background Agent System</h2>
+      <p>AgentManager ควบคุม background tasks ทั้งหมดผ่าน environment flags</p>
+    </div>
+
+    <div class="mermaid-wrap" style="margin-bottom:32px;">
+      <div class="mermaid">
+flowchart TD
+    ENV["ENABLE_AGENTS=true"] --> AM["AgentManager"]
+    AM --> A1["eligibilityUpdater\n(periodic)"]
+    AM --> A2["projectDeadlineMonitor\n(hourly)"]
+    AM --> A3["internshipLifecycleMonitor\n(hourly)"]
+    AM --> A4["deadlineReminderAgent\n(daily 02:00)"]
+    AM --> A5["tokenCleanupScheduler\n(daily)"]
+    A1 --> DB[(MySQL)]
+    A2 --> DB
+    A3 --> DB
+    A4 --> NS["NotificationService"]
+    A5 --> DB
+    NS --> DB
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Agent Details</h3>
+    <div class="table-wrap" style="margin-bottom:32px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Type</th>
+            <th>Schedule</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>eligibilityUpdater</strong></td>
+            <td><span class="badge badge-teal">Scheduler</span></td>
+            <td>Periodic</td>
+            <td>Eligibility Checker &mdash; ตรวจสอบสิทธิ์นักศึกษาตาม unlock conditions</td>
+          </tr>
+          <tr>
+            <td><strong>projectDeadlineMonitor</strong></td>
+            <td><span class="badge badge-teal">Scheduler</span></td>
+            <td>Hourly</td>
+            <td>Project Purge &mdash; ตรวจสอบ deadline โครงงาน/ปริญญานิพนธ์</td>
+          </tr>
+          <tr>
+            <td><strong>internshipLifecycleMonitor</strong></td>
+            <td><span class="badge badge-orange">Monitor</span></td>
+            <td>Hourly</td>
+            <td>Document Status &mdash; ติดตาม lifecycle ฝึกงาน</td>
+          </tr>
+          <tr>
+            <td><strong>deadlineReminderAgent</strong></td>
+            <td><span class="badge badge-teal">Scheduler</span></td>
+            <td>Daily 02:00</td>
+            <td>Deadline Reminder &mdash; ส่ง notification ก่อน deadline</td>
+          </tr>
+          <tr>
+            <td><strong>tokenCleanupScheduler</strong></td>
+            <td><span class="badge badge-teal">Scheduler</span></td>
+            <td>Daily</td>
+            <td>ลบ expired tokens + blacklisted tokens</td>
+          </tr>
+          <tr>
+            <td><strong>academicSemesterUpdater</strong></td>
+            <td><span class="badge badge-teal">Scheduler</span></td>
+            <td>Periodic</td>
+            <td>Academic Semester Auto-update &mdash; อัปเดตปีการศึกษา/เทอมอัตโนมัติ</td>
+          </tr>
+          <tr>
+            <td><strong>logbookQualityMonitor</strong></td>
+            <td><span class="badge badge-orange">Monitor</span></td>
+            <td>Periodic</td>
+            <td>Logbook Quality &mdash; ตรวจสอบคุณภาพบันทึก logbook</td>
+          </tr>
+          <tr>
+            <td><strong>securityMonitor</strong></td>
+            <td><span class="badge badge-red">Monitor</span></td>
+            <td>Periodic</td>
+            <td>Security Monitor &mdash; ตรวจจับ anomalies และ suspicious activity</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Environment Configuration</h3>
+    <pre class="code-block">ENABLE_AGENTS=true
+ACADEMIC_AUTO_UPDATE_ENABLED=true</pre>
+  </div>
+</section>
+
+<!-- Section 5: PDF System -->
+<section id="pdf-system" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>PDF System</h2>
+      <p>ระบบ generate เอกสารราชการ 3 ประเภท ด้วย pdfkit + TH Sarabun New + ตราครุฑ</p>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="badge badge-blue" style="display:inline-block; margin-bottom:16px;">Letter</span>
+        <h3>หนังสือขอความอนุเคราะห์</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">To employer</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Header: department address + doc number (อว.)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Subject line bold official format</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Footer: contact ext. 4601</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">ตราครุฑ positioned absolutely</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-teal" style="display:inline-block; margin-bottom:16px;">Transmission</span>
+        <h3>หนังสือส่งตัว</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Formal student transmission</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">3-item checklist + notes</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Department head signature (departmentInfo.js)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Faculty &amp; university below</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">Correct Content-Disposition header</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="badge badge-green" style="display:inline-block; margin-bottom:16px;">Certificate</span>
+        <h3>ใบรับรองการฝึกงาน</h3>
+        <ul style="list-style:none; padding:0;">
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">After 250+ hours</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Total score / FULL_SCORE (100)</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">PASS_SCORE displayed</li>
+          <li style="padding:6px 0; color:var(--text-secondary); border-bottom:1px solid var(--border);">Loma font for Thai</li>
+          <li style="padding:6px 0; color:var(--text-secondary);">IDOR-protected</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="text-align:center; margin-top:24px; color:var(--text-muted); font-size:14px; font-weight:500;">
+      Technology: <strong>pdfkit</strong> + TH Sarabun New font + ตราครุฑ seal
+    </p>
+  </div>
+</section>
+
+<!-- Section 6: Admin Management -->
+<section id="admin-management" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Admin Management</h2>
+      <p>Backend API routes สำหรับเจ้าหน้าที่จัดการระบบ</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Functions</th>
+            <th>Routes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Users</strong></td>
+            <td>CRUD, role assign</td>
+            <td><code>/api/admin/users</code></td>
+          </tr>
+          <tr>
+            <td><strong>Academic</strong></td>
+            <td>Year/semester config</td>
+            <td><code>/api/admin/academic</code></td>
+          </tr>
+          <tr>
+            <td><strong>Curriculum</strong></td>
+            <td>Subject management</td>
+            <td><code>/api/admin/curriculum</code></td>
+          </tr>
+          <tr>
+            <td><strong>Deadlines</strong></td>
+            <td>Create/edit deadlines</td>
+            <td><code>/api/admin/deadlines</code></td>
+          </tr>
+          <tr>
+            <td><strong>Workflow Steps</strong></td>
+            <td>Step definitions</td>
+            <td><code>/api/admin/workflow-steps</code></td>
+          </tr>
+          <tr>
+            <td><strong>Notifications</strong></td>
+            <td>Settings, templates</td>
+            <td><code>/api/admin/notifications</code></td>
+          </tr>
+          <tr>
+            <td><strong>Documents</strong></td>
+            <td>Pipeline management</td>
+            <td><code>/api/admin/documents</code></td>
+          </tr>
+          <tr>
+            <td><strong>Projects</strong></td>
+            <td>Archive, bulk ops</td>
+            <td><code>/api/admin/projects</code></td>
+          </tr>
+          <tr>
+            <td><strong>Monitoring</strong></td>
+            <td>System health, logs</td>
+            <td><code>/api/admin/monitoring</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Reports & Excel Export -->
+<section id="reports-export" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Reports &amp; Excel Export</h2>
+      <p>Data flow ตั้งแต่ Report Page จนถึง Excel download</p>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Report Data Flow</h3>
+    <div class="mermaid-wrap" style="margin-bottom:32px;">
+      <div class="mermaid">
+flowchart LR
+    RP["Report Page"] --> RQ["React Query Hook"]
+    RQ --> RS["reportService.ts"]
+    RS --> API["GET /api/reports/*"]
+    API --> SVC["reportService.js"]
+    SVC --> SEQ["Sequelize Aggregation"]
+    SEQ --> DB[(MySQL)]
+    DB --> SEQ
+    SEQ --> SVC
+    SVC --> API
+    API --> RS
+    RS --> RQ
+    RQ --> RP
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Excel Export Flow</h3>
+    <div class="mermaid-wrap" style="margin-bottom:32px;">
+      <div class="mermaid">
+flowchart LR
+    BTN["Export Button"] --> DL["downloadExcelFile()"]
+    DL --> GET["GET /api/admin/.../export"]
+    GET --> EEB["ExcelExportBuilder\n(formatThaiDate())"]
+    EEB --> BIN["Excel binary"]
+    BIN --> SAVE["Browser saves .xlsx"]
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Available Reports</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Report</th>
+            <th>Endpoint</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Overview</strong></td>
+            <td><code>/api/reports/overview</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+          <tr>
+            <td><strong>Internship summary</strong></td>
+            <td><code>/api/reports/internship</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+          <tr>
+            <td><strong>Project statistics</strong></td>
+            <td><code>/api/reports/project</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+          <tr>
+            <td><strong>Advisor workload</strong></td>
+            <td><code>/api/reports/advisor</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+          <tr>
+            <td><strong>Deadline compliance</strong></td>
+            <td><code>/api/reports/deadline</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+          <tr>
+            <td><strong>Document pipeline</strong></td>
+            <td><code>/api/reports/document</code></td>
+            <td><span class="badge badge-red">admin</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Theme Toggle Button -->
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon">&#9789;</span>
+</button>
+
+<script>
+  // Mermaid init with Notion theme
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#f2f9ff',
+      primaryBorderColor: '#0075de',
+      primaryTextColor: 'rgba(0,0,0,0.95)',
+      lineColor: '#a39e98',
+      secondaryColor: '#f6f5f4',
+      tertiaryColor: '#ffffff',
+      noteBkgColor: '#f2f9ff',
+      noteTextColor: 'rgba(0,0,0,0.95)',
+      noteBorderColor: '#0075de',
+      fontFamily: 'Inter, sans-serif'
+    }
+  });
+
+  // Theme toggle
+  function toggleTheme() {
+    var html = document.documentElement;
+    var icon = document.getElementById('theme-icon');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.setAttribute('data-theme', 'light');
+      icon.innerHTML = '&#9789;';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      icon.innerHTML = '&#9788;';
+    }
+    // Re-render mermaid for theme
+    document.querySelectorAll('.mermaid[data-processed]').forEach(function(el) {
+      el.removeAttribute('data-processed');
+    });
+  }
+
+  // Page nav active state on scroll
+  (function() {
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('.page-nav a');
+    window.addEventListener('scroll', function() {
+      var scrollPos = window.scrollY + 120;
+      sections.forEach(function(section) {
+        if (section.offsetTop <= scrollPos && (section.offsetTop + section.offsetHeight) > scrollPos) {
+          navLinks.forEach(function(a) { a.classList.remove('active'); });
+          var active = document.querySelector('.page-nav a[href="#' + section.id + '"]');
+          if (active) active.classList.add('active');
+        }
+      });
+    });
+  })();
+</script>
+
+<!-- Shared site nav -->
+<script src="nav.js" data-active="features"></script>
+</body>
+</html>

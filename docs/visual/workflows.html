@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSLogbook — Workflows</title>
+<link rel="stylesheet" href="notion-style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+</head>
+<body>
+
+<!-- Page Nav (internal section links) -->
+<nav class="page-nav">
+  <div class="container">
+    <a href="#student-workflow">Student Flow</a>
+    <a href="#module-overview">Modules</a>
+    <a href="#internship-workflow">Internship</a>
+    <a href="#project-thesis">Project/Thesis</a>
+    <a href="#defense-request">Defense</a>
+    <a href="#system-test">System Test</a>
+    <a href="#document-mgmt">Documents</a>
+    <a href="#meeting-log">Meeting Log</a>
+    <a href="#logbook-flow">Logbook</a>
+    <a href="#timeline-system">Timeline</a>
+    <a href="#project-phases">Phases</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>Workflows</h1>
+    <p>CSLogbook — Visual workflow reference covering student flows, approval chains, document management, and system processes</p>
+  </div>
+</section>
+
+<!-- Section 1: 8 Modules — Student Workflow -->
+<section id="student-workflow" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>8 Modules — Student Workflow</h2>
+      <p>ลำดับขั้นตอนโครงงานพิเศษจากมุมนักศึกษา (8 Steps)</p>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--accent);">1</span>
+        <span class="badge badge-blue">ลงทะเบียนโครงงาน</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--accent);">2</span>
+        <span class="badge badge-blue">เลือกที่ปรึกษา</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--orange);">3</span>
+        <span class="badge badge-orange">สอบหัวข้อ คพ.02</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--orange);">4</span>
+        <span class="badge badge-orange">บันทึกการเข้าพบ</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--purple);">5</span>
+        <span class="badge badge-purple">ทดสอบระบบ</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--purple);">6</span>
+        <span class="badge badge-purple">สอบปริญญานิพนธ์ คพ.03</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--green);">7</span>
+        <span class="badge badge-green">ฝึกงาน คพ.05</span>
+      </div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">
+        <span class="step-num" style="background: var(--green);">8</span>
+        <span class="badge badge-green">ส่งเล่มสมบูรณ์</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2 & 3: Module Overview + Form Codes (Tabs) -->
+<section id="module-overview" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Module Overview & Form Codes</h2>
+      <p>สรุปผลทดสอบแต่ละ Module และรหัสแบบฟอร์มที่ใช้ในระบบ</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('tab-modules')">Module Overview</button>
+      <button class="tab-btn" onclick="showTab('tab-forms')">Form Codes</button>
+    </div>
+
+    <!-- Tab 1: Module Overview -->
+    <div id="tab-modules" class="tab-content active">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Backend Tests</th>
+              <th>E2E Tests</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Login/Auth</td>
+              <td>12</td>
+              <td>8</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>Upload .xlsx</td>
+              <td>6</td>
+              <td>4</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>ผลสอบหัวข้อ</td>
+              <td>5</td>
+              <td>6</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>Defense Requests</td>
+              <td>8</td>
+              <td>12</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>ทดสอบระบบ</td>
+              <td>4</td>
+              <td>6</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>สอบปริญญานิพนธ์</td>
+              <td>6</td>
+              <td>10</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>Email + Socket.io</td>
+              <td>5</td>
+              <td>4</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>Internship</td>
+              <td>8</td>
+              <td>14</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+            <tr>
+              <td>Advisor Approve/Reject</td>
+              <td>8</td>
+              <td>10</td>
+              <td><span class="badge badge-green">Passed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Form Codes -->
+    <div id="tab-forms" class="tab-content">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Form Code</th>
+              <th>ชื่อเต็ม</th>
+              <th>ใช้เมื่อ</th>
+              <th>Approval Chain</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-orange">คพ.02</span></td>
+              <td>คำร้องขอสอบหัวข้อโครงงาน</td>
+              <td>เสนอหัวข้อ</td>
+              <td>Student &rarr; Advisor &rarr; Staff</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-purple">คพ.03</span></td>
+              <td>คำร้องขอสอบปริญญานิพนธ์</td>
+              <td>ยื่นสอบ</td>
+              <td>Student &rarr; Advisor &rarr; Staff &rarr; Committee</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-green">คพ.05</span></td>
+              <td>คำร้องฝึกงาน</td>
+              <td>สมัครฝึกงาน</td>
+              <td>Student &rarr; Advisor &rarr; Staff</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 4: Internship Workflow (B1-B5) -->
+<section id="internship-workflow" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Internship Workflow (B1-B5)</h2>
+      <p>ขั้นตอนฝึกงานตั้งแต่ยื่นคำร้องจนถึงรับใบรับรอง</p>
+    </div>
+
+    <h3>State Overview</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> not_started
+    not_started --> pending_approval : Submit คพ.05
+    pending_approval --> in_progress : Approved
+    pending_approval --> not_started : Rejected
+    in_progress --> completed : All steps done
+    completed --> [*]
+      </div>
+    </div>
+
+    <h3 class="mt-32">Detailed Flow (B1-B5)</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    subgraph B1["B1: คพ.05 Submission"]
+        B1A["Check Eligibility\n(หน่วยกิตครบ)"] --> B1B["Submit คพ.05"]
+        B1B --> B1C{"Review"}
+        B1C -->|Approve| B1D["Approved"]
+        B1C -->|Reject| B1E["Rejected\n(แก้ไข + ยื่นใหม่)"]
+    end
+
+    subgraph B2["B2: Acceptance Letter"]
+        B2A["Upload หนังสือตอบรับ"] --> B2B{"Review"}
+        B2B -->|Approve| B2C["Approved"]
+    end
+
+    subgraph B3["B3: Company Info"]
+        B3A["Fill Company Details\n(ชื่อบริษัท, ที่อยู่, ผู้ควบคุม)"]
+    end
+
+    subgraph B4["B4: Logbook"]
+        B4A["Daily Entries"] --> B4B["Supervisor Review"]
+        B4B --> B4C["Approve Entries"]
+        B4C --> B4D["Accumulate Hours"]
+    end
+
+    subgraph B5["B5: Evaluation & Certificate"]
+        B5A["Supervisor Evaluation"] --> B5B["Cert Request"]
+        B5B --> B5C{"Approval"}
+        B5C -->|Approve| B5D["Certificate Issued"]
+    end
+
+    B1D --> B2A
+    B2C --> B3A
+    B3A --> B4A
+    B4D --> B5A
+      </div>
+    </div>
+
+    <!-- Section 5: Internship Unlock Conditions -->
+    <h3 class="mt-32">Unlock Conditions</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Condition</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>กรอกหน่วยกิตแล้ว</td>
+            <td><span class="badge badge-blue">unlock เมนูฝึกงาน</span></td>
+          </tr>
+          <tr>
+            <td>คพ.05 approved</td>
+            <td><span class="badge badge-blue">unlock หนังสือขอความอนุเคราะห์ + แบบฟอร์มตอบรับ</span></td>
+          </tr>
+          <tr>
+            <td>หนังสือตอบรับ approved</td>
+            <td><span class="badge badge-blue">unlock หนังสือส่งตัว</span></td>
+          </tr>
+          <tr>
+            <td>ฝึกครบตามจำนวนวัน</td>
+            <td><span class="badge badge-blue">unlock ส่งแบบประเมินให้ Supervisor</span></td>
+          </tr>
+          <tr>
+            <td>ผลประเมินครบ</td>
+            <td><span class="badge badge-blue">unlock ใบรับรองการฝึกงาน</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 6: Internship Documents -->
+    <h3 class="mt-32">Internship Documents</h3>
+    <div class="grid grid-3">
+      <div class="card">
+        <h4 class="card-title">หนังสือขอความอนุเคราะห์</h4>
+        <p class="card-body">ออกให้นายจ้าง — ขอรับนักศึกษาเข้าฝึกงาน ออกโดยภาควิชาหลัง approve คพ.05</p>
+        <span class="badge badge-orange">to employer</span>
+      </div>
+      <div class="card">
+        <h4 class="card-title">หนังสือส่งตัว</h4>
+        <p class="card-body">ยืนยันจากหัวหน้าภาควิชา — ส่งตัวนักศึกษาเข้าฝึกงานอย่างเป็นทางการ</p>
+        <span class="badge badge-purple">confirmation from department head</span>
+      </div>
+      <div class="card">
+        <h4 class="card-title">ใบรับรอง</h4>
+        <p class="card-body">ออกหลังฝึกครบและผ่านการประเมิน — ใช้เป็นหลักฐานยื่นจบการศึกษา</p>
+        <span class="badge badge-green">issued after completion</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Project/Thesis Workflow -->
+<section id="project-thesis" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Project/Thesis Workflow</h2>
+      <p>State machine ของโครงงานพิเศษและปริญญานิพนธ์ตั้งแต่เริ่มจนจบ</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> DRAFT
+    DRAFT --> PENDING_ADVISOR : Submit proposal
+    PENDING_ADVISOR --> ADVISOR_ASSIGNED : Advisor accepts
+    ADVISOR_ASSIGNED --> TOPIC_SUBMISSION : Submit topic
+    TOPIC_SUBMISSION --> TOPIC_EXAM_PENDING : Schedule exam
+    TOPIC_EXAM_PENDING --> IN_PROGRESS : Exam passed
+    TOPIC_EXAM_PENDING --> TOPIC_SUBMISSION : Exam failed (resubmit)
+    IN_PROGRESS --> THESIS_SUBMISSION : Submit thesis
+    THESIS_SUBMISSION --> THESIS_EXAM_PENDING : Schedule exam
+    THESIS_EXAM_PENDING --> COMPLETED : Exam passed
+    THESIS_EXAM_PENDING --> IN_PROGRESS : Exam failed (revise)
+    COMPLETED --> ARCHIVED : Final document approved
+
+    note right of IN_PROGRESS : ต้องมีบันทึกพบอาจารย์ >= 4 ครั้ง\nจึงจะยื่นสอบได้
+      </div>
+    </div>
+
+    <!-- Section 8: Project 1 → Project 2 Transition -->
+    <h3 class="mt-32">Project 1 &rarr; Project 2 Transition</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["โครงงานพิเศษ 1\n(Project 1)"] -->|"ผลสอบ = ผ่าน"| B{"Transition"}
+    B -->|Auto| C["โครงงานพิเศษ 2\n(Project 2)"]
+    B -->|Manual| C
+    C --> D["ปริญญานิพนธ์\n(Thesis)"]
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 9: Defense Request (KP02) Flow -->
+<section id="defense-request" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Defense Request (KP02) Flow</h2>
+      <p>ขั้นตอนการยื่นคำร้องขอสอบหัวข้อ</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> submit : Student submits
+    submit --> advisor_in_review : Sent to advisor
+    advisor_in_review --> advisor_approved : Advisor approves
+    advisor_in_review --> submit : Advisor rejects (revise)
+    advisor_approved --> staff_verified : Staff verifies
+    staff_verified --> scheduled : Exam scheduled
+    scheduled --> completed : Exam done
+    completed --> [*]
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 10: System Test Request Flow -->
+<section id="system-test" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>System Test Request Flow</h2>
+      <p>ขั้นตอนการขอทดสอบระบบ</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> submit : Student submits
+    submit --> pending_advisor : Sent to advisor
+    pending_advisor --> pending_staff : Advisor approves
+    pending_advisor --> submit : Advisor rejects (revise)
+    pending_staff --> staff_approved : Staff approves
+    pending_staff --> submit : Staff rejects (revise)
+    staff_approved --> evidence_submitted : Student uploads evidence
+    evidence_submitted --> [*]
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 11: Document Management -->
+<section id="document-mgmt" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Document Management</h2>
+      <p>State machine ของเอกสารและประเภทเอกสารทั้งหมดในระบบ</p>
+    </div>
+
+    <h3>Document State Flow</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> draft
+    draft --> pending : Submit
+    pending --> approved : Approve
+    pending --> rejected : Reject
+    rejected --> draft : Resubmit
+
+    note right of pending : บางเอกสารต้องผ่าน\nAdvisor approve ก่อน
+      </div>
+    </div>
+
+    <h3 class="mt-32">Document Types</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Track</th>
+            <th>Model</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>คพ.05</td>
+            <td><span class="badge badge-green">Internship</span></td>
+            <td><code>InternshipRequest</code></td>
+          </tr>
+          <tr>
+            <td>หนังสือตอบรับ</td>
+            <td><span class="badge badge-green">Internship</span></td>
+            <td><code>AcceptanceLetter</code></td>
+          </tr>
+          <tr>
+            <td>หนังสือส่งตัว</td>
+            <td><span class="badge badge-green">Internship</span></td>
+            <td><code>TransmittalLetter</code></td>
+          </tr>
+          <tr>
+            <td>ใบรับรอง</td>
+            <td><span class="badge badge-green">Internship</span></td>
+            <td><code>InternshipCertificate</code></td>
+          </tr>
+          <tr>
+            <td>คพ.02</td>
+            <td><span class="badge badge-blue">Project</span></td>
+            <td><code>DefenseRequest</code></td>
+          </tr>
+          <tr>
+            <td>คพ.03</td>
+            <td><span class="badge badge-blue">Project</span></td>
+            <td><code>ThesisDefenseRequest</code></td>
+          </tr>
+          <tr>
+            <td>System Test</td>
+            <td><span class="badge badge-blue">Project</span></td>
+            <td><code>SystemTestRequest</code></td>
+          </tr>
+          <tr>
+            <td>เล่มสมบูรณ์</td>
+            <td><span class="badge badge-blue">Project</span></td>
+            <td><code>FinalDocument</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="mt-32">Upload Flow</h3>
+    <div class="code-block"><pre>Client POST /api/documents/upload
+  → Multer middleware (PDF only, 10MB max)
+  → Save to uploads/{category}/{filename}
+  → Nginx serves /uploads/ as static files</pre></div>
+  </div>
+</section>
+
+<!-- Section 12: Meeting Log Flow -->
+<section id="meeting-log" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Meeting Log Flow</h2>
+      <p>ขั้นตอนบันทึกการพบอาจารย์ที่ปรึกษา</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["Student creates\nmeeting log"] --> B["Status: pending"]
+    B --> C{"Advisor review"}
+    C -->|Approve| D["Status: approved"]
+    C -->|Reject| E["Status: rejected\n(แก้ไข + ยื่นใหม่)"]
+    D --> F["Count approved >= 4?"]
+    F -->|Yes| G["Unlock defense request"]
+    F -->|No| A
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 13: Internship Logbook Flow -->
+<section id="logbook-flow" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Internship Logbook Flow</h2>
+      <p>ขั้นตอนบันทึก Logbook รายวันระหว่างฝึกงาน</p>
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["Student adds\ndaily entry"] --> B["Save entry"]
+    B --> C{"Supervisor review"}
+    C -->|Approve| D["Entry approved"]
+    C -->|Reject| E["Revise entry"]
+    E --> A
+    D --> F["Accumulate hours"]
+    F --> G{">= 360 hrs?"}
+    G -->|Yes| H["SUMMARY_PENDING\n(trigger evaluation)"]
+    G -->|No| A
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 14: Timeline System -->
+<section id="timeline-system" class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>Timeline System</h2>
+      <p>ระบบ Timeline ที่ track ความคืบหน้าของนักศึกษาแต่ละคน</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["WorkflowStepDefinition"] --> B["initializeStudentTimeline()"]
+    B --> C["TimelineStep records"]
+    C --> D["GET /api/timeline/:studentId"]
+    D --> E["Frontend Timeline Component"]
+      </div>
+    </div>
+
+    <h3 class="mt-32">Timeline Step Status</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Meaning</th>
+            <th>UI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>waiting</code></td>
+            <td>ยังไม่เริ่ม</td>
+            <td><span style="color: var(--text-muted);">&#9898; grey circle</span></td>
+          </tr>
+          <tr>
+            <td><code>in_progress</code></td>
+            <td>กำลังดำเนินการ</td>
+            <td><span style="color: var(--accent);">&#128309; blue pulsing</span></td>
+          </tr>
+          <tr>
+            <td><code>completed</code></td>
+            <td>เสร็จสิ้น</td>
+            <td><span style="color: var(--green);">&#10004; green checkmark</span></td>
+          </tr>
+          <tr>
+            <td><code>blocked</code></td>
+            <td>ถูก block</td>
+            <td><span style="color: var(--red);">&#128274; red lock</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="mt-32">StudentWorkflowActivity Model</h3>
+    <div class="code-block"><pre>StudentWorkflowActivity {
+  id: INTEGER (PK, auto-increment)
+  student_id: INTEGER (FK → Users)
+  workflow_step_id: INTEGER (FK → WorkflowStepDefinition)
+  status: ENUM('waiting', 'in_progress', 'completed', 'blocked')
+  started_at: DATE
+  completed_at: DATE
+  metadata: JSON
+  created_at: DATETIME
+  updated_at: DATETIME
+}</pre></div>
+  </div>
+</section>
+
+<!-- Section 15: Project Workflow Phases -->
+<section id="project-phases" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Project Workflow Phases</h2>
+      <p>ภาพรวม 2 เฟสของโครงงานพิเศษและปริญญานิพนธ์</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h4 class="card-title">Phase 1 — โครงงาน 1</h4>
+        <div class="flow-steps" style="flex-direction: column; align-items: stretch;">
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--accent);">1</span>
+            ลงทะเบียนโครงงาน
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--orange);">2</span>
+            สอบหัวข้อ
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--orange);">3</span>
+            กรรมการอนุมัติ KP02
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--green);">4</span>
+            เริ่มพัฒนา
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 class="card-title">Phase 2 — โครงงาน 2 / ปริญญานิพนธ์</h4>
+        <div class="flow-steps" style="flex-direction: column; align-items: stretch;">
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--accent);">1</span>
+            บันทึกการพบอาจารย์
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--orange);">2</span>
+            Logbook
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--purple);">3</span>
+            ยื่นขอสอบ Thesis
+          </div>
+          <span class="flow-arrow" style="text-align: center; transform: rotate(90deg);">&rarr;</span>
+          <div class="flow-step">
+            <span class="step-num" style="background: var(--green);">4</span>
+            รับปริญญานิพนธ์
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Theme Toggle Button -->
+<button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+  <span id="theme-icon">&#9789;</span>
+</button>
+
+<script>
+  // Mermaid init with Notion theme
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#f2f9ff',
+      primaryBorderColor: '#0075de',
+      primaryTextColor: 'rgba(0,0,0,0.95)',
+      lineColor: '#a39e98',
+      secondaryColor: '#f6f5f4',
+      tertiaryColor: '#ffffff',
+      noteBkgColor: '#f2f9ff',
+      noteTextColor: 'rgba(0,0,0,0.95)',
+      noteBorderColor: '#0075de',
+      fontFamily: 'Inter, sans-serif'
+    }
+  });
+
+  // Tab switching
+  function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+    // Find the button that matches
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      if (btn.getAttribute('onclick').indexOf(id) !== -1) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  // Theme toggle
+  function toggleTheme() {
+    var html = document.documentElement;
+    var icon = document.getElementById('theme-icon');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.setAttribute('data-theme', 'light');
+      icon.innerHTML = '&#9789;';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      icon.innerHTML = '&#9788;';
+    }
+    document.querySelectorAll('.mermaid[data-processed]').forEach(function(el) {
+      el.removeAttribute('data-processed');
+    });
+  }
+
+  // Page nav active state on scroll
+  (function() {
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('.page-nav a');
+    window.addEventListener('scroll', function() {
+      var scrollPos = window.scrollY + 120;
+      sections.forEach(function(section) {
+        if (section.offsetTop <= scrollPos && (section.offsetTop + section.offsetHeight) > scrollPos) {
+          navLinks.forEach(function(a) { a.classList.remove('active'); });
+          var active = document.querySelector('.page-nav a[href="#' + section.id + '"]');
+          if (active) active.classList.add('active');
+        }
+      });
+    });
+  })();
+</script>
+
+<!-- Shared site nav -->
+<script src="nav.js" data-active="workflows"></script>
+</body>
+</html>
