@@ -14,3 +14,14 @@ playwright-e2e/dist/
 # Visual docs — design system reference (not project content)
 docs/visual/DESIGN.md
 docs/visual/notion-style.css
+
+# Binary / large files
+*.pptx
+
+# Claude internal plans & sync data
+docs/superpowers/
+docs/knowledge-source-sync/
+
+# Temporary demo/verify scripts
+verify-demo-data.sql
+verify-demo.sh
