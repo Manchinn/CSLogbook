@@ -63,7 +63,7 @@
 
   /* ── Navigation ────────────────────────────────── */
   nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    position: fixed; top: var(--site-nav-h, 0px); left: 0; right: 0; z-index: 100;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(12px);
@@ -96,7 +96,7 @@
   .theme-toggle:hover { border-color: var(--accent); color: var(--accent-light); }
 
   /* ── Layout ────────────────────────────────────── */
-  main { max-width: 1200px; margin: 0 auto; padding: 80px 1.5rem 3rem; }
+  main { max-width: 1200px; margin: 0 auto; padding: calc(var(--site-nav-h, 0px) + 80px) 1.5rem 3rem; }
   section { margin-bottom: 4rem; scroll-margin-top: 72px; }
 
   /* ── Typography ────────────────────────────────── */
