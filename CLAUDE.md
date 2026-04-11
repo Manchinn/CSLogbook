@@ -80,8 +80,8 @@ CSLogbook/
 │   ├── nginx/            # Production Nginx config
 │   ├── database/         # MySQL init scripts
 │   └── docker-compose.production.yml
-├── package.json          # Root monorepo (holds antd)
-└── docs/                 # Compatibility, session history, test plans
+├── package.json          # Root monorepo
+└── CLAUDE.md
 ```
 
 ---
@@ -101,8 +101,8 @@ backend/
 ├── policies/     # permissions.js — RBAC definitions
 ├── routes/       # Route files + documents/ + swagger/
 ├── services/     # Business logic (56 files incl. subdirs)
-├── utils/        # logger, studentUtils (CONSTANTS, reloadDynamicConstants)
-└── validators/   # Joi + express-validator
+├── utils/        # 19 utility files — logger, studentUtils, excelExportBuilder, etc.
+└── validators/   # Joi + express-validator (4 files)
 ```
 
 ### Key Patterns
@@ -135,7 +135,7 @@ npm run db:check:all     # Validate DB + model sync
 Next.js 16 App Router. Routes under `src/app/`:
 
 - `(auth)/` — login, SSO callback
-- `(app)/` — authenticated (AuthGuard + AppShell): dashboard, project, internship, teacher, admin, reports, settings
+- `(app)/` — authenticated (AuthGuard + AppShell): admin, dashboard, internship, project, student, teacher, meetings, reports, settings, deadlines + 14 feature-specific routes (internship-*, project-*, student-*, approve-documents)
 - `approval/`, `evaluate/` — public token-based pages
 
 ### Key Structure
@@ -144,10 +144,12 @@ Next.js 16 App Router. Routes under `src/app/`:
 src/
 ├── app/(app)/admin/settings/layout.tsx  # Shared settings tab navigation
 ├── lib/api/client.ts      # apiFetch with JWT injection
-├── lib/services/           # Per-domain API modules (30+)
-├── hooks/                  # React Query hooks per feature
+├── lib/services/           # Per-domain API modules (31 files)
+├── hooks/                  # React Query hooks per feature (35 files)
 ├── components/common/      # ConfirmDialog, Skeleton, DefenseRequestStepper
-└── components/layout/      # AppShell, Logo
+├── components/layout/      # AppShell, Logo
+├── components/dashboard/   # Dashboard widgets
+└── components/teacher/     # Teacher-specific components
 ```
 
 - **State:** TanStack React Query (server) + React Context (auth). No Redux/Zustand
@@ -197,34 +199,7 @@ CI/CD: push to `master` → GitHub Actions → SSH → `docker compose up -d --b
 
 ---
 
-Debugging: [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) | Instruction docs: `.github/instructions/`
-
----
-
-## Visual Documentation
-
-Interactive HTML diagrams in `docs/visual/`:
-
-| File | Description |
-|---|---|
-| [`architecture.html`](docs/visual/architecture.html) | System architecture (Mermaid), data flow, module coverage, RBAC matrix, QA risks |
-| [`recap.html`](docs/visual/recap.html) | Project recap — context-switching snapshot (tech stack, priorities, gotchas) |
-| [`slides.html`](docs/visual/slides.html) | 7-slide deck — overview, stack, roles, workflow, QA status, bugs, action plan |
-
----
-
-## Session History
-
-Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (62 sessions)
-
-**Recent (last 5):**
-| # | Date | Summary |
-|---|---|---|
-| 62 | 03-30 | Export Consolidation: ลบ CSV ทั้งหมด เหลือ Excel — ExcelExportBuilder + downloadExcelFile utilities, 5 endpoints ใหม่, Thai dates (พ.ศ.) — 8 commits, ~25 files |
-| 61 | 03-30 | Admin document UX improvements (8 pages): drawer, bulk actions, default status, XLSX export — 8 commits, ~30 files |
-| 60 | 03-28 | Production data import: โครงงาน 2568/2 (41 projects) + ฝึกงาน 2567/2568 (90 records) — Claude Code บน VPS, docker cp, seed scripts, เพิ่มสมาชิก 3 คน |
-| 59 | 03-28 | Rejection audit (19 bugs), demo issues (BUG-01/02, FEATURE-01, UX-01), 25 tests, dev data import (26 projects + 61 internship), seed fixes, IMPORT_GUIDE |
-| 58 | 03-27 | Dead code audit (-650 lines), fix CRLF/PDF rewrite, rejection flow (notification+modal 5 pages), backend+e2e tests, fix field mismatch bugs |
+Instruction docs: `.github/instructions/`
 
 ---
 
@@ -242,5 +217,3 @@ Full log: [`docs/SESSION_HISTORY.md`](docs/SESSION_HISTORY.md) (62 sessions)
 | `src/lib/utils/thaiDateUtils.ts` | `currentBuddhistYear()` |
 | `src/app/globals.css` | Design tokens |
 
-Full list: [`docs/KEY_FILES_REFERENCE.md`](docs/KEY_FILES_REFERENCE.md)
-                                                      
