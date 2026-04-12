@@ -324,21 +324,24 @@ class InternshipLogbookService {
         }
       }
 
-      // อัปเดตข้อมูล
-      await entry.update(
-        {
-          workDate,
-          timeIn,
-          timeOut,
-          workHours,
-          logTitle,
-          workDescription,
-          learningOutcome,
-          problems: problems || "",
-          solutions: solutions || "",
-        },
-        { transaction }
-      );
+      // อัปเดตข้อมูล — reset approval status กลับเป็น pending ถ้าถูก reject
+      const updateData = {
+        workDate,
+        timeIn,
+        timeOut,
+        workHours,
+        logTitle,
+        workDescription,
+        learningOutcome,
+        problems: problems || "",
+        solutions: solutions || "",
+      };
+      if (entry.supervisorApproved === -1) {
+        updateData.supervisorApproved = 0;
+        updateData.supervisorComment = null;
+        updateData.supervisorRejectedAt = null;
+      }
+      await entry.update(updateData, { transaction });
 
       await transaction.commit();
       logger.info(
