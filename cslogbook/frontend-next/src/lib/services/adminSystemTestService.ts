@@ -53,7 +53,7 @@ export type AdminSystemTestQueueRecord = {
     decidedAt: string | null;
   } | null;
   staffDecision: {
-    teacherId: number | null;
+    userId: number | null;
     name: string | null;
     note: string | null;
     decidedAt: string | null;
@@ -127,6 +127,22 @@ function normalizeDecision(value: unknown) {
   };
 }
 
+function normalizeStaffDecision(value: unknown) {
+  const raw = isRecord(value) ? value : {};
+  const userId = toNumberOrNull(raw.userId);
+  const name = toStringOrNull(raw.name);
+  const note = toStringOrNull(raw.note);
+  const decidedAt = toStringOrNull(raw.decidedAt);
+  if (userId === null && !name && !note && !decidedAt) return null;
+
+  return {
+    userId,
+    name,
+    note,
+    decidedAt,
+  };
+}
+
 function normalizeTimeline(value: unknown) {
   const raw = isRecord(value) ? value : {};
   const timeline = {
@@ -181,7 +197,7 @@ function normalizeQueueRecord(value: unknown): AdminSystemTestQueueRecord {
     evidenceSubmittedAt: toStringOrNull(raw.evidenceSubmittedAt),
     advisorDecision: normalizeDecision(raw.advisorDecision),
     coAdvisorDecision: normalizeDecision(raw.coAdvisorDecision),
-    staffDecision: normalizeDecision(raw.staffDecision),
+    staffDecision: normalizeStaffDecision(raw.staffDecision),
     timeline: normalizeTimeline(raw.timeline),
     deadlineTag: deadlineTagRaw
       ? {

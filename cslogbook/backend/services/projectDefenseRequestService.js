@@ -897,7 +897,7 @@ class ProjectDefenseRequestService {
         projectId,
         defenseType,
         request.requestId,
-        'scheduled',
+        'staff_verified',
         { userId: actorUser?.userId || null, transaction: t }
       );
       
