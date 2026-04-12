@@ -655,7 +655,7 @@ class InternshipEvaluationService {
         data: {
           evaluationId: evaluation.evaluationId,
           completedDate: evaluation.completedDate,
-          overallRating: evaluationData.overallRating,
+          overallScore,
         },
       };
     } catch (error) {

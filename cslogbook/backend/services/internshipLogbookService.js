@@ -310,8 +310,8 @@ class InternshipLogbookService {
         throw new Error("ไม่พบข้อมูลบันทึกการฝึกงาน");
       }
 
-      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่
-      if (entry.supervisorApproved || entry.advisorApproved) {
+      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ (supervisorApproved: 0=pending, 1=approved, -1=rejected)
+      if (entry.supervisorApproved === 1 || entry.advisorApproved) {
         throw new Error("ไม่สามารถแก้ไขบันทึกที่ได้รับการอนุมัติแล้ว");
       }
 
@@ -324,21 +324,24 @@ class InternshipLogbookService {
         }
       }
 
-      // อัปเดตข้อมูล
-      await entry.update(
-        {
-          workDate,
-          timeIn,
-          timeOut,
-          workHours,
-          logTitle,
-          workDescription,
-          learningOutcome,
-          problems: problems || "",
-          solutions: solutions || "",
-        },
-        { transaction }
-      );
+      // อัปเดตข้อมูล — reset approval status กลับเป็น pending ถ้าถูก reject
+      const updateData = {
+        workDate,
+        timeIn,
+        timeOut,
+        workHours,
+        logTitle,
+        workDescription,
+        learningOutcome,
+        problems: problems || "",
+        solutions: solutions || "",
+      };
+      if (entry.supervisorApproved === -1) {
+        updateData.supervisorApproved = 0;
+        updateData.supervisorComment = null;
+        updateData.supervisorRejectedAt = null;
+      }
+      await entry.update(updateData, { transaction });
 
       await transaction.commit();
       logger.info(
@@ -388,8 +391,8 @@ class InternshipLogbookService {
         throw new Error("ไม่พบข้อมูลบันทึกการฝึกงาน");
       }
 
-      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ ถ้าอนุมัติแล้วห้ามลบ
-      if (entry.supervisorApproved || entry.advisorApproved) {
+      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ ถ้าอนุมัติแล้วห้ามลบ (supervisorApproved: 0=pending, 1=approved, -1=rejected)
+      if (entry.supervisorApproved === 1 || entry.advisorApproved) {
         throw new Error("ไม่สามารถลบบันทึกที่ได้รับการอนุมัติแล้ว");
       }
 

@@ -262,7 +262,7 @@ class ProjectSystemTestService {
       }
 
       const durationDays = endDayRaw.diff(startDay, 'day');
-      if (durationDays < 29) {
+      if (durationDays < 30) {
         throw new Error('ช่วงเวลาทดสอบระบบต้องไม่น้อยกว่า 30 วัน');
       }
       const dueDay = endDayRaw;

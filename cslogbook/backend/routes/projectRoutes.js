@@ -90,7 +90,7 @@ router.delete('/:id/meetings/:meetingId', checkProjectEligibility, meetingContro
 router.post('/:id/meetings/:meetingId/logs', checkProjectEligibility, meetingController.createLog);
 router.put('/:id/meetings/:meetingId/logs/:logId', checkProjectEligibility, meetingController.updateLog);
 router.delete('/:id/meetings/:meetingId/logs/:logId', checkProjectEligibility, meetingController.deleteLog);
-router.patch('/:id/meetings/:meetingId/logs/:logId/approval', meetingController.updateApproval);
+router.patch('/:id/meetings/:meetingId/logs/:logId/approval', checkProjectEligibility, meetingController.updateApproval);
 
 // Artifacts (list) & Proposal upload - ต้องตรวจสอบสิทธิ์โครงงานพิเศษ
 const artifactController = require('../controllers/projectArtifactController');

@@ -279,9 +279,9 @@ export default function ExamSubmitPage() {
               {advisorApprovals.map((approval) => {
                 const approvalStatus = approval.status ? approvalMeta[approval.status] : approvalMeta.pending;
                 return (
-                  <div key={String(approval.advisorId)} className={styles.listItem}>
+                  <div key={String(approval.approvalId)} className={styles.listItem}>
                     <div>
-                      <span>{approval.name ? String(approval.name) : `อาจารย์ที่ปรึกษา`}</span>
+                      <span>{approval.teacher?.name ? String(approval.teacher.name) : `อาจารย์ที่ปรึกษา`}</span>
                       {approval.status === "rejected" && approval.note ? (
                         <p className={styles.approvalNote}>เหตุผล: {String(approval.note)}</p>
                       ) : null}
@@ -363,7 +363,7 @@ export default function ExamSubmitPage() {
           isOpen={rejectionModalOpen}
           onClose={closeRejectionModal}
           title="รายละเอียดการปฏิเสธคำขอสอบ"
-          rejectorName={rejectedApproval?.name ? String(rejectedApproval.name) : "อาจารย์ที่ปรึกษา"}
+          rejectorName={rejectedApproval?.teacher?.name ? String(rejectedApproval.teacher.name) : "อาจารย์ที่ปรึกษา"}
           rejectedAt={rejectedApproval?.approvedAt ? String(rejectedApproval.approvedAt) : request?.updatedAt ? String(request.updatedAt) : null}
           reason={rejectedApproval?.note ? String(rejectedApproval.note) : null}
           guidance="กรุณาตรวจสอบข้อมูลและแก้ไขแล้วส่งคำขอสอบโครงงานพิเศษใหม่"

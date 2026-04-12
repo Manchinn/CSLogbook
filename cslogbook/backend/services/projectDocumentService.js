@@ -1062,11 +1062,11 @@ class ProjectDocumentService {
       const meetingMetrics = await this.buildProjectMeetingMetrics(project.projectId, students, { transaction, phase: 'phase1' });
 
       // 🆕 อัปเดต meeting count ใน ProjectWorkflowState
-      if (meetingMetrics.totalLogs !== undefined || meetingMetrics.approvedLogs !== undefined) {
+      if (meetingMetrics.totalMeetings !== undefined || meetingMetrics.totalApprovedLogs !== undefined) {
         await ProjectWorkflowState.updateMeetingCount(
           project.projectId,
-          meetingMetrics.totalLogs || 0,
-          meetingMetrics.approvedLogs || 0,
+          meetingMetrics.totalMeetings || 0,
+          meetingMetrics.totalApprovedLogs || 0,
           { userId: null, transaction }
         );
       }
