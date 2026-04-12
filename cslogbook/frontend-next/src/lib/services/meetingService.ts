@@ -8,12 +8,12 @@ type MeetingRecord = {
   meetingLocation?: string | null;
   meetingLink?: string | null;
   phase?: string | null;
-  logs?: Array<{ logId: number; status?: string | null; notes?: string | null; approvalNote?: string | null; advisorComment?: string | null }>;
+  logs?: Array<{ logId: number; approvalStatus?: string | null; notes?: string | null; approvalNote?: string | null; advisorComment?: string | null }>;
 };
 
 type MeetingLogRecord = {
   logId: number;
-  status?: string | null;
+  approvalStatus?: string | null;
   notes?: string | null;
   approvalNote?: string | null;
   advisorComment?: string | null;

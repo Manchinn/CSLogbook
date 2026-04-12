@@ -310,8 +310,8 @@ class InternshipLogbookService {
         throw new Error("ไม่พบข้อมูลบันทึกการฝึกงาน");
       }
 
-      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่
-      if (entry.supervisorApproved || entry.advisorApproved) {
+      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ (supervisorApproved: 0=pending, 1=approved, -1=rejected)
+      if (entry.supervisorApproved === 1 || entry.advisorApproved) {
         throw new Error("ไม่สามารถแก้ไขบันทึกที่ได้รับการอนุมัติแล้ว");
       }
 
@@ -388,8 +388,8 @@ class InternshipLogbookService {
         throw new Error("ไม่พบข้อมูลบันทึกการฝึกงาน");
       }
 
-      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ ถ้าอนุมัติแล้วห้ามลบ
-      if (entry.supervisorApproved || entry.advisorApproved) {
+      // ตรวจสอบว่าบันทึกได้รับการอนุมัติแล้วหรือไม่ ถ้าอนุมัติแล้วห้ามลบ (supervisorApproved: 0=pending, 1=approved, -1=rejected)
+      if (entry.supervisorApproved === 1 || entry.advisorApproved) {
         throw new Error("ไม่สามารถลบบันทึกที่ได้รับการอนุมัติแล้ว");
       }
 

@@ -21,7 +21,7 @@ import styles from "./meetingLogbook.module.css";
 
 type MeetingLogRecord = {
   logId: number;
-  status?: string | null;
+  approvalStatus?: string | null;
   notes?: string | null;
   discussionTopic?: string | null;
   currentProgress?: string | null;
@@ -647,21 +647,21 @@ export default function MeetingLogbookPage() {
                           </div>
                           <div className={styles.meta}>{formatDateTime(log.updatedAt || log.createdAt)}</div>
                           <div className={styles.tagRow}>
-                            {log.status ? (
+                            {log.approvalStatus ? (
                               <span
                                 className={`${styles.tag} ${
-                                  log.status === "approved"
+                                  log.approvalStatus === "approved"
                                     ? styles.tagSuccess
-                                    : log.status === "rejected"
+                                    : log.approvalStatus === "rejected"
                                       ? styles.tagDanger
                                       : styles.tagWarning
                                 }`}
                               >
-                                {meetingStatusLabels[log.status] || log.status}
+                                {meetingStatusLabels[log.approvalStatus] || log.approvalStatus}
                               </span>
                             ) : null}
                           </div>
-                          {log.status === "rejected" && (log.approvalNote || log.advisorComment) ? (
+                          {log.approvalStatus === "rejected" && (log.approvalNote || log.advisorComment) ? (
                             <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--tag-danger-text, #cf1322)" }}>
                               เหตุผล: {log.approvalNote || log.advisorComment}
                             </p>

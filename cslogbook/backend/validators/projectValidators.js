@@ -84,7 +84,8 @@ exports.validateSubmitProject1Request = (req, res, next) => {
     attachments: Joi.array().optional(),
   });
 
-  const { error, value } = schema.validate(req.body);
+  const source = { ...req.body, defenseType: req.body.defenseType || req.query.defenseType };
+  const { error, value } = schema.validate(source);
   if (error) {
     return res.status(400).json({
       success: false,
