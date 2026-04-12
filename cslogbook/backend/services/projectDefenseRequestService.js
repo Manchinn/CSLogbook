@@ -957,7 +957,7 @@ class ProjectDefenseRequestService {
 
       // Reset advisor approval rows เพื่อบังคับให้ advisor review ใหม่
       await ProjectDefenseRequestAdvisorApproval.update(
-        { status: 'pending', approvedAt: null, rejectedAt: null, note: null },
+        { status: 'pending', approvedAt: null, note: null },
         { where: { requestId: request.requestId }, transaction: t }
       );
 
