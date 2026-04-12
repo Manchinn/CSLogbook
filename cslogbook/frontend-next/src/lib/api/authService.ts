@@ -187,9 +187,9 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const user = buildAuthUser({
     id: response.userId ?? claims.userId ?? "",
     role: response.role ?? claims.role ?? payload.role ?? "student",
-    email: response.email ?? claims.email ?? payload.username,
-    firstName: response.firstName ?? claims.firstName,
-    lastName: response.lastName ?? claims.lastName,
+    email: response.email ?? payload.username,
+    firstName: response.firstName,
+    lastName: response.lastName,
     studentId: response.studentId ?? claims.studentId,
     studentCode: response.studentCode ?? claims.studentCode,
     teacherId: response.teacherId ?? claims.teacherId,
@@ -198,7 +198,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     teacherPosition: response.teacherPosition ?? claims.teacherPosition,
     canAccessTopicExam: response.canAccessTopicExam ?? claims.canAccessTopicExam,
     canExportProject1: response.canExportProject1 ?? claims.canExportProject1,
-    isSystemAdmin: response.isSystemAdmin ?? claims.isSystemAdmin,
+    isSystemAdmin: response.isSystemAdmin,
   });
 
   return {
@@ -219,9 +219,9 @@ export async function verifyToken(token: string): Promise<AuthUser> {
   return buildAuthUser({
     id: response.user.userId || claims.userId || "",
     role: response.user.role || claims.role || "student",
-    email: response.user.email ?? claims.email,
-    firstName: response.user.firstName ?? claims.firstName,
-    lastName: response.user.lastName ?? claims.lastName,
+    email: response.user.email,
+    firstName: response.user.firstName,
+    lastName: response.user.lastName,
     studentId: response.user.studentId ?? claims.studentId,
     studentCode: response.user.studentCode ?? claims.studentCode,
     teacherId: response.user.teacherId ?? claims.teacherId,
@@ -230,7 +230,7 @@ export async function verifyToken(token: string): Promise<AuthUser> {
     teacherPosition: response.user.teacherPosition ?? claims.teacherPosition,
     canAccessTopicExam: response.user.canAccessTopicExam ?? claims.canAccessTopicExam,
     canExportProject1: response.user.canExportProject1 ?? claims.canExportProject1,
-    isSystemAdmin: response.user.isSystemAdmin ?? claims.isSystemAdmin,
+    isSystemAdmin: response.user.isSystemAdmin,
   });
 }
 
