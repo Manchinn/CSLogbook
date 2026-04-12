@@ -13,7 +13,7 @@ const logger = require('../utils/logger');
  * @param {number} projectId - Project ID to check
  * @returns {Promise<{eligible: boolean, reason?: string, project?: Object}>}
  */
-async function checkTransitionEligibility(projectId) {
+async function checkTransitionEligibility(projectId, { transaction } = {}) {
     try {
         const project = await ProjectDocument.findByPk(projectId, {
             include: [
@@ -22,7 +22,9 @@ async function checkTransitionEligibility(projectId) {
                     as: 'members',
                     attributes: ['student_id', 'role']
                 }
-            ]
+            ],
+            lock: transaction ? transaction.LOCK.UPDATE : undefined,
+            transaction,
         });
 
         if (!project) {
@@ -70,7 +72,7 @@ async function transitionToProject2(projectId, options = {}) {
 
     try {
         // ตรวจสอบความเหมาะสม
-        const eligibility = await checkTransitionEligibility(projectId);
+        const eligibility = await checkTransitionEligibility(projectId, { transaction });
         if (!eligibility.eligible) {
             await transaction.rollback();
             return { success: false, message: eligibility.reason };

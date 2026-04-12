@@ -425,6 +425,16 @@ async function deleteMeeting(projectId, meetingId, actor) {
     throw error;
   }
 
+  // ห้ามลบ meeting ที่มี log ที่ approved แล้ว (ป้องกัน bypass ≥4 threshold)
+  const approvedLogCount = (meeting.logs || []).filter(
+    log => log.approvalStatus === 'approved'
+  ).length;
+  if (approvedLogCount > 0) {
+    const error = new Error('ไม่สามารถลบการประชุมที่มีบันทึกที่อนุมัติแล้วได้');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const t = await sequelize.transaction();
   try {
     // ลบ action items ที่เกี่ยวข้องกับ logs ทั้งหมด

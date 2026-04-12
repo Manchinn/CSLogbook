@@ -955,6 +955,12 @@ class ProjectDefenseRequestService {
         staffVerificationNote: reason.trim()
       }, { transaction: t });
 
+      // Reset advisor approval rows เพื่อบังคับให้ advisor review ใหม่
+      await ProjectDefenseRequestAdvisorApproval.update(
+        { status: 'pending', approvedAt: null, rejectedAt: null, note: null },
+        { where: { requestId: request.requestId }, transaction: t }
+      );
+
       await projectDocumentService.syncProjectWorkflowState(projectId, { transaction: t });
       await t.commit();
 

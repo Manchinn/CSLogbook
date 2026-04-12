@@ -615,7 +615,7 @@ class ProjectManagementService {
       }
 
       const members = project.members || [];
-      const studentIds = members.map(m => m.student.studentId);
+      const studentIds = members.filter(m => m.student != null).map(m => m.student.studentId);
 
       // 1. ยกเลิก ProjectDefenseRequest ทั้งหมด (ถ้ามี)
       const defenseRequests = project.defenseRequests || [];

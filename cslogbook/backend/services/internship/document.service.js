@@ -160,12 +160,10 @@ class InternshipDocumentService {
         { transaction }
       );
 
-      const student = await Student.findOne(
-        {
-          where: { userId },
-        },
-        { transaction }
-      );
+      const student = await Student.findOne({
+        where: { userId },
+        transaction,
+      });
 
       if (student) {
         await student.update(
@@ -388,12 +386,10 @@ class InternshipDocumentService {
         );
       }
 
-      const student = await Student.findOne(
-        {
-          where: { userId },
-        },
-        { transaction }
-      );
+      const student = await Student.findOne({
+        where: { userId },
+        transaction,
+      });
 
       if (student) {
         const updateData = {
