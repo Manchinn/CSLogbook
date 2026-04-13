@@ -49,3 +49,6 @@ Thumbs.db
 /scripts/*
 *.tar
 .mcp.json
+
+# GSD planning (generated)
+.planning/
