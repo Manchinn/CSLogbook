@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LoginForm } from "./LoginForm";
 import styles from "./page.module.css";
 import { CSLogbookLogo } from "@/components/common/Logo";
@@ -92,6 +93,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           </div>
         </div>
+
+        <nav className={styles.pageFooter}>
+          <Link href="/privacy-policy" className={styles.pageFooterLink}>
+            นโยบายความเป็นส่วนตัว
+          </Link>
+          <span className={styles.pageFooterSep}>·</span>
+          <Link href="/support" className={styles.pageFooterLink}>
+            ติดต่อผู้ดูแลระบบ
+          </Link>
+        </nav>
       </section>
     </main>
   );
