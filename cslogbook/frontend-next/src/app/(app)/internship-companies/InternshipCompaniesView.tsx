@@ -12,7 +12,9 @@ const dateTimeFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium"
 
 function deriveCurrentAcademicYear() {
   const now = new Date();
-  return now.getFullYear() + 543;
+  const buddhistYear = now.getFullYear() + 543;
+  // ปีการศึกษาไทยเริ่ม ~มิถุนายน — ม.ค.-พ.ค. ยังเป็นปีการศึกษาก่อนหน้า
+  return now.getMonth() < 5 ? buddhistYear - 1 : buddhistYear;
 }
 
 function buildYearOptions() {
@@ -40,19 +42,23 @@ export default function InternshipCompaniesView() {
 
   const [academicYear, setAcademicYear] = useState<number | "all">(deriveCurrentAcademicYear());
   const limit = useMemo(() => (isStaff ? 50 : 10), [isStaff]);
+  const [page, setPage] = useState(1);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   const filters = useMemo(
     () => ({
       academicYear: academicYear === "all" ? null : academicYear,
       limit,
+      page,
     }),
-    [academicYear, limit]
+    [academicYear, limit, page]
   );
+
+  const resolvedAcademicYear = academicYear === "all" ? null : academicYear;
 
   const queriesEnabled = hydrated && Boolean(token);
   const statsQuery = useInternshipCompanyStats(token, filters, queriesEnabled);
-  const detailQuery = useInternshipCompanyDetail(token, selectedCompany ?? "", queriesEnabled && Boolean(selectedCompany));
+  const detailQuery = useInternshipCompanyDetail(token, selectedCompany ?? "", resolvedAcademicYear, queriesEnabled && Boolean(selectedCompany));
 
   const statsData = statsQuery.data ?? null;
   const rows = useMemo(
@@ -101,7 +107,7 @@ export default function InternshipCompaniesView() {
             id="academicYear"
             className={styles.select}
             value={academicYear}
-            onChange={(e) => setAcademicYear(e.target.value === "all" ? "all" : Number(e.target.value))}
+            onChange={(e) => { setAcademicYear(e.target.value === "all" ? "all" : Number(e.target.value)); setPage(1); }}
           >
             <option value="all">ทุกปีการศึกษา</option>
             {yearOptions.map((year) => (
@@ -180,6 +186,29 @@ export default function InternshipCompaniesView() {
             </table>
           )}
         </div>
+        {meta && meta.totalPages > 1 && (
+          <div className={styles.pagination}>
+            <button
+              className={styles.pageButton}
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ก่อนหน้า
+            </button>
+            <span className={styles.pageInfo}>
+              หน้า {page} / {meta.totalPages}
+            </span>
+            <button
+              className={styles.pageButton}
+              type="button"
+              disabled={page >= meta.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              ถัดไป
+            </button>
+          </div>
+        )}
       </section>
 
       <aside

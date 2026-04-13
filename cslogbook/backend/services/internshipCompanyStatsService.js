@@ -15,21 +15,19 @@ class InternshipCompanyStatsService {
    * @param {boolean} options.isStaff สิทธิ์เจ้าหน้าที่/อาจารย์ (เห็นเต็ม)
    * @returns {Promise<{meta: object, rows: Array}>}
    */
-  async getCompanyStats({ academicYear = null, semester = null, limit = 10, isStaff = false }) {
+  async getCompanyStats({ academicYear = null, semester = null, limit = 10, page = 1, isStaff = false }) {
     // ป้องกัน limit เกิน
     const hardCap = isStaff ? 200 : 20;
     const finalLimit = Math.min(limit || 10, hardCap);
-
-    // เงื่อนไข where สำหรับ snapshot period (ถ้าไม่ได้ระบุ ให้ไม่กรอง)
-    const whereInternship = {};
-    if (academicYear) whereInternship.academic_year = academicYear;
-    if (semester) whereInternship.semester = semester;
+    const finalPage = Math.max(1, parseInt(page, 10) || 1);
+    const offset = (finalPage - 1) * finalLimit;
 
     // ใช้ raw query เพื่อควบคุม COUNT DISTINCT ได้ชัดเจน
     const replacements = {
       academicYear,
       semester,
-      limit: finalLimit
+      limit: finalLimit,
+      offset
     };
 
     // สร้างส่วนเงื่อนไข dynamic
@@ -49,7 +47,7 @@ class InternshipCompanyStatsService {
         ${periodWhere}
       GROUP BY idoc.company_name
       ORDER BY totalStudents DESC, idoc.company_name ASC
-      LIMIT :limit;
+      LIMIT :limit OFFSET :offset;
     `;
 
     const rows = await sequelize.query(sql, {
@@ -85,6 +83,8 @@ class InternshipCompanyStatsService {
     const topCompaniesCount = rows.length;
     const topStudentsSum = rows.reduce((sum, r) => sum + Number(r.totalStudents || 0), 0);
 
+    const totalPages = Math.ceil(totalAllCompanies / finalLimit) || 1;
+
     return {
       meta: {
         academicYear: academicYear || null,
@@ -94,6 +94,8 @@ class InternshipCompanyStatsService {
         totalAllCompanies,
         totalAllStudents,
         limit: finalLimit,
+        page: finalPage,
+        totalPages,
         generatedAt: new Date().toISOString()
       },
       rows
@@ -105,19 +107,23 @@ class InternshipCompanyStatsService {
    * @param {Object} options
    * @param {string} options.companyName ชื่อบริษัท (exact match ตาม snapshot)
    */
-  async getCompanyDetail({ companyName }) {
+  async getCompanyDetail({ companyName, academicYear = null }) {
     // NOTE: first_name / last_name อยู่ในตาราง users ไม่ใช่ students
     // students มี student_code เท่านั้น จึงต้อง join users เพิ่ม
+    const periodConditions = [];
+    if (academicYear) periodConditions.push('idoc.academic_year = :academicYear');
+    const periodWhere = periodConditions.length ? (' AND ' + periodConditions.join(' AND ')) : '';
+
     const sql = `
-      SELECT 
+      SELECT
         d.user_id AS userId,
         s.student_code AS studentCode,
         u.first_name AS firstName,
         u.last_name  AS lastName,
         idoc.internship_position AS internshipPosition,
         idoc.start_date AS startDate,
-  idoc.end_date   AS endDate,
-  DATEDIFF(idoc.end_date, idoc.start_date) + 1 AS internshipDays
+        idoc.end_date   AS endDate,
+        DATEDIFF(idoc.end_date, idoc.start_date) + 1 AS internshipDays
       FROM internship_documents idoc
       INNER JOIN documents d ON d.document_id = idoc.document_id
       INNER JOIN students s ON s.user_id = d.user_id
@@ -125,12 +131,13 @@ class InternshipCompanyStatsService {
       WHERE d.document_name = 'CS05'
         AND d.status = 'approved'
         AND idoc.company_name = :companyName
+        ${periodWhere}
       ORDER BY idoc.internship_position ASC, s.student_code ASC;
     `;
 
     const rows = await sequelize.query(sql, {
       type: QueryTypes.SELECT,
-      replacements: { companyName }
+      replacements: { companyName, academicYear }
     });
 
     return {

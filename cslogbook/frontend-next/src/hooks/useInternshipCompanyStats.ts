@@ -7,6 +7,7 @@ type StatsParams = {
   academicYear?: number | null;
   semester?: number | null;
   limit?: number | null;
+  page?: number | null;
 };
 
 export function useInternshipCompanyStats(token: string | null, params: StatsParams, enabled: boolean) {
@@ -17,6 +18,7 @@ export function useInternshipCompanyStats(token: string | null, params: StatsPar
       params.academicYear ?? "all",
       params.semester ?? "all",
       params.limit ?? "default",
+      params.page ?? 1,
     ],
     queryFn: () => getInternshipCompanyStats(token ?? "", params),
     enabled: Boolean(token) && enabled,
@@ -25,10 +27,10 @@ export function useInternshipCompanyStats(token: string | null, params: StatsPar
   });
 }
 
-export function useInternshipCompanyDetail(token: string | null, companyName: string, enabled: boolean) {
+export function useInternshipCompanyDetail(token: string | null, companyName: string, academicYear: number | null, enabled: boolean) {
   return useQuery({
-    queryKey: ["internship-company-detail", token, companyName],
-    queryFn: () => getInternshipCompanyDetail(token ?? "", companyName),
+    queryKey: ["internship-company-detail", token, companyName, academicYear ?? "all"],
+    queryFn: () => getInternshipCompanyDetail(token ?? "", companyName, academicYear),
     enabled: Boolean(token) && Boolean(companyName) && enabled,
     retry: 1,
   });

@@ -16,6 +16,8 @@ export type InternshipCompanyMeta = {
   totalAllCompanies: number;
   totalAllStudents: number;
   limit: number;
+  page: number;
+  totalPages: number;
   generatedAt: string;
 };
 
@@ -49,6 +51,7 @@ type StatsParams = {
   academicYear?: number | null;
   semester?: number | null;
   limit?: number | null;
+  page?: number | null;
 };
 
 export async function getInternshipCompanyStats(token: string, params: StatsParams) {
@@ -56,6 +59,7 @@ export async function getInternshipCompanyStats(token: string, params: StatsPara
   if (params.academicYear) query.set("academicYear", String(params.academicYear));
   if (params.semester) query.set("semester", String(params.semester));
   if (params.limit) query.set("limit", String(params.limit));
+  if (params.page) query.set("page", String(params.page));
 
   const queryString = query.toString();
 
@@ -81,11 +85,14 @@ export async function getInternshipCompanyStats(token: string, params: StatsPara
   return { ...response, rows } satisfies InternshipCompanyStats;
 }
 
-export async function getInternshipCompanyDetail(token: string, companyName: string) {
+export async function getInternshipCompanyDetail(token: string, companyName: string, academicYear?: number | null) {
   const encodedName = encodeURIComponent(companyName.trim());
+  const query = new URLSearchParams();
+  if (academicYear) query.set("academicYear", String(academicYear));
+  const queryString = query.toString();
 
   return apiFetch<InternshipCompanyDetail>(
-    `/internship/company-stats/${encodedName}/detail`,
+    `/internship/company-stats/${encodedName}/detail${queryString ? `?${queryString}` : ""}`,
     {
       method: "GET",
       token,
