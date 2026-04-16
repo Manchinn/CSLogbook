@@ -11,6 +11,14 @@ const moment = require('moment-timezone');
 // เก็บ state ชั่วคราว (ในระบบจริงควรใช้ Redis หรือ Database)
 const stateStore = new Map();
 
+// Validate redirectPath — must be a same-origin absolute path
+function safeRedirectPath(path) {
+  if (typeof path !== 'string' || path.length === 0) return '/dashboard';
+  if (!path.startsWith('/')) return '/dashboard';
+  if (path.startsWith('//') || path.startsWith('/\\')) return '/dashboard';
+  return path;
+}
+
 // ลบ state ที่หมดอายุทุก 5 นาที
 setInterval(() => {
   const now = Date.now();
@@ -27,14 +35,14 @@ setInterval(() => {
  */
 exports.authorize = async (req, res) => {
   try {
-    const { redirectPath } = req.query;
-    
+    const redirectPath = safeRedirectPath(req.query.redirectPath);
+
     // สร้าง state สำหรับ CSRF protection
     const state = ssoService.generateState();
-    
+
     // เก็บ state และ redirectPath
     stateStore.set(state, {
-      redirectPath: redirectPath || '/dashboard',
+      redirectPath,
       createdAt: Date.now()
     });
 
@@ -141,6 +149,19 @@ exports.callback = async (req, res) => {
       }
 
       if (existingUser) {
+        // Block role escalation: SSO role (student/teacher) must match DB role
+        if (existingUser.role !== ssoUserData.role) {
+          logger.warn('SSO Controller: Role mismatch on link — blocked', {
+            ssoUsername: ssoUserData.username,
+            ssoRole: ssoUserData.role,
+            dbRole: existingUser.role,
+            dbUserId: existingUser.userId
+          });
+          return res.redirect(
+            `${process.env.FRONTEND_URL}/login?error=account_role_mismatch`
+          );
+        }
+
         // Link บัญชีเดิมกับ SSO
         existingUser.ssoProvider = 'kmutnb';
         existingUser.ssoId = ssoUserData.username;
@@ -206,12 +227,12 @@ exports.callback = async (req, res) => {
  */
 exports.getAuthUrl = async (req, res) => {
   try {
-    const { redirectPath } = req.query;
-    
+    const redirectPath = safeRedirectPath(req.query.redirectPath);
+
     const state = ssoService.generateState();
-    
+
     stateStore.set(state, {
-      redirectPath: redirectPath || '/dashboard',
+      redirectPath,
       createdAt: Date.now()
     });
 

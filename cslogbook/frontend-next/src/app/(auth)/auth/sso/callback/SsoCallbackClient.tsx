@@ -26,6 +26,19 @@ export function SsoCallbackClient({ token, redirectPath, error }: SsoCallbackCli
       return;
     }
 
+    // Strip token from URL bar before any further navigation (history/referrer leak)
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", "/auth/sso/callback");
+    }
+
+    const safePath =
+      redirectPath &&
+      redirectPath.startsWith("/") &&
+      !redirectPath.startsWith("//") &&
+      !redirectPath.startsWith("/\\")
+        ? redirectPath
+        : null;
+
     completeSsoLogin(token)
       .then((profile) => {
         const fallbackTarget = getDashboardPathByRole(
@@ -33,7 +46,7 @@ export function SsoCallbackClient({ token, redirectPath, error }: SsoCallbackCli
           profile.teacherType,
           profile.isSystemAdmin
         );
-        const target = redirectPath && redirectPath !== "/app" ? redirectPath : fallbackTarget;
+        const target = safePath && safePath !== "/app" ? safePath : fallbackTarget;
         router.replace(target);
       })
       .catch((authError) => {
