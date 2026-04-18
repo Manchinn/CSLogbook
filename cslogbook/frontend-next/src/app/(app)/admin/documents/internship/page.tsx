@@ -3,13 +3,17 @@
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
+  useAcceptanceLetterStaffQueue,
   useAdminInternshipAcademicYears,
   useAdminInternshipDocumentDetail,
   useAdminInternshipDocumentMutations,
   useAdminInternshipDocuments,
   useAdminInternshipLateSubmissions,
 } from "@/hooks/useAdminInternshipDocuments";
-import type { AdminInternshipDocument } from "@/lib/services/adminInternshipDocumentsService";
+import type {
+  AcceptanceLetterQueueRow,
+  AdminInternshipDocument,
+} from "@/lib/services/adminInternshipDocumentsService";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "@/styles/shared/admin-queue.module.css";
@@ -96,12 +100,57 @@ export default function AdminInternshipDocumentsPage() {
     academicYear: academicYear || undefined,
     semester: semester || undefined,
   });
+  // Acceptance Letter Stage-1 queue (reviewerId IS NULL) — backend-wide INNER JOIN
+  // filters these out of /admin/documents. We fetch them here and merge into rows
+  // so staff can see and review them in the same table.
+  const isPendingView = status === "pending" || status === "" || status === "all";
+  const acceptanceStaffQueueQuery = useAcceptanceLetterStaffQueue(
+    { status: "pending" },
+    isPendingView && page === 1,
+  );
   const detailQuery = useAdminInternshipDocumentDetail(selected?.id ?? null, drawerOpen);
   const { reviewDocument, rejectDocument, previewDocument, downloadDocument, exportMutation } = useAdminInternshipDocumentMutations();
 
   const listResult = documentsQuery.data;
-  const rows = useMemo(() => listResult?.documents ?? [], [listResult?.documents]);
-  const total = listResult?.total ?? 0;
+  const baseRows = useMemo(() => listResult?.documents ?? [], [listResult?.documents]);
+
+  const mergedAcceptanceRows: AdminInternshipDocument[] = useMemo(() => {
+    if (!isPendingView || page !== 1) return [];
+    const queue = acceptanceStaffQueueQuery.data ?? [];
+    const searchQuery = search.trim().toLowerCase();
+    const academicYearNum = academicYear ? Number(academicYear) : null;
+    const semesterNum = semester ? Number(semester) : null;
+
+    return queue
+      .filter((row: AcceptanceLetterQueueRow) => {
+        if (academicYearNum !== null && row.academicYear !== academicYearNum) return false;
+        if (semesterNum !== null && row.semester !== semesterNum) return false;
+        if (searchQuery) {
+          const haystack = `${row.studentCode} ${row.studentName} ${row.companyName}`.toLowerCase();
+          if (!haystack.includes(searchQuery)) return false;
+        }
+        return true;
+      })
+      .map((row: AcceptanceLetterQueueRow): AdminInternshipDocument => ({
+        id: row.documentId,
+        documentName: "ACCEPTANCE_LETTER",
+        studentName: `${row.studentCode} ${row.studentName}`.trim() || row.studentName || "-",
+        status: row.status,
+        createdAt: row.submittedAt,
+        reviewerId: null,
+        reviewComment: row.comment,
+        filePath: row.pdfFile?.url ?? null,
+      }));
+  }, [acceptanceStaffQueueQuery.data, academicYear, isPendingView, page, search, semester]);
+
+  const rows = useMemo(() => {
+    if (mergedAcceptanceRows.length === 0) return baseRows;
+    const existingIds = new Set(baseRows.map((d) => d.id));
+    const uniqueAcceptance = mergedAcceptanceRows.filter((d) => !existingIds.has(d.id));
+    return [...uniqueAcceptance, ...baseRows];
+  }, [baseRows, mergedAcceptanceRows]);
+
+  const total = (listResult?.total ?? 0) + mergedAcceptanceRows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const lateMap = useMemo(() => {
@@ -115,15 +164,16 @@ export default function AdminInternshipDocumentsPage() {
 
   const stats = useMemo(() => {
     const source = listResult?.statistics;
+    const extraPending = mergedAcceptanceRows.length;
     const lateCount = rows.filter((row) => lateMap.has(row.id)).length;
     return {
-      total: source?.total ?? total,
-      pending: source?.pending ?? rows.filter((row) => row.status === "pending").length,
-      approved: source?.approved ?? rows.filter((row) => row.status === "approved").length,
-      rejected: source?.rejected ?? rows.filter((row) => row.status === "rejected").length,
+      total,
+      pending: (source?.pending ?? baseRows.filter((row) => row.status === "pending").length) + extraPending,
+      approved: source?.approved ?? baseRows.filter((row) => row.status === "approved").length,
+      rejected: source?.rejected ?? baseRows.filter((row) => row.status === "rejected").length,
       lateCount,
     };
-  }, [lateMap, listResult?.statistics, rows, total]);
+  }, [baseRows, lateMap, listResult?.statistics, mergedAcceptanceRows.length, rows, total]);
 
   const onResetFilters = () => {
     setSearch("");

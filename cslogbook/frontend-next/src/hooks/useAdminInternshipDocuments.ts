@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   downloadInternshipDocument,
   exportAdminInternshipDocuments,
+  fetchAcceptanceLetterStaffQueue,
   getAdminInternshipDocumentDetail,
   getAdminInternshipDocuments,
   getInternshipAcademicYearsForAdmin,
@@ -47,12 +48,25 @@ export function useAdminInternshipLateSubmissions(filters: { academicYear?: stri
   });
 }
 
+export function useAcceptanceLetterStaffQueue(
+  params: { status?: string } = {},
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin-acceptance-letter-staff-queue", params],
+    queryFn: () => fetchAcceptanceLetterStaffQueue(params),
+    enabled,
+    staleTime: 1000 * 60,
+  });
+}
+
 export function useAdminInternshipDocumentMutations() {
   const queryClient = useQueryClient();
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin-internship-documents"] });
     await queryClient.invalidateQueries({ queryKey: ["admin-internship-late-submissions"] });
+    await queryClient.invalidateQueries({ queryKey: ["admin-acceptance-letter-staff-queue"] });
   };
 
   const reviewMutation = useMutation({
