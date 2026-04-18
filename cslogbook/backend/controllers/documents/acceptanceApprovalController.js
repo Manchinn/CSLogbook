@@ -54,16 +54,15 @@ exports.listForStaff = async (req, res) => {
 
     const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
 
+    // Staff queue = คิวของเจ้าหน้าที่ภาค → เห็นเฉพาะ doc ที่ยังไม่ถูก review
+    // (reviewerId IS NULL) เสมอ ไม่ว่าจะ filter status ใด ๆ — กันนโยบาย
+    // bypass ด้วย ?status=pending,approved หรือ ?status=rejected
     const whereCondition = {
       documentName: 'ACCEPTANCE_LETTER',
       category: 'acceptance',
       status: whereStatus,
+      reviewerId: { [Op.is]: null },
     };
-
-    // ถ้ากรองเฉพาะ pending: เอาเฉพาะที่ยังไม่ผ่านเจ้าหน้าที่ (reviewerId IS NULL)
-    if (statusQuery.length === 1 && statusQuery[0] === 'pending') {
-      whereCondition.reviewerId = { [Op.is]: null };
-    }
 
     const docs = await Document.findAll({
       where: whereCondition,

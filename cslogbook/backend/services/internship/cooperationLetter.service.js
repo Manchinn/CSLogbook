@@ -11,6 +11,7 @@ const logger = require("../../utils/logger");
 const { sanitizeFilename } = require("../../utils/sanitizeFilename");
 const { calculateStudentYear } = require("../../utils/studentUtils");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
+const { CS05_POST_APPROVED_STATUSES } = require("./cs05Statuses");
 
 // Font paths (TH Sarabun New — ฟอนต์ราชการ ตรงกับ referralLetter.service.js)
 const FONT_REGULAR = path.join(__dirname, "../../fonts/THSarabunNew.ttf");
@@ -19,16 +20,9 @@ const GARUDA_IMAGE = path.join(__dirname, "../../assets/garuda.png");
 
 /**
  * Status ของ CS05 ที่ถือว่า "ได้รับการอนุมัติแล้ว"
- * ต้องตรงกับ STATUSES_WITH_DOWNLOADS ใน frontend/InternshipFlowContent.tsx
+ * Backed by shared constant — ใช้ Set เพราะ lookup ด้วย .has() หลายครั้ง
  */
-const CS05_POST_APPROVAL_STATUSES = new Set([
-  "approved",
-  "acceptance_approved",
-  "supervisor_evaluated",
-  "referral_ready",
-  "referral_downloaded",
-  "completed",
-]);
+const CS05_POST_APPROVAL_STATUSES = new Set(CS05_POST_APPROVED_STATUSES);
 
 // ===== PDF Layout Helpers =====
 

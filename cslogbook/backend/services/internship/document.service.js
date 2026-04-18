@@ -12,6 +12,7 @@ const {
   getCurrentSemester,
 } = require("../../utils/studentUtils");
 const logger = require("../../utils/logger");
+const { CS05_POST_APPROVED_STATUSES } = require("./cs05Statuses");
 
 /**
  * Service สำหรับจัดการเอกสาร CS05 และเอกสารการฝึกงาน
@@ -29,14 +30,13 @@ class InternshipDocumentService {
       where: {
         userId,
         documentName: "CS05",
+        // Include pending/rejected (pre-approval) + the full post-approval
+        // lifecycle + cancelled so the student can still see historical data.
         status: [
           "pending",
-          "approved",
           "rejected",
-          "acceptance_approved",
-          "supervisor_evaluated",
-          "referral_ready",
-          "referral_downloaded",
+          "cancelled",
+          ...CS05_POST_APPROVED_STATUSES,
         ],
       },
       include: [
@@ -532,7 +532,7 @@ class InternshipDocumentService {
         throw new Error("ไม่พบข้อมูลเอกสาร CS05");
       }
 
-      if (document.status !== "approved") {
+      if (!CS05_POST_APPROVED_STATUSES.includes(document.status)) {
         throw new Error(
           `ไม่สามารถกรอกข้อมูลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${document.status})`
         );
