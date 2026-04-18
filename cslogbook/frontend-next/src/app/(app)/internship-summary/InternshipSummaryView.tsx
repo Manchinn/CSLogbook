@@ -23,6 +23,7 @@ import {
   type EvaluationStatus,
 } from "@/lib/services/internshipService";
 import { REQUIRED_INTERNSHIP_HOURS } from "@/lib/constants/internship";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import styles from "./summary.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -146,7 +147,13 @@ export default function InternshipSummaryView() {
         ],
       };
     }
-    if (cs05Status && cs05Status !== "approved" && cs05Status !== "cancelled") {
+    // Block เฉพาะ pending/rejected — post-approval lifecycle (acceptance_approved
+    // → completed) ให้ผ่านไปตรวจ acceptance letter ต่อ
+    if (
+      cs05Status &&
+      !isCs05PostApproved(cs05Status) &&
+      cs05Status !== "cancelled"
+    ) {
       return {
         title: cs05Status === "pending" ? "คำร้อง คพ.05 รอการอนุมัติ" : "คำร้อง คพ.05 ไม่ผ่าน",
         body:
@@ -159,7 +166,7 @@ export default function InternshipSummaryView() {
         ],
       };
     }
-    if (cs05Status === "approved") {
+    if (isCs05PostApproved(cs05Status)) {
       if (acceptanceQuery.isLoading) {
         return { title: "กำลังตรวจสอบหนังสือตอบรับ", body: "กรุณารอสักครู่", tone: "info" as const };
       }

@@ -184,13 +184,18 @@ export function labelStatusWithTone(
  */
 export function approvalStatusLabel(status?: string | null): string {
   switch (status) {
-    case "approved":      return "อนุมัติแล้ว";
-    case "pending":       return "รอพิจารณา";
-    case "rejected":      return "ไม่อนุมัติ";
-    case "cancelled":     return "ยกเลิก";
-    case "uploaded":      return "อัปโหลดแล้ว (รออนุมัติ)";
-    case "not_uploaded":  return "ยังไม่อัปโหลด";
-    default:              return "ไม่พบข้อมูล";
+    case "approved":              return "อนุมัติแล้ว";
+    case "acceptance_approved":   return "อนุมัติแล้ว";
+    case "supervisor_evaluated":  return "อนุมัติแล้ว";
+    case "referral_ready":        return "อนุมัติแล้ว";
+    case "referral_downloaded":   return "อนุมัติแล้ว";
+    case "completed":             return "เสร็จสมบูรณ์";
+    case "pending":               return "รอพิจารณา";
+    case "rejected":              return "ไม่อนุมัติ";
+    case "cancelled":             return "ยกเลิก";
+    case "uploaded":              return "อัปโหลดแล้ว (รออนุมัติ)";
+    case "not_uploaded":          return "ยังไม่อัปโหลด";
+    default:                      return "ไม่พบข้อมูล";
   }
 }
 

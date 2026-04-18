@@ -11,6 +11,7 @@ import {
   useCompanyInfo,
 } from "@/hooks/useInternshipCompanyInfo";
 import { submitCompanyInfo } from "@/lib/services/internshipService";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 
 type Tone = "positive" | "warning" | "danger" | "info" | "muted";
 
@@ -38,9 +39,11 @@ function toneClass(tone: Tone) {
 }
 
 function statusLabel(status?: string | null): { label: string; tone: Tone } {
+  // Post-approval lifecycle → ทุก status หลัง approved ถือว่า positive
+  if (isCs05PostApproved(status)) {
+    return { label: "อนุมัติแล้ว", tone: "positive" };
+  }
   switch (status) {
-    case "approved":
-      return { label: "อนุมัติแล้ว", tone: "positive" };
     case "pending":
       return { label: "รอพิจารณา", tone: "warning" };
     case "rejected":
@@ -114,7 +117,8 @@ export default function CompanyInfoView() {
       setMode("view");
       return;
     }
-    const canEdit = acceptance.acceptanceStatus === "approved" && cs05?.status === "approved";
+    const canEdit =
+      acceptance.acceptanceStatus === "approved" && isCs05PostApproved(cs05?.status);
     if (!canEdit) {
       setMode("view");
     }
@@ -122,7 +126,7 @@ export default function CompanyInfoView() {
 
   const cs05Status = cs05?.status ?? null;
   const acceptanceStatus = acceptance?.acceptanceStatus ?? null;
-  const canEdit = cs05Status === "approved" && acceptanceStatus === "approved";
+  const canEdit = isCs05PostApproved(cs05Status) && acceptanceStatus === "approved";
 
   const guard: GuardMessage | null = useMemo(() => {
     if (!hydrated) return { title: "กำลังเตรียมข้อมูล", body: "กรุณารอสักครู่", tone: "info" };
@@ -136,7 +140,9 @@ export default function CompanyInfoView() {
         tone: "warning",
       };
     }
-    if (cs05Status && cs05Status !== "approved") {
+    // Block เฉพาะเมื่อ CS05 ยังไม่ก้าวข้าม approved — post-approval statuses
+    // (acceptance_approved → completed) ถือว่าผ่านเงื่อนไขนี้แล้ว
+    if (cs05Status && !isCs05PostApproved(cs05Status) && cs05Status !== "cancelled") {
       const body = cs05Status === "pending"
         ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"

@@ -18,6 +18,7 @@ import {
   useTimesheetStats,
 } from "@/hooks/useInternshipLogbook";
 import type { TimesheetEntry, TimesheetApprovalRequestPayload } from "@/lib/services/internshipLogbookService";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import styles from "./logbook.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -144,7 +145,9 @@ export default function InternshipLogbookView() {
         tone: "warning",
       };
     }
-    if (cs05Status && cs05Status !== "approved") {
+    // Block เฉพาะเมื่อ CS05 ยังไม่ก้าวข้าม approved — post-approval statuses
+    // (acceptance_approved → completed) ถือว่าผ่านเงื่อนไขนี้แล้ว
+    if (cs05Status && !isCs05PostApproved(cs05Status) && cs05Status !== "cancelled") {
       const body = cs05Status === "pending"
         ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"
@@ -202,7 +205,7 @@ export default function InternshipLogbookView() {
     });
   }, [entriesByDate, workdaysQuery.data]);
 
-  const canEdit = cs05Status === "approved" && acceptanceStatus === "approved";
+  const canEdit = isCs05PostApproved(cs05Status) && acceptanceStatus === "approved";
   const loadingAny = useMemo(
     () => statsQuery.isLoading || workdaysQuery.isLoading || entriesQuery.isLoading,
     [entriesQuery.isLoading, statsQuery.isLoading, workdaysQuery.isLoading]
@@ -388,7 +391,7 @@ export default function InternshipLogbookView() {
           <p className={styles.lead}>บันทึกการปฏิบัติงานประจำวันตามลักษณะงานที่ได้รับมอบหมาย และติดตามสถานะการอนุมัติ</p>
         </div>
         <div className={styles.heroMeta}>
-          <span className={`${styles.badge} ${cs05Status === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
+          <span className={`${styles.badge} ${isCs05PostApproved(cs05Status) ? styles.badgePositive : styles.badgeWarning}`}>
             หนังสือคำร้องขอฝึกงาน: {approvalStatusLabel(cs05Status)}
           </span>
           <span className={`${styles.badge} ${acceptanceStatus === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
