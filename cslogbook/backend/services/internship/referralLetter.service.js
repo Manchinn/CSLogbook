@@ -92,6 +92,9 @@ class InternshipReferralLetterService {
       let isDownloaded = false;
       const missingRequirements = [];
 
+      // Supervisor info is collected later (before evaluation) — it is NOT
+      // required to download the referral letter. Keep the flag for UI hinting
+      // but do not gate `isReady` on it.
       const hasSupervisorInfo = !!(
         cs05Document.internshipDocument?.supervisorName &&
         cs05Document.internshipDocument?.supervisorEmail
@@ -102,11 +105,7 @@ class InternshipReferralLetterService {
         acceptanceLetter &&
         acceptanceLetter.status === "approved"
       ) {
-        if (hasSupervisorInfo) {
-          isReady = true;
-        } else {
-          missingRequirements.push("ข้อมูลผู้ควบคุมงานไม่ครบถ้วน");
-        }
+        isReady = true;
       }
 
       if (
@@ -154,8 +153,8 @@ class InternshipReferralLetterService {
             : isReady
             ? "ready"
             : "not_ready",
-          requiresSupervisorInfo: true,
-          supervisorInfoOptional: false,
+          requiresSupervisorInfo: false,
+          supervisorInfoOptional: true,
           cs05AlwaysApproved: true,
         },
       };
@@ -211,11 +210,9 @@ class InternshipReferralLetterService {
         throw new Error("ไม่พบหนังสือตอบรับที่ได้รับการอนุมัติ");
       }
 
-      // 3. ตรวจสอบข้อมูลผู้ควบคุมงาน
+      // 3. เตรียมข้อมูลบริษัท/ผู้ประสานงาน (PDF ใช้ contactPersonName/Position เท่านั้น
+      //    — supervisor info กรอกภายหลังตอนก่อนประเมิน, ไม่บล็อก download)
       const internshipDoc = cs05Document.internshipDocument;
-      if (!internshipDoc?.supervisorName || !internshipDoc?.supervisorEmail) {
-        throw new Error("ข้อมูลผู้ควบคุมงานไม่ครบถ้วน");
-      }
 
       // 4. ดึงข้อมูลนักศึกษา
       const student = await Student.findOne({
