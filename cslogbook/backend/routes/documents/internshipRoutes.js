@@ -361,6 +361,14 @@ router.get(
 );
 
 // ============= เส้นทางสำหรับการอนุมัติ หนังสือตอบรับการฝึกงาน (แบบสองขั้น) =============
+// เจ้าหน้าที่ภาค: คิว Acceptance Letter รอตรวจ (reviewerId IS NULL)
+router.get(
+  "/acceptance/staff/queue",
+  authenticateToken,
+  authorize("internship", "acceptanceStaff"),
+  acceptanceApprovalController.listForStaff
+);
+
 // หัวหน้าภาค: คิว หนังสือตอบรับการฝึกงาน ที่รออนุมัติ (ผ่านเจ้าหน้าที่ภาคแล้ว)
 router.get(
   "/acceptance/head/queue",

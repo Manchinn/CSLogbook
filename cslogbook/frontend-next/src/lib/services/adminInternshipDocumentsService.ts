@@ -274,6 +274,42 @@ export async function rejectInternshipDocument(documentId: number, reason: strin
   });
 }
 
+export type AcceptanceLetterQueueRow = {
+  id: number;
+  documentId: number;
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  companyName: string;
+  startDate: string | null;
+  endDate: string | null;
+  documentType: "acceptance";
+  status: AdminInternshipDocumentStatus;
+  submittedAt: string | null;
+  submittedDate: string | null;
+  academicYear: number | null;
+  semester: number | null;
+  pdfFile: { url: string; filename: string } | null;
+  comment: string | null;
+  rejectionReason: string | null;
+};
+
+type AcceptanceLetterQueueResponse = {
+  success?: boolean;
+  data?: AcceptanceLetterQueueRow[];
+};
+
+export async function fetchAcceptanceLetterStaffQueue(
+  params: { status?: string } = {},
+): Promise<AcceptanceLetterQueueRow[]> {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  const qs = query.toString();
+  const path = `/internship/acceptance/staff/queue${qs ? `?${qs}` : ""}`;
+  const response = await apiFetch<AcceptanceLetterQueueResponse>(path);
+  return response.data ?? [];
+}
+
 export async function getInternshipAcademicYearsForAdmin(): Promise<number[]> {
   const response = await apiFetch<AcademicYearsApiResponse>("/reports/internships/academic-years");
   const data = Array.isArray(response.data) ? response.data : [];

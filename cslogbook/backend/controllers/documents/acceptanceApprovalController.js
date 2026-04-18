@@ -44,6 +44,93 @@ async function loadAcceptance(documentId) {
   return doc;
 }
 
+// คิวเจ้าหน้าที่ภาค: รายการ Acceptance Letter ที่ยังไม่ผ่านการตรวจ (reviewerId IS NULL)
+exports.listForStaff = async (req, res) => {
+  try {
+    const statusQuery = (req.query.status || 'pending')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
+
+    const whereCondition = {
+      documentName: 'ACCEPTANCE_LETTER',
+      category: 'acceptance',
+      status: whereStatus,
+    };
+
+    // ถ้ากรองเฉพาะ pending: เอาเฉพาะที่ยังไม่ผ่านเจ้าหน้าที่ (reviewerId IS NULL)
+    if (statusQuery.length === 1 && statusQuery[0] === 'pending') {
+      whereCondition.reviewerId = { [Op.is]: null };
+    }
+
+    const docs = await Document.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['userId', 'firstName', 'lastName'],
+          include: [{ model: Student, as: 'student', attributes: ['studentId', 'studentCode'] }],
+        },
+      ],
+      order: [['created_at', 'DESC']],
+    });
+
+    const data = await Promise.all(docs.map(async (d) => {
+      let companyName = '';
+      let startDate = null;
+      let endDate = null;
+      let academicYear = null;
+      let semester = null;
+
+      const cs05 = await Document.findOne({
+        where: { userId: d.userId, documentName: 'CS05', status: 'approved' },
+        include: [{
+          model: InternshipDocument,
+          as: 'internshipDocument',
+          attributes: ['companyName', 'internshipPosition', 'startDate', 'endDate', 'academicYear', 'semester'],
+        }],
+        order: [['updated_at', 'DESC']],
+      });
+
+      if (cs05?.internshipDocument) {
+        companyName = cs05.internshipDocument.companyName || '';
+        startDate = cs05.internshipDocument.startDate;
+        endDate = cs05.internshipDocument.endDate;
+        academicYear = cs05.internshipDocument.academicYear;
+        semester = cs05.internshipDocument.semester;
+      }
+
+      return {
+        id: d.documentId,
+        documentId: d.documentId,
+        studentId: d.owner?.student?.studentId || '',
+        studentCode: d.owner?.student?.studentCode || '',
+        studentName: `${d.owner?.firstName || ''} ${d.owner?.lastName || ''}`.trim(),
+        companyName,
+        startDate,
+        endDate,
+        documentType: 'acceptance',
+        status: d.status,
+        submittedAt: d.submittedAt || d.created_at,
+        submittedDate: d.submittedAt || d.created_at,
+        academicYear,
+        semester,
+        pdfFile: buildPdfFileInfo(d.filePath),
+        comment: d.status !== 'rejected' ? (d.reviewComment || null) : null,
+        rejectionReason: d.status === 'rejected' ? (d.reviewComment || null) : null,
+      };
+    }));
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    logger.error('Acceptance listForStaff error:', error);
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || 'เกิดข้อผิดพลาด' });
+  }
+};
+
 // คิวหัวหน้าภาค: รายการ Acceptance Letter (รองรับการกรองสถานะเช่นเดียวกับ CS05)
 exports.listForHead = async (req, res) => {
   try {
