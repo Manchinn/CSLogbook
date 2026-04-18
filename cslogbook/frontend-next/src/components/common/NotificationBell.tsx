@@ -20,11 +20,12 @@ const TYPE_ICONS: Record<string, string> = {
   MEETING: '🤝',
 };
 
-/** แสดงเวลาแบบ relative เป็นภาษาไทย */
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const past = new Date(dateStr).getTime();
-  const diffMs = now - past;
+/** แสดงเวลาแบบ relative เป็นภาษาไทย (รับ undefined/null → "-") */
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  const parsed = new Date(dateStr).getTime();
+  if (Number.isNaN(parsed)) return '-';
+  const diffMs = Date.now() - parsed;
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
   const diffHour = Math.floor(diffMin / 60);
@@ -134,6 +135,9 @@ export default function NotificationBell() {
                   </span>
                   <div className={styles.notificationContent}>
                     <p className={styles.notificationTitle}>{item.title}</p>
+                    {item.message ? (
+                      <p className={styles.notificationMessage}>{item.message}</p>
+                    ) : null}
                     <span className={styles.notificationTime}>
                       {timeAgo(item.createdAt)}
                     </span>

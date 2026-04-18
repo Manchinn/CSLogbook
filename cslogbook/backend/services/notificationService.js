@@ -45,7 +45,7 @@ class NotificationService {
           message: notification.message,
           metadata: notification.metadata,
           isRead: false,
-          createdAt: notification.createdAt
+          createdAt: notification.get('created_at')
         });
       }
 
@@ -87,7 +87,7 @@ class NotificationService {
             message: n.message,
             metadata: n.metadata,
             isRead: false,
-            createdAt: n.createdAt
+            createdAt: n.get('created_at')
           });
         });
       }
@@ -110,8 +110,20 @@ class NotificationService {
       offset
     });
 
+    // Normalize to camelCase (model uses underscored:true so toJSON emits created_at)
+    const notifications = rows.map(r => ({
+      notificationId: r.notificationId,
+      type: r.type,
+      title: r.title,
+      message: r.message,
+      metadata: r.metadata,
+      isRead: r.isRead,
+      createdAt: r.get('created_at'),
+      updatedAt: r.get('updated_at')
+    }));
+
     return {
-      notifications: rows,
+      notifications,
       total: count,
       limit,
       offset
