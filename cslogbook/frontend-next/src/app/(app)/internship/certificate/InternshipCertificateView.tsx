@@ -16,6 +16,7 @@ import {
   useSubmitCertificateRequest,
 } from "@/hooks/useInternshipCertificate";
 import type { InternshipCertificateStatus } from "@/lib/services/internshipCertificateService";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import styles from "./certificate.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
@@ -130,7 +131,9 @@ export default function InternshipCertificateView() {
         tone: "warning",
       };
     }
-    if (cs05Status && cs05Status !== "approved") {
+    // Block เฉพาะเมื่อ CS05 ยังไม่ก้าวข้าม approved — post-approval statuses
+    // (acceptance_approved → completed) ถือว่าผ่านเงื่อนไขนี้แล้ว
+    if (cs05Status && !isCs05PostApproved(cs05Status) && cs05Status !== "cancelled") {
       const body = cs05Status === "pending"
         ? "หนังสือคำร้องขอฝึกงานอยู่ระหว่างการพิจารณา"
         : cs05Status === "rejected"
@@ -170,7 +173,7 @@ export default function InternshipCertificateView() {
   const canRequest =
     certificate?.canRequestCertificate &&
     acceptanceStatus === "approved" &&
-    cs05Status === "approved";
+    isCs05PostApproved(cs05Status);
 
   const progressPercent = computeProgress(requirements);
 
@@ -249,7 +252,7 @@ export default function InternshipCertificateView() {
             <span className={`${styles.badge} ${badgeTone(statusMeta.tone)}`}>
               สถานะ: {statusMeta.text}
             </span>
-            <span className={`${styles.badge} ${cs05Status === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
+            <span className={`${styles.badge} ${isCs05PostApproved(cs05Status) ? styles.badgePositive : styles.badgeWarning}`}>
               หนังสือคำร้องขอฝึกงาน: {approvalStatusLabel(cs05Status)}
             </span>
             <span className={`${styles.badge} ${acceptanceStatus === "approved" ? styles.badgePositive : styles.badgeWarning}`}>
