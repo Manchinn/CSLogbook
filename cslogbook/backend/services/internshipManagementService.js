@@ -17,6 +17,21 @@ const {
 const logger = require("../utils/logger");
 
 /**
+ * CS05 statuses ที่ถือว่าอยู่ใน lifecycle หลัง approved แล้ว — ใช้ตัดสินสิทธิ์
+ * ในการดู summary / timeline / company info ของนักศึกษา เป็นแหล่งเดียวทั้ง
+ * pre-check และ main query เพื่อไม่ให้สอง list drift กันอีก
+ */
+const CS05_SUMMARY_VIEW_STATUSES = [
+  "approved",
+  "acceptance_approved",
+  "supervisor_evaluated",
+  "referral_ready",
+  "referral_downloaded",
+  "completed",
+  "cancelled",
+];
+
+/**
  * Service สำหรับจัดการการฝึกงาน
  * รวมฟังก์ชันทั้งหมดที่เกี่ยวกับการจัดการเอกสาร CS05, การประเมิน และข้อมูลการฝึกงาน
  */
@@ -178,9 +193,10 @@ class InternshipManagementService {
         throw new Error("ไม่พบแบบฟอร์ม คพ.05 กรุณายื่นคำร้องขอฝึกงานก่อน");
       }
 
-      // ✅ อนุญาตเฉพาะ approved หรือ cancelled (เพื่อให้ดูข้อมูลที่ถูกยกเลิกได้)
-      if (cs05Check.status !== "approved" && cs05Check.status !== "cancelled") {
-        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied (only 'approved' or 'cancelled' allowed)`);
+      // ✅ อนุญาต status ในช่วง lifecycle หลัง approved ทั้งหมด (รวม cancelled)
+      //    ใช้ list เดียวกับ main query ด้านล่างเพื่อกัน drift
+      if (!CS05_SUMMARY_VIEW_STATUSES.includes(cs05Check.status)) {
+        logger.warn(`[getInternshipSummary] CS05 status is '${cs05Check.status}' for userId: ${userId} - Access denied`);
         throw new Error(`ไม่สามารถดูสรุปผลได้ เนื่องจากคำร้องขอฝึกงานยังไม่ได้รับการอนุมัติ (สถานะปัจจุบัน: ${cs05Check.status})`);
       }
 
@@ -252,7 +268,7 @@ class InternshipManagementService {
           as: "documents",
           where: {
             documentName: "CS05",
-            status: ["approved", "acceptance_approved", "supervisor_evaluated", "referral_ready", "referral_downloaded", "completed", "cancelled"],
+            status: CS05_SUMMARY_VIEW_STATUSES,
           },
           required: true,
           include: [
