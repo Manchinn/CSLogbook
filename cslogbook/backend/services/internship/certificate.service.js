@@ -14,6 +14,7 @@ const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
 const { formatThaiDate } = require("../../utils/dateUtils");
+const { CS05_POST_APPROVED_STATUSES } = require("./cs05Statuses");
 
 // Thai font paths — bundled in repo → ใช้งานได้ทั้ง dev และ Docker
 const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
@@ -54,7 +55,7 @@ class InternshipCertificateService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["approved", "supervisor_evaluated"],
+          status: CS05_POST_APPROVED_STATUSES,
         },
         include: [
           {
@@ -658,7 +659,7 @@ class InternshipCertificateService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["approved", "supervisor_evaluated"],
+          status: CS05_POST_APPROVED_STATUSES,
         },
         include: [
           {
@@ -752,7 +753,7 @@ class InternshipCertificateService {
         where: {
           userId,
           documentName: "CS05",
-          status: ["approved", "supervisor_evaluated"],
+          status: CS05_POST_APPROVED_STATUSES,
         },
         include: [
           {

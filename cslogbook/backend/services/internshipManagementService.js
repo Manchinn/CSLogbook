@@ -15,21 +15,7 @@ const {
   getCurrentSemester,
 } = require("../utils/studentUtils");
 const logger = require("../utils/logger");
-
-/**
- * CS05 statuses ที่ถือว่าอยู่ใน lifecycle หลัง approved แล้ว — ใช้ตัดสินสิทธิ์
- * ในการดู summary / timeline / company info ของนักศึกษา เป็นแหล่งเดียวทั้ง
- * pre-check และ main query เพื่อไม่ให้สอง list drift กันอีก
- */
-const CS05_SUMMARY_VIEW_STATUSES = [
-  "approved",
-  "acceptance_approved",
-  "supervisor_evaluated",
-  "referral_ready",
-  "referral_downloaded",
-  "completed",
-  "cancelled",
-];
+const { CS05_SUMMARY_VIEW_STATUSES } = require("./internship/cs05Statuses");
 
 /**
  * Service สำหรับจัดการการฝึกงาน

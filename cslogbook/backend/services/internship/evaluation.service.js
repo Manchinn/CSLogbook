@@ -13,6 +13,7 @@ const emailService = require("../../utils/mailer.js");
 const crypto = require("crypto");
 const notificationSettingsService = require("../notificationSettingsService");
 const logger = require("../../utils/logger");
+const { CS05_POST_APPROVED_STATUSES } = require("./cs05Statuses");
 
 /**
  * Service สำหรับจัดการการประเมินการฝึกงาน
@@ -50,7 +51,7 @@ class InternshipEvaluationService {
       where: {
         userId,
         documentName: "CS05",
-        status: ["approved", "supervisor_evaluated"],
+        status: CS05_POST_APPROVED_STATUSES,
       },
       attributes: ["documentId", "status", "documentName"],
       include: [
@@ -159,7 +160,7 @@ class InternshipEvaluationService {
           documentId: documentId,
           userId,
           documentName: "CS05",
-          status: ["approved", "supervisor_evaluated"],
+          status: CS05_POST_APPROVED_STATUSES,
         },
         attributes: ["documentId", "status"],
         include: [
@@ -310,7 +311,7 @@ class InternshipEvaluationService {
         where: {
           documentId: approvalToken.documentId,
           documentName: "CS05",
-          status: ["approved", "supervisor_evaluated"],
+          status: CS05_POST_APPROVED_STATUSES,
         },
         attributes: ["documentId", "status", "documentName", "userId"],
         include: [
