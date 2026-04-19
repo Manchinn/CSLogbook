@@ -13,6 +13,7 @@ import {
   useRejectAcceptanceLetter,
 } from "@/hooks/useTeacherModule";
 import type { InternshipDocument } from "@/lib/services/teacherService";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import { useAcademicYears } from "@/hooks/useAcademicYears";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
@@ -31,17 +32,22 @@ function formatDateTime(value: string | null | undefined) {
   }).format(date);
 }
 
-function statusLabel(status: string) {
+function isApprovedForTab(status: string, tab: TabType): boolean {
+  return tab === "cs05" ? isCs05PostApproved(status) : status === "approved";
+}
+
+function statusLabel(status: string, tab: TabType) {
   if (status === "pending") return "รออนุมัติ";
-  if (status === "approved") return "อนุมัติแล้ว";
   if (status === "rejected") return "ปฏิเสธแล้ว";
+  if (status === "cancelled") return "ยกเลิกแล้ว";
+  if (isApprovedForTab(status, tab)) return "อนุมัติแล้ว";
   return status || "-";
 }
 
-function statusTagClass(status: string) {
+function statusTagClass(status: string, tab: TabType) {
   if (status === "pending") return styles.tagPending;
-  if (status === "approved") return styles.tagApproved;
   if (status === "rejected") return styles.tagRejected;
+  if (isApprovedForTab(status, tab)) return styles.tagApproved;
   return "";
 }
 
@@ -176,10 +182,10 @@ export default function ApproveDocumentsPage() {
     () => ({
       total: currentData.length,
       pending: currentData.filter((d) => d.status === "pending").length,
-      approved: currentData.filter((d) => d.status === "approved").length,
+      approved: currentData.filter((d) => isApprovedForTab(d.status, activeTab)).length,
       rejected: currentData.filter((d) => d.status === "rejected").length,
     }),
-    [currentData],
+    [currentData, activeTab],
   );
 
   // Tab badge counts (pending, across all filters — use raw data)
@@ -460,8 +466,8 @@ export default function ApproveDocumentsPage() {
                           <span className={styles.dateCell}>{formatDateTime(doc.submittedDate || doc.submittedAt)}</span>
                         </td>
                         <td>
-                          <span className={`${styles.tag} ${statusTagClass(doc.status)}`}>
-                            {statusLabel(doc.status)}
+                          <span className={`${styles.tag} ${statusTagClass(doc.status, activeTab)}`}>
+                            {statusLabel(doc.status, activeTab)}
                           </span>
                         </td>
                         <td>
@@ -569,8 +575,8 @@ export default function ApproveDocumentsPage() {
                     </div>
                     <div className={styles.detailItem}>
                       <span className={styles.detailLabel}>สถานะปัจจุบัน</span>
-                      <span className={`${styles.tag} ${statusTagClass(selectedDocument.status)}`}>
-                        {statusLabel(selectedDocument.status)}
+                      <span className={`${styles.tag} ${statusTagClass(selectedDocument.status, activeTab)}`}>
+                        {statusLabel(selectedDocument.status, activeTab)}
                       </span>
                     </div>
                   </div>
@@ -658,7 +664,7 @@ export default function ApproveDocumentsPage() {
                 )}
 
                 {/* Previous Decision (non-pending) */}
-                {selectedDocument.status === "approved" && (
+                {isApprovedForTab(selectedDocument.status, activeTab) && (
                   <div className={`${styles.decisionDisplay} ${styles.decisionDisplayApproved}`}>
                     <div className={styles.decisionDisplayLabel}>อนุมัติแล้ว</div>
                     {selectedDocument.comment && (

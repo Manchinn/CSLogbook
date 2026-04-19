@@ -4,6 +4,7 @@ const path = require('path');
 const internshipService = require('../../services/internshipService');
 const logger = require('../../utils/logger');
 const { logAction } = require('../../utils/auditLog');
+const { CS05_POST_APPROVED_STATUSES } = require('../../services/internship/cs05Statuses');
 
 // root ของ uploads directory (รองรับทั้ง env var และ default)
 const UPLOADS_ROOT = path.resolve(__dirname, '../../', (process.env.UPLOAD_DIR || 'uploads').replace(/\/$/, ''));
@@ -44,10 +45,17 @@ async function loadCS05(documentId) {
 exports.listForHead = async (req, res) => {
   try {
     // รองรับการกรองสถานะผ่าน query เช่น ?status=pending หรือหลายค่าเช่น ?status=approved,acceptance_approved,referral_ready
-    const statusQuery = (req.query.status || 'pending')
+    const rawStatuses = (req.query.status || 'pending')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+
+    // ถ้า filter เป็น "approved" เพียงตัวเดียว → ขยายให้ครอบคลุม post-approval lifecycle ทั้งหมด
+    // (CS05 auto-advances approved → acceptance_approved → ... → completed)
+    const statusQuery =
+      rawStatuses.length === 1 && rawStatuses[0] === 'approved'
+        ? [...CS05_POST_APPROVED_STATUSES]
+        : rawStatuses;
 
     const whereStatus = statusQuery.length > 1 ? { [Op.in]: statusQuery } : statusQuery[0] || 'pending';
 

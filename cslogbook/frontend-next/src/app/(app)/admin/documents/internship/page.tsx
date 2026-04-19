@@ -14,6 +14,7 @@ import type {
   AcceptanceLetterQueueRow,
   AdminInternshipDocument,
 } from "@/lib/services/adminInternshipDocumentsService";
+import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "@/styles/shared/admin-queue.module.css";
@@ -30,12 +31,23 @@ function formatDateTime(value: string | null | undefined) {
   }).format(date);
 }
 
-function statusLabel(status: string, reviewerId: number | null) {
+function isApprovedStatus(status: string, documentName: string | null | undefined): boolean {
+  // CS05 มี 7-state post-approval lifecycle ส่วน ACCEPTANCE_LETTER อื่นๆ ใช้ 3-state ปกติ
+  const name = (documentName || "").toUpperCase();
+  if (name === "CS05") return isCs05PostApproved(status);
+  return status === "approved";
+}
+
+function statusLabel(
+  status: string,
+  reviewerId: number | null,
+  documentName: string | null | undefined,
+) {
   if (status === "pending" && reviewerId) return "รอหัวหน้าภาค";
   if (status === "pending") return "รอตรวจสอบ";
-  if (status === "approved") return "อนุมัติ";
   if (status === "rejected") return "ไม่อนุมัติ";
   if (status === "cancelled") return "ยกเลิกการฝึกงาน";
+  if (isApprovedStatus(status, documentName)) return "อนุมัติ";
   return status || "-";
 }
 
@@ -169,7 +181,7 @@ export default function AdminInternshipDocumentsPage() {
     return {
       total,
       pending: (source?.pending ?? baseRows.filter((row) => row.status === "pending").length) + extraPending,
-      approved: source?.approved ?? baseRows.filter((row) => row.status === "approved").length,
+      approved: source?.approved ?? baseRows.filter((row) => isApprovedStatus(row.status, row.documentName)).length,
       rejected: source?.rejected ?? baseRows.filter((row) => row.status === "rejected").length,
       lateCount,
     };
@@ -517,7 +529,7 @@ export default function AdminInternshipDocumentsPage() {
                         </td>
                         <td className={responsive.hideOnMobile}>{formatDateTime(row.createdAt)}</td>
                         <td>
-                          <span className={`${styles.tag} ${styles.tagStatus}`}>{statusLabel(row.status, row.reviewerId)}</span>
+                          <span className={`${styles.tag} ${styles.tagStatus}`}>{statusLabel(row.status, row.reviewerId, row.documentName)}</span>
                           {lateInfo ? (
                             <span className={`${styles.tag} ${styles.tagLate}`}>
                               {lateLabel(lateInfo.status)}
@@ -653,7 +665,7 @@ export default function AdminInternshipDocumentsPage() {
                     <section className={styles.detailSection}>
                       <h3 className={styles.detailTitle}>ข้อมูลเอกสาร</h3>
                       <p>ชื่อเอกสาร: {documentNameLabel(detail.documentName)}</p>
-                      <p>สถานะ: {statusLabel(detail.status ?? "", selected?.reviewerId ?? null)}</p>
+                      <p>สถานะ: {statusLabel(detail.status ?? "", selected?.reviewerId ?? null, detail.documentName)}</p>
                       <p>วันที่ส่ง: {formatDateTime(detail.submittedAt)}</p>
                       <p>หมายเหตุ: {typeof detail.reviewComment === "string" && detail.reviewComment ? detail.reviewComment : "-"}</p>
                     </section>
