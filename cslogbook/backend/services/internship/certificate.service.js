@@ -13,12 +13,13 @@ const {
 const { sequelize } = require("../../config/database");
 const logger = require("../../utils/logger");
 const DEPARTMENT_INFO = require("../../config/departmentInfo");
-const { formatThaiDate } = require("../../utils/dateUtils");
 const { CS05_POST_APPROVED_STATUSES } = require("./cs05Statuses");
 
 // Thai font paths — bundled in repo → ใช้งานได้ทั้ง dev และ Docker
-const FONT_REGULAR = path.join(__dirname, "../../fonts/Loma.otf");
-const FONT_BOLD = path.join(__dirname, "../../fonts/Loma-Bold.otf");
+// ใช้ THSarabunNew (TTF) เพราะ render Thai combining marks ถูกต้องกว่า Loma OTF กับ PDFKit
+const FONT_REGULAR = path.join(__dirname, "../../fonts/THSarabunNew.ttf");
+const FONT_BOLD = path.join(__dirname, "../../fonts/THSarabunNew-Bold.ttf");
+const LOGO_WATERMARK = path.join(__dirname, "../../assets/cis-logo.png");
 
 /**
  * Service สำหรับจัดการหนังสือรับรองการฝึกงาน
@@ -350,14 +351,14 @@ class InternshipCertificateService {
             }
           : null,
 
-        // ข้อมูลผู้อนุมัติ (จาก config กลาง)
+        // ข้อมูลผู้ลงนาม — หนังสือรับรองการฝึกงานใช้นักวิชาการศึกษา ไม่ใช่หัวหน้าภาค
         approvalInfo: {
-          approvedBy: DEPARTMENT_INFO.departmentHead.name,
-          approverTitle: DEPARTMENT_INFO.departmentHead.title,
+          approvedBy: DEPARTMENT_INFO.officer.name,
+          approverTitle: DEPARTMENT_INFO.officer.title,
           approvedDate: certificateRequest.processedAt,
-          departmentName: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
-          facultyName: "คณะวิทยาศาสตร์ประยุกต์",
-          universityName: "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+          departmentName: DEPARTMENT_INFO.departmentName,
+          facultyName: DEPARTMENT_INFO.facultyName,
+          universityName: DEPARTMENT_INFO.universityName,
         },
 
         // Metadata สำหรับ PDF Generation
@@ -383,152 +384,232 @@ class InternshipCertificateService {
   }
 
   /**
-   * สร้าง PDF หนังสือรับรอง
+   * สร้าง PDF หนังสือรับรองการฝึกงาน — landscape A4
+   * Layout: title → info table → body paragraph → checklist + signature → footer
+   * Watermark: KMUTNB logo กลางหน้า โปร่ง 8%
    */
   async createCertificatePDF(certificateData) {
     const PDFDocument = require("pdfkit");
+    const fs = require("fs");
 
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: "A4",
-          margins: { top: 50, bottom: 50, left: 50, right: 50 },
+          layout: "landscape",
+          margins: { top: 40, bottom: 40, left: 60, right: 60 },
           info: {
             Title: "หนังสือรับรองการฝึกงาน",
             Subject: `หนังสือรับรองการฝึกงาน - ${certificateData.studentInfo.fullName}`,
-            Author: "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ",
+            Author: DEPARTMENT_INFO.departmentName,
           },
         });
 
         const buffers = [];
         doc.on("data", buffers.push.bind(buffers));
-        doc.on("end", () => {
-          const pdfBuffer = Buffer.concat(buffers);
-          resolve(pdfBuffer);
-        });
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        // ลงทะเบียน Thai font
         doc.registerFont("Thai", FONT_REGULAR);
         doc.registerFont("Thai-Bold", FONT_BOLD);
 
-        // หัวข้อเอกสาร
-        doc.font("Thai-Bold").fontSize(20).text("หนังสือรับรองการฝึกงาน", {
+        const pageWidth = doc.page.width;
+        const pageHeight = doc.page.height;
+        const marginX = 60;
+        const contentWidth = pageWidth - marginX * 2;
+
+        // Watermark — CIS KMUTNB logo กลางหน้า โปร่ง
+        if (fs.existsSync(LOGO_WATERMARK)) {
+          const wmWidth = 340;
+          const wmX = (pageWidth - wmWidth) / 2;
+          const wmY = pageHeight / 2 - 130;
+          doc.save();
+          doc.opacity(0.1);
+          doc.image(LOGO_WATERMARK, wmX, wmY, { width: wmWidth });
+          doc.restore();
+        }
+
+        // Title — THSarabunNew มี x-height เล็ก ต้อง +4pt จากขนาดปกติ
+        doc.font("Thai-Bold").fontSize(32).fillColor("#000");
+        doc.text("หนังสือรับรองการฝึกงาน", marginX, 50, {
+          width: contentWidth,
           align: "center",
         });
 
-        doc.moveDown();
+        // Info table — 2 rows
+        const tableX = marginX + 20;
+        const tableWidth = contentWidth - 40;
+        const labelW = 130;
+        const valueW1 = 270;
+        const labelW2 = 130;
+        const valueW2 = tableWidth - labelW - valueW1 - labelW2;
+        const rowH = 40;
+        let tableY = 120;
 
-        // เลขที่เอกสารและวันที่
-        doc.font("Thai").fontSize(12);
+        // Row 1 — ชื่อ / รหัสนักศึกษา
+        this._drawTableCell(doc, tableX, tableY, labelW, rowH, "ชื่อ – นามสกุล", {
+          bold: true,
+          bgLabel: true,
+        });
+        this._drawTableCell(
+          doc,
+          tableX + labelW,
+          tableY,
+          valueW1,
+          rowH,
+          certificateData.studentInfo.fullName,
+          { bold: true, fontSize: 17 }
+        );
+        this._drawTableCell(
+          doc,
+          tableX + labelW + valueW1,
+          tableY,
+          labelW2,
+          rowH,
+          "รหัสนักศึกษา",
+          { bold: true, bgLabel: true }
+        );
+        this._drawTableCell(
+          doc,
+          tableX + labelW + valueW1 + labelW2,
+          tableY,
+          valueW2,
+          rowH,
+          String(certificateData.studentInfo.studentId || ""),
+          { bold: true, fontSize: 17 }
+        );
+
+        // Row 2 — สถานที่ฝึกงาน (colspan 3)
+        tableY += rowH;
+        this._drawTableCell(doc, tableX, tableY, labelW, rowH, "สถานที่ฝึกงาน", {
+          bold: true,
+          bgLabel: true,
+        });
+        this._drawTableCell(
+          doc,
+          tableX + labelW,
+          tableY,
+          tableWidth - labelW,
+          rowH,
+          certificateData.internshipInfo.companyName || "-",
+          { bold: true, fontSize: 17 }
+        );
+
+        // Body paragraph
+        const bodyY = tableY + rowH + 30;
+        doc.font("Thai").fontSize(18).fillColor("#000");
         doc.text(
-          `เลขที่: ${
-            certificateData.documentInfo?.certificateNumber ||
-            "CS-CERT-" + Date.now()
-          }`,
-          { align: "left" }
-        );
-        doc.text(
-          `วันที่: ${formatThaiDate(
-            certificateData.documentInfo?.issueDate || new Date()
-          )}`,
-          { align: "right" }
+          "ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ ขอรับรองว่า นักศึกษาได้ผ่านการฝึกงานภาคสนาม" +
+            "ตามหลักสูตรที่กำหนด (ไม่น้อยกว่า 240 ชั่วโมง) และส่งเอกสารหลังเสร็จสิ้นการฝึกงานเป็นที่เรียบร้อยแล้ว",
+          marginX + 20,
+          bodyY,
+          {
+            width: contentWidth - 40,
+            align: "left",
+            lineGap: 4,
+          }
         );
 
-        doc.moveDown();
+        // Two-column section: checklist (left) + signature (right)
+        const sectionY = bodyY + 75;
 
-        // เนื้อหาหนังสือรับรอง
-        doc.font("Thai").fontSize(14);
-        doc.text("ข้าพเจ้าขอรับรองว่า", { align: "left" });
+        // Checklist box (left)
+        const cbX = marginX + 30;
+        const cbY = sectionY;
+        const cbW = 300;
+        const cbH = 130;
+        doc.lineWidth(1).rect(cbX, cbY, cbW, cbH).stroke();
 
-        doc.moveDown(0.5);
+        doc.font("Thai-Bold").fontSize(17);
+        doc.text("ตรวจสอบเอกสาร", cbX + 15, cbY + 12);
 
-        doc.font("Thai-Bold").text(
-          `นาย/นาง/นางสาว ${certificateData.studentInfo.fullName}`,
-          { align: "left", underline: true }
-        );
-
-        doc.font("Thai-Bold").text(
-          `รหัสนักศึกษา ${certificateData.studentInfo.studentId}`,
-          { align: "left", underline: true }
-        );
-
-        doc.moveDown(0.5);
-
-        doc.font("Thai").text("นักศึกษาสาขาวิชาวิทยาการคอมพิวเตอร์และสารสนเทศ", {
-          align: "left",
+        const items = [
+          "ใบลงเวลาของนักศึกษาฝึกงาน",
+          "แบบประเมินผลการฝึกงาน",
+          "สมุดบันทึกการปฏิบัติงาน",
+        ];
+        doc.font("Thai").fontSize(16);
+        items.forEach((item, idx) => {
+          const itemY = cbY + 44 + idx * 26;
+          this._drawCheckbox(doc, cbX + 20, itemY, true);
+          doc.text(item, cbX + 42, itemY - 3);
         });
 
-        doc.text(`${certificateData.studentInfo.faculty}`, { align: "left" });
-        doc.text(`${certificateData.studentInfo.university}`, { align: "left" });
-
-        doc.moveDown();
-
-        doc.font("Thai-Bold").text(
-          `ได้เข้าฝึกงาน ณ ${certificateData.internshipInfo.companyName}`,
-          { align: "left", underline: true }
-        );
-
-        doc.moveDown(0.5);
-
-        doc.font("Thai").text(
-          `ตั้งแต่วันที่ ${formatThaiDate(
-            certificateData.internshipInfo.startDate
-          )} ` +
-            `ถึงวันที่ ${formatThaiDate(
-              certificateData.internshipInfo.endDate
-            )}`,
-          { align: "left" }
-        );
-
+        // Signature block (right)
+        const sigX = pageWidth - marginX - 280;
+        const sigY = sectionY + 40;
+        doc.font("Thai").fontSize(17);
+        doc.text("ลงชื่อ................................................", sigX, sigY, {
+          width: 280,
+          align: "left",
+        });
         doc.text(
-          `รวม ${certificateData.internshipInfo.approvedDays || certificateData.internshipInfo.totalDays || 0} วัน ` +
-            `เป็นเวลา ${
-              certificateData.internshipInfo.approvedHours || certificateData.internshipInfo.totalHours || 0
-            } ชั่วโมง`,
-          { align: "left" }
+          `(${certificateData.approvalInfo?.approvedBy || DEPARTMENT_INFO.officer.name})`,
+          sigX,
+          sigY + 30,
+          { width: 280, align: "center" }
         );
-
-        doc.moveDown();
-
-        doc.text("โดยมีผลการปฏิบัติงานในระดับที่น่าพอใจ", { align: "left" });
-
-        doc.moveDown();
-
-        doc.text("จึงออกหนังสือรับรองนี้ให้ไว้เป็นหลักฐาน", { align: "left" });
-
-        doc.moveDown(3);
-
-        // ลายเซ็นและตรายาง
         doc.text(
-          "ออกให้ ณ วันที่ " +
-            formatThaiDate(
-              certificateData.documentInfo?.issueDate ||
-              certificateData.approvalInfo?.approvedDate ||
-              new Date()
-            ),
-          { align: "center" }
+          certificateData.approvalInfo?.approverTitle || DEPARTMENT_INFO.officer.title,
+          sigX,
+          sigY + 56,
+          { width: 280, align: "center" }
         );
 
-        doc.moveDown(2);
-
-        doc.font("Thai-Bold").text(
-          certificateData.approvalInfo?.approvedBy ||
-            DEPARTMENT_INFO.departmentHead.name,
-          { align: "center" }
+        // Footer instruction — ติดขอบล่าง (ระวัง bottom margin 40 → ต้องให้ข้อความจบก่อน pageHeight-40)
+        doc.font("Thai-Bold").fontSize(14);
+        doc.text(
+          "**นักศึกษาโปรดนำเอกสารฉบับนี้มายื่นเพื่อประกอบการพิจารณาขออนุมัติจบการศึกษาด้วย**",
+          marginX,
+          pageHeight - 70,
+          { width: contentWidth, align: "left", lineBreak: false }
         );
 
-        doc.font("Thai").text(
-          certificateData.approvalInfo?.approverTitle ||
-            DEPARTMENT_INFO.departmentHead.title,
-          { align: "center" }
-        );
-
-        // ปิด PDF
         doc.end();
       } catch (error) {
         reject(error);
       }
     });
+  }
+
+  /**
+   * วาด cell ของตาราง — border + text กลาง
+   */
+  _drawTableCell(doc, x, y, w, h, text, opts = {}) {
+    const { bold = false, fontSize = 16, bgLabel = false } = opts;
+
+    if (bgLabel) {
+      doc.save();
+      doc.rect(x, y, w, h).fillAndStroke("#f5f5f5", "#000");
+      doc.restore();
+    } else {
+      doc.rect(x, y, w, h).stroke();
+    }
+
+    doc.fillColor("#000");
+    doc.font(bold ? "Thai-Bold" : "Thai").fontSize(fontSize);
+    const textHeight = doc.heightOfString(text || "", { width: w - 10 });
+    const textY = y + (h - textHeight) / 2;
+    doc.text(text || "", x + 5, textY, {
+      width: w - 10,
+      align: "center",
+    });
+  }
+
+  /**
+   * วาด checkbox แบบ manual (สี่เหลี่ยม + เครื่องหมาย ✓)
+   * ใช้ path แทน Unicode ☑ เพราะ Loma font อาจ render ไม่ได้
+   */
+  _drawCheckbox(doc, x, y, checked = false) {
+    const size = 14;
+    doc.lineWidth(1.2).rect(x, y, size, size).stroke();
+    if (checked) {
+      doc
+        .moveTo(x + 3, y + size / 2)
+        .lineTo(x + size / 2 - 1, y + size - 3)
+        .lineTo(x + size - 2, y + 3)
+        .lineWidth(1.8)
+        .stroke();
+    }
   }
 
   /**
