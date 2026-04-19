@@ -36,25 +36,6 @@ import styles from "./phase1.module.css";
 const dateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" });
 const shortDateFormatter = new Intl.DateTimeFormat("th-TH", { dateStyle: "short" });
 
-const PHASE_LABELS: Record<string, string> = {
-  IN_PROGRESS: "กำลังดำเนินการ",
-  THESIS_SUBMISSION: "ส่งเล่มปริญญานิพนธ์",
-  THESIS_EXAM_PENDING: "รอนัดสอบ คพ.03",
-  THESIS_EXAM_SCHEDULED: "นัดสอบ คพ.03 แล้ว",
-  THESIS_FAILED: "ไม่ผ่านการสอบ",
-  COMPLETED: "สำเร็จ",
-  ARCHIVED: "เก็บถาวร",
-  in_progress: "กำลังดำเนินการ",
-  completed: "สำเร็จ",
-  cancelled: "ยกเลิก",
-  archived: "เก็บถาวร",
-};
-
-function labelPhase(value?: string | null): string {
-  if (!value) return "ไม่พบข้อมูล";
-  return PHASE_LABELS[value] ?? value;
-}
-
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
@@ -441,11 +422,6 @@ export default function ProjectContent() {
   const cardSummaryPhase2 = useMemo(() => {
     const cards: Array<{ label: string; value: React.ReactNode; hint?: React.ReactNode }> = [
       {
-        label: "สถานะ Phase",
-        value: labelPhase(workflow?.currentPhase ?? project?.status),
-        hint: workflow?.isBlocked ? `ถูกบล็อก: ${workflow.blockReason || ""}` : "พร้อมดำเนินการ",
-      },
-      {
         label: "สถานะทดสอบระบบ",
         value: systemTestStatusLabel,
         hint: systemTestSummary?.testDueDate
@@ -473,7 +449,7 @@ export default function ProjectContent() {
     }
 
     return cards;
-  }, [workflow, project?.status, systemTestStatusLabel, systemTestSummary?.testDueDate, thesisStatusLabel, systemTestReady]);
+  }, [workflow, systemTestStatusLabel, systemTestSummary?.testDueDate, thesisStatusLabel, systemTestReady]);
 
   // ── Meeting logbook Phase 2 ────────────────────────────────────────────────
   const meetingMetricsP2 = projectDetailData?.meetingMetricsPhase2 ?? null;
