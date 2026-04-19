@@ -52,3 +52,6 @@ Thumbs.db
 
 # GSD planning (generated)
 .planning/
+
+# Ephemeral demo artifacts (prod account lists, demo SQL) — keep local only
+/docs/demo-artifacts-*/
