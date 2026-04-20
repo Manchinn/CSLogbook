@@ -1,5 +1,32 @@
 # CLAUDE.md — CSLogbook
 
+## 🚨 Claude Workspace Rules (อ่านก่อนทุก session)
+
+**ไฟล์ที่ Claude สร้างใหม่ต้องแยกประเภทให้ชัด — ห้าม pollute git repo**
+
+### ✅ สร้างใน repo ได้ (track เข้า git)
+- Source code: `cslogbook/backend/**`, `cslogbook/frontend-next/**`
+- Project docs ที่ user ขอชัดเจน: `README.md`, `DEPLOY.md`, `CLAUDE.md`
+- Migrations, seeders, tests
+- Config files (ที่ไม่มี secret)
+
+### ❌ ต้องสร้างนอก repo ที่ `C:/Users/chinn/CSLog-Workspace/` (หรือ `~/CSLog-Workspace/`)
+
+| ประเภท | Path | ตัวอย่าง |
+|---|---|---|
+| Handover / setup guides | `~/CSLog-Workspace/handover/` | `KhaNiwat-Setup-Guide.md`, `Department-Handover-Checklist.md` |
+| Drafts / brainstorm | `~/CSLog-Workspace/drafts/` | architecture ideas, option comparisons |
+| Learning / postmortem | `~/CSLog-Workspace/learnings/` | bug analysis, lessons learned |
+| Rehearsal / presentation | `~/CSLog-Workspace/rehearsal/` | demo scripts, speaker notes |
+| Personal / thesis | `~/CSLog-Personal/` | ส่วนตัว ห้ามแม้แต่ user อื่นในทีมเห็น |
+
+### กฎเพิ่มเติม
+- **ก่อนสร้างไฟล์ใหม่ใน repo** — ถาม user ก่อนเสมอ เว้นแต่เป็น code change ที่ scope ชัด
+- **ห้าม write ใน paths:** `cslogbook-architecture.*`, `rehearsal/`, `docs/thesis/`, `docs/learnings/`, `Canva_*`, `*-Setup-Guide.md`, `*-Checklist.md`
+- ถ้า `~/CSLog-Workspace/` ไม่มี — สร้างได้เลย ไม่ต้องถาม
+
+---
+
 ## Project Overview
 
 **CSLogbook** — ระบบจัดการ workflow ทางวิชาการของภาควิชาวิทยาการคอมพิวเตอร์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ (KMUTNB) ครอบคลุม 3 tracks: ฝึกงาน (Internship), โครงงานพิเศษ (Special Project), ปริญญานิพนธ์ (Thesis)

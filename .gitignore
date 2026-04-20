@@ -25,3 +25,30 @@ docs/knowledge-source-sync/
 # Temporary demo/verify scripts
 verify-demo-data.sql
 verify-demo.sh
+
+# === Claude-generated artifacts ที่ควรอยู่นอก repo ===
+# (Claude รวม guides, checklists, rehearsal notes, postmortem — ให้ไปที่ ~/CSLog-Workspace/)
+/rehearsal/
+/docs/thesis/
+/docs/learnings/
+/cslogbook/docs/learnings/
+*.excalidraw
+/cslogbook-architecture.html
+/cslogbook-architecture.excalidraw
+/presentation-script.md
+/Canva_Edit_Checklist.md
+/*-Setup-Guide.md
+/*-Checklist.md
+/*-Guide.md
+!/README.md
+!/DEPLOY.md
+!/CLAUDE.md
+
+# === Demo / Preview artifacts ===
+**/preview.pdf
+**/preview-*.pdf
+
+# === Sensitive personal files (Thai filenames) ===
+ใบรับรอง*
+หนังสือรับรอง*
+*.ส่วนตัว.*
