@@ -18,6 +18,7 @@ import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "@/styles/shared/admin-queue.module.css";
+import SignerSelectField from "@/components/admin/SignerSelectField";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -93,6 +94,7 @@ export default function AdminInternshipDocumentsPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewIds, setReviewIds] = useState<number[]>([]);
   const [officialNumbers, setOfficialNumbers] = useState<Record<number, string>>({});
+  const [signatoryIds, setSignatoryIds] = useState<Record<number, string>>({});
 
   const filters = useMemo(
     () => ({
@@ -224,9 +226,14 @@ export default function AdminInternshipDocumentsPage() {
 
   const handleBulkReview = () => {
     if (!selectedIds.length) return;
-    const initial: Record<number, string> = {};
-    selectedIds.forEach((id) => { initial[id] = ""; });
-    setOfficialNumbers(initial);
+    const initialNumbers: Record<number, string> = {};
+    const initialSignatories: Record<number, string> = {};
+    selectedIds.forEach((id) => { 
+      initialNumbers[id] = ""; 
+      initialSignatories[id] = "";
+    });
+    setOfficialNumbers(initialNumbers);
+    setSignatoryIds(initialSignatories);
     setReviewIds(selectedIds);
     setReviewModalOpen(true);
   };
@@ -274,6 +281,7 @@ export default function AdminInternshipDocumentsPage() {
 
   const handleSingleReview = (document: AdminInternshipDocument) => {
     setOfficialNumbers({ [document.id]: "" });
+    setSignatoryIds({ [document.id]: "" });
     setReviewIds([document.id]);
     setReviewModalOpen(true);
   };
@@ -293,6 +301,7 @@ export default function AdminInternshipDocumentsPage() {
             documentId,
             documentName: row?.documentName,
             officialNumber: officialNumbers[documentId],
+            signatoryId: signatoryIds[documentId],
           });
         }),
       );
@@ -304,6 +313,7 @@ export default function AdminInternshipDocumentsPage() {
       setReviewModalOpen(false);
       setReviewIds([]);
       setOfficialNumbers({});
+      setSignatoryIds({});
 
       if (failed > 0) {
         setFeedback({ tone: "warning", message: `สำเร็จ ${succeeded} รายการ, ล้มเหลว ${failed} รายการ` });

@@ -246,6 +246,7 @@ function buildTeacherMenu(options: BuildOptions): MenuNode[] {
           children: [
             menuLink("curriculum", "หลักสูตร", "/admin/settings/curriculum"),
             menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
+            menuLink("signatories-settings", "จัดการผู้ลงนาม", "/admin/settings/signatories"),
             menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
           ],
         },
@@ -318,6 +319,7 @@ function buildAdminMenu(): MenuNode[] {
       children: [
         menuLink("curriculum", "หลักสูตรการศึกษา", "/admin/settings/curriculum"),
         menuLink("academic", "ปีการศึกษา/ภาคเรียน", "/admin/settings/academic"),
+        menuLink("signatories-settings", "จัดการผู้ลงนาม", "/admin/settings/signatories"),
         menuLink("notification", "การแจ้งเตือน", "/admin/settings/notification-settings"),
             menuLink("settings-new", "ตั้งค่า", "/settings", featureFlags.enableSettingsPage),
       ],
