@@ -35,6 +35,8 @@ verify-demo.sh
 *.excalidraw
 /cslogbook-architecture.html
 /cslogbook-architecture.excalidraw
+/CSLogbook_Thesis_Explainer.html
+/CSLogbook_Committee_Overview.html
 /presentation-script.md
 /Canva_Edit_Checklist.md
 /*-Setup-Guide.md
@@ -51,4 +53,6 @@ verify-demo.sh
 # === Sensitive personal files (Thai filenames) ===
 ใบรับรอง*
 หนังสือรับรอง*
+หนังสือขอความอนุเคราะห์*
+หนังสือส่งตัว*
 *.ส่วนตัว.*
