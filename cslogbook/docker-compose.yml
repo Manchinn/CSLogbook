@@ -1,0 +1,65 @@
+# CSLogbook — Local Development Environment
+# -------------------------------------------
+# รัน **เฉพาะ MySQL + Adminer** ใน Docker
+# Backend / Frontend ให้รันแบบ native บน host ด้วย `npm run dev` (เร็วกว่ามาก)
+#
+# Quick start:
+#   cp .env.docker.example .env.docker
+#   docker compose --env-file .env.docker up -d
+#
+# (ใช้ .env.docker ไม่ใช่ .env เพื่อเลี่ยงชนกับไฟล์ .env ที่มีค่า production)
+#
+# Access:
+#   MySQL     → localhost:3307   (user: cslogbook / pass: devpass — ดู .env.docker)
+#   Adminer   → http://localhost:8080
+#
+# Reset database ทั้งหมด:
+#   docker compose --env-file .env.docker down -v
+#   docker compose --env-file .env.docker up -d
+#
+# NOTE: port 3307 (ไม่ใช่ 3306) เพื่อเลี่ยง conflict กับ MySQL80 บน Windows
+#       ถ้าไม่มี MySQL80 บนเครื่อง เปลี่ยน DB_PORT_HOST=3306 ใน .env.docker ได้
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cslogbook-mysql-dev
+    restart: unless-stopped
+    command: >-
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_NAME:-cslogbook_prod}
+      MYSQL_USER: ${DB_USER:-cslogbook}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-devpass}
+      TZ: Asia/Bangkok
+    ports:
+      - "${DB_PORT_HOST:-3307}:3306"
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  adminer:
+    image: adminer:4
+    container_name: cslogbook-adminer
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: pepa-linha
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+
+volumes:
+  mysql-dev-data:
+    name: cslogbook-mysql-dev-data
