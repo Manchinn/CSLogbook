@@ -77,6 +77,20 @@ exports.validateSubmitCS05WithTranscript = (req, res, next) => {
   }
 
   // Validate form data (เหมือน submitCS05)
+  // Frontend ส่งข้อมูลเป็น FormData โดย append JSON string ใน field "formData"
+  // ต้อง parse ก่อน validate
+  let bodyToValidate = req.body;
+  if (req.body.formData && typeof req.body.formData === 'string') {
+    try {
+      bodyToValidate = JSON.parse(req.body.formData);
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: 'ข้อมูลฟอร์มไม่ถูกต้อง (JSON parse error)'
+      });
+    }
+  }
+
   const schema = Joi.object({
     companyName: Joi.string().min(2).max(255).required().messages({
       'string.min': 'ชื่อบริษัทต้องมีอย่างน้อย 2 ตัวอักษร',
