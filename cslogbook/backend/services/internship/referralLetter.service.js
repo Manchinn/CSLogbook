@@ -232,7 +232,7 @@ class InternshipReferralLetterService {
       // 5. เตรียมข้อมูล
       const yearInfo = calculateStudentYear(student.studentCode);
 
-      // ดึงข้อมูลผู้ลงนาม (Snapshot > Active PRIMARY > Config Default)
+      // ดึงข้อมูลผู้ลงนาม (Snapshot > Active PRIMARY > Config Default - Empty)
       // ใช้ข้อมูลผู้ลงนามจาก Acceptance Letter ที่ถูก Snapshot ไว้ตอนอนุมัติ หรือดึงใหม่จากฐานข้อมูล
       const { Signatory } = require("../../models");
       let signatoryInfo = {
@@ -241,22 +241,30 @@ class InternshipReferralLetterService {
         signatureUrl: acceptanceLetter.signatorySignatureSnapshot
       };
 
-      // หากไม่มี Snapshot ให้ดึงจากฐานข้อมูล (PRIMARY)
+      // หากไม่มี Snapshot ให้ดึงจากฐานข้อมูล (PRIMARY > ANY ACTIVE)
       if (!signatoryInfo.name) {
-        const activePrimary = await Signatory.findOne({
+        let activeSignatory = await Signatory.findOne({
           where: { role: 'PRIMARY', isActive: true }
         });
-        if (activePrimary) {
+
+        // หากไม่มี PRIMARY ให้หาใครก็ได้ที่ Active
+        if (!activeSignatory) {
+          activeSignatory = await Signatory.findOne({
+            where: { isActive: true }
+          });
+        }
+
+        if (activeSignatory) {
           signatoryInfo = {
-            name: activePrimary.name,
-            title: activePrimary.title,
-            signatureUrl: activePrimary.signatureUrl
+            name: activeSignatory.name,
+            title: activeSignatory.title,
+            signatureUrl: activeSignatory.signatureUrl
           };
         } else {
-          // Fallback สุดท้ายไปที่ DEPARTMENT_INFO
+          // หากไม่มีทั้ง Snapshot และ Active ใดๆ เลย ให้ปล่อยว่าง
           signatoryInfo = {
-            name: DEPARTMENT_INFO.departmentHead.name,
-            title: DEPARTMENT_INFO.departmentHead.title,
+            name: "",
+            title: "",
             signatureUrl: null
           };
         }
@@ -411,7 +419,7 @@ class InternshipReferralLetterService {
       pdf.text("(โดยแบบฟอร์มทั้ง 3 ข้อ นักศึกษาจะนำไปให้หน่วยงานของท่านด้วยตนเอง)", ML + indent, y, { width: contentWidth - indent });
       y = pdf.y;
 
-      // ===== ลายเซ็น (จัดวางแบบคลาสสิก - แยกส่วนชัดเจน) =====
+      // ===== ลายเซ็น (จัดวางกึ่งกลางตามตัวอย่าง) =====
       y += lineH * 1.5;
       const sigAreaWidth = contentWidth;
       const sigAreaX = ML;
@@ -419,18 +427,25 @@ class InternshipReferralLetterService {
       pdf.font("Thai").fontSize(sz);
       pdf.text("ขอแสดงความนับถือ", sigAreaX, y, { width: sigAreaWidth, align: "center" });
       
-      // พื้นที่สำหรับลายเซ็น
-      const sigSpace = 70; 
-      const sigY = y + 15;
+      // พื้นที่สำหรับลายเซ็น (จัดวางในกล่องมาตรฐานเพื่อให้ทุกรูปมีขนาดสม่ำเสมอ)
+      const sigSpace = 90; 
+      const boxW = 180;
+      const boxH = 60;
+      const sigY = y + (sigSpace - boxH) / 2; // พื้นที่ว่างเฉลี่ยบน-ล่างให้เท่ากันพอดี
 
       const fs = require("fs");
       if (data.signatory.signatureUrl) {
         try {
           const sigPath = path.join(__dirname, "../../", data.signatory.signatureUrl);
           if (fs.existsSync(sigPath)) {
-            const sigW = 140; 
-            const sigX = sigAreaX + (sigAreaWidth - sigW) / 2;
-            pdf.image(sigPath, sigX, sigY, { width: sigW });
+            const sigX = sigAreaX + (sigAreaWidth - boxW) / 2;
+            
+            // ใช้ fit: [boxW, boxH] เพื่อให้รูปอยู่ภายในกรอบที่กำหนดโดยไม่เสียสัดส่วน
+            pdf.image(sigPath, sigX, sigY, { 
+              fit: [boxW, boxH], 
+              align: 'center', 
+              valign: 'center' 
+            });
           }
         } catch (sigErr) {
           logger.warn("Could not load signatory signature image:", sigErr.message);
