@@ -31,6 +31,14 @@ const CSV_UPLOAD_CONFIG = {
     ALLOWED_EXTENSIONS: ['.csv', '.xlsx']
 };
 
+// 🆕 Configuration for signatures
+const SIGNATURE_UPLOAD_CONFIG = {
+    PATH: path.join(UPLOAD_CONFIG.BASE_PATH, 'signatures'),
+    MAX_FILE_SIZE: 500 * 1024, // 500KB
+    ALLOWED_TYPES: ['image/png', 'image/jpeg'],
+    ALLOWED_EXTENSIONS: ['.png', '.jpg', '.jpeg']
+};
+
 // สร้างโฟลเดอร์อัตโนมัติ
 const ensureDirectoryExists = (dirPath) => {
     if (!fs.existsSync(dirPath)) {
@@ -112,6 +120,23 @@ const csvStorage = multer.diskStorage({
     }
 });
 
+// 🆕 Storage specifically for signatures
+const signatureStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        try {
+            ensureDirectoryExists(SIGNATURE_UPLOAD_CONFIG.PATH);
+            cb(null, SIGNATURE_UPLOAD_CONFIG.PATH);
+        } catch (error) {
+            cb(error);
+        }
+    },
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const fileExt = path.extname(file.originalname);
+        cb(null, `signature-${timestamp}${fileExt}`);
+    }
+});
+
 // สร้าง multer instance - ปรับปรุง fileFilter
 const upload = multer({
     storage,
@@ -155,6 +180,22 @@ const csvUpload = multer({
         if (!isAllowedMimeType && !isAllowedExtension) {
             const error = new Error('รองรับเฉพาะไฟล์ CSV หรือ Excel (.xlsx) เท่านั้น');
             error.code = 'INVALID_CSV_TYPE';
+            return cb(error, false);
+        }
+        cb(null, true);
+    }
+});
+
+// 🆕 ตัวอัปโหลด Signature
+const signatureUpload = multer({
+    storage: signatureStorage,
+    limits: {
+        fileSize: SIGNATURE_UPLOAD_CONFIG.MAX_FILE_SIZE
+    },
+    fileFilter: (req, file, cb) => {
+        if (!SIGNATURE_UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.mimetype)) {
+            const error = new Error('รองรับเฉพาะไฟล์รูปภาพ (PNG, JPG) เท่านั้น');
+            error.code = 'INVALID_SIGNATURE_TYPE';
             return cb(error, false);
         }
         cb(null, true);
@@ -225,8 +266,10 @@ const generateFilePath = (documentType, category, filename) => {
 module.exports = {
     upload,
     csvUpload,
+    signatureUpload,
     UPLOAD_CONFIG,
     CSV_UPLOAD_CONFIG,
+    SIGNATURE_UPLOAD_CONFIG,
     ensureDirectoryExists,
     deleteOldFile,
     validateFileType,
