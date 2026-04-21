@@ -146,8 +146,8 @@ class InternshipReferralLetterService {
           shouldMapTo: isDownloaded
             ? "downloaded"
             : isReady
-            ? "ready"
-            : "not_ready",
+              ? "ready"
+              : "not_ready",
           requiresSupervisorInfo: false,
           supervisorInfoOptional: true,
           cs05AlwaysApproved: true,
@@ -199,6 +199,10 @@ class InternshipReferralLetterService {
           category: "acceptance",
           status: "approved",
         },
+        attributes: [
+          "documentId", "officialNumber", "status", "userId", "documentName",
+          "signatoryId", "signatoryNameSnapshot", "signatoryTitleSnapshot", "signatorySignatureSnapshot"
+        ],
       });
 
       if (!acceptanceLetter) {
@@ -227,6 +231,37 @@ class InternshipReferralLetterService {
 
       // 5. เตรียมข้อมูล
       const yearInfo = calculateStudentYear(student.studentCode);
+
+      // ดึงข้อมูลผู้ลงนาม (Snapshot > Active PRIMARY > Config Default)
+      // ใช้ข้อมูลผู้ลงนามจาก Acceptance Letter ที่ถูก Snapshot ไว้ตอนอนุมัติ หรือดึงใหม่จากฐานข้อมูล
+      const { Signatory } = require("../../models");
+      let signatoryInfo = {
+        name: acceptanceLetter.signatoryNameSnapshot,
+        title: acceptanceLetter.signatoryTitleSnapshot,
+        signatureUrl: acceptanceLetter.signatorySignatureSnapshot
+      };
+
+      // หากไม่มี Snapshot ให้ดึงจากฐานข้อมูล (PRIMARY)
+      if (!signatoryInfo.name) {
+        const activePrimary = await Signatory.findOne({
+          where: { role: 'PRIMARY', isActive: true }
+        });
+        if (activePrimary) {
+          signatoryInfo = {
+            name: activePrimary.name,
+            title: activePrimary.title,
+            signatureUrl: activePrimary.signatureUrl
+          };
+        } else {
+          // Fallback สุดท้ายไปที่ DEPARTMENT_INFO
+          signatoryInfo = {
+            name: DEPARTMENT_INFO.departmentHead.name,
+            title: DEPARTMENT_INFO.departmentHead.title,
+            signatureUrl: null
+          };
+        }
+      }
+
       const data = {
         docNumber: acceptanceLetter.officialNumber || `${documentId}`,
         docDate: new Date(),
@@ -239,6 +274,7 @@ class InternshipReferralLetterService {
         contactPosition: internshipDoc.contactPersonPosition,
         startDate: internshipDoc.startDate,
         endDate: internshipDoc.endDate,
+        signatory: signatoryInfo
       };
 
       // ===== 6. สร้าง PDF ด้วย pdfkit =====
@@ -375,21 +411,45 @@ class InternshipReferralLetterService {
       pdf.text("(โดยแบบฟอร์มทั้ง 3 ข้อ นักศึกษาจะนำไปให้หน่วยงานของท่านด้วยตนเอง)", ML + indent, y, { width: contentWidth - indent });
       y = pdf.y;
 
-      // ===== ลายเซ็น =====
+      // ===== ลายเซ็น (จัดวางแบบคลาสสิก - แยกส่วนชัดเจน) =====
       y += lineH * 1.5;
-      textCenter("ขอแสดงความนับถือ", y);
+      const sigAreaWidth = contentWidth;
+      const sigAreaX = ML;
 
-      y += lineH * 2.5;
-      pdf.font("Thai-Bold").fontSize(sz);
-      textCenter(
-        `(${DEPARTMENT_INFO.departmentHead.name})`,
-        y
-      );
-      y += lineH;
       pdf.font("Thai").fontSize(sz);
-      textCenter(DEPARTMENT_INFO.departmentHead.title, y);
+      pdf.text("ขอแสดงความนับถือ", sigAreaX, y, { width: sigAreaWidth, align: "center" });
+      
+      // พื้นที่สำหรับลายเซ็น
+      const sigSpace = 70; 
+      const sigY = y + 15;
+
+      const fs = require("fs");
+      if (data.signatory.signatureUrl) {
+        try {
+          const sigPath = path.join(__dirname, "../../", data.signatory.signatureUrl);
+          if (fs.existsSync(sigPath)) {
+            const sigW = 140; 
+            const sigX = sigAreaX + (sigAreaWidth - sigW) / 2;
+            pdf.image(sigPath, sigX, sigY, { width: sigW });
+          }
+        } catch (sigErr) {
+          logger.warn("Could not load signatory signature image:", sigErr.message);
+        }
+      }
+
+      // ชื่อ (อยู่ใต้พื้นที่ลายเซ็น)
+      y += sigSpace; 
+      pdf.font("Thai-Bold").fontSize(sz);
+      pdf.text(`(${data.signatory.name})`, sigAreaX, y, { width: sigAreaWidth, align: "center" });
+      
+      // ตำแหน่ง / คณะ / มหาวิทยาลัย
+      y += lineH + 2;
+      pdf.font("Thai").fontSize(sz);
+      pdf.text(data.signatory.title, sigAreaX, y, { width: sigAreaWidth, align: "center" });
       y += lineH;
-      textCenter(`${DEPARTMENT_INFO.facultyName} ${DEPARTMENT_INFO.universityName}`, y);
+      pdf.text(DEPARTMENT_INFO.facultyName, sigAreaX, y, { width: sigAreaWidth, align: "center" });
+      y += lineH;
+      pdf.text(DEPARTMENT_INFO.universityName, sigAreaX, y, { width: sigAreaWidth, align: "center" });
 
       // ===== Footer =====
       let fy = 750;
