@@ -171,6 +171,10 @@ router.post('/agent-status/:agentName/restart', adminAuth, agentStatusController
 const monitoringRoutes = require('./admin/monitoringRoutes');
 router.use('/monitoring', adminAuth, monitoringRoutes);
 
+// === Signatory Management Routes ===
+const signatoryRoutes = require('./admin/signatoryRoutes');
+router.use('/signatories', adminAuth, signatoryRoutes);
+
 // === Project Management Routes ===
 // ค้นหานักศึกษา
 router.get('/projects/student/:studentCode', adminAuth, projectManagementController.findStudentByCode);

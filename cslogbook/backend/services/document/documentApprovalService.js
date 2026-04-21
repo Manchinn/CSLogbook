@@ -6,6 +6,7 @@ const {
     Notification,
     ProjectDocument,
     ProjectExamResult,
+    Signatory,
 } = require('../../models');
 const logger = require('../../utils/logger');
 const { logAction } = require('../../utils/auditLog');
@@ -24,7 +25,7 @@ const FINAL_DOCUMENT_ACCEPTED_STATUSES = new Set([
 /**
  * อนุมัติเอกสาร
  */
-async function approveDocument(documentId, reviewerId) {
+async function approveDocument(documentId, reviewerId, signatoryId = null) {
     try {
         const document = await Document.findByPk(documentId, {
             include: [{
@@ -54,7 +55,8 @@ async function approveDocument(documentId, reviewerId) {
             await document.update({
                 status: 'pending',
                 reviewerId: reviewerId,
-                reviewDate: new Date()
+                reviewDate: new Date(),
+                signatoryId: signatoryId // บันทึกผู้ที่จะลงนามไว้ก่อน
             });
 
             // บันทึก Log การตรวจสอบ
@@ -75,11 +77,26 @@ async function approveDocument(documentId, reviewerId) {
             return { message: 'ตรวจสอบเอกสารแล้ว และรอหัวหน้าภาคอนุมัติ' };
         }
 
-        // อัปเดตสถานะเอกสาร (ทั่วไป)
+        // ดึงข้อมูล Signatory ถ้ามีการส่งมา (Snapshot)
+        let snapshotData = {};
+        if (signatoryId) {
+            const signatory = await Signatory.findByPk(signatoryId);
+            if (signatory) {
+                snapshotData = {
+                    signatoryId: signatory.id,
+                    signatoryNameSnapshot: signatory.name,
+                    signatoryTitleSnapshot: signatory.title,
+                    signatorySignatureSnapshot: signatory.signatureUrl
+                };
+            }
+        }
+
+        // อัปเดตสถานะเอกสาร (ทั่วไป) พร้อม snapshot
         await document.update({
             status: 'approved',
             reviewerId: reviewerId,
-            reviewDate: new Date()
+            reviewDate: new Date(),
+            ...snapshotData
         });
 
         // Update workflow สำหรับ ACCEPTANCE_LETTER
