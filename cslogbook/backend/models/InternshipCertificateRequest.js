@@ -82,6 +82,30 @@ module.exports = (sequelize) => {
       allowNull: true,
       comment: 'หมายเหตุเพิ่มเติม',
     },
+    signatoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'signatory_id',
+      comment: 'รหัสผู้ลงนาม',
+    },
+    signatoryNameSnapshot: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: 'signatory_name_snapshot',
+      comment: 'ชื่อผู้ลงนาม ณ เวลาที่อนุมัติ',
+    },
+    signatoryTitleSnapshot: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: 'signatory_title_snapshot',
+      comment: 'ตำแหน่งผู้ลงนาม ณ เวลาที่อนุมัติ',
+    },
+    signatorySignatureSnapshot: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'signatory_signature_snapshot',
+      comment: 'URL ลายเซ็น ณ เวลาที่อนุมัติ',
+    },
   }, {
     tableName: 'internship_certificate_requests',
     timestamps: true,
@@ -105,6 +129,11 @@ module.exports = (sequelize) => {
       foreignKey: 'internshipId',
       targetKey: 'internshipId',
       as: 'internship',
+    });
+
+    InternshipCertificateRequest.belongsTo(models.Signatory, {
+      foreignKey: 'signatoryId',
+      as: 'signatory',
     });
   };
 

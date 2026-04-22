@@ -123,7 +123,7 @@ exports.listForHead = async (req, res) => {
 exports.reviewByStaff = async (req, res) => {
   try {
     const { id } = req.params; // documentId
-    const { comment, officialNumber } = req.body || {};
+    const { comment, officialNumber, signatoryId } = req.body || {};
 
     // Validate officialNumber
     if (!officialNumber || !/^\d{1,3}$/.test(String(officialNumber))) {
@@ -150,7 +150,8 @@ exports.reviewByStaff = async (req, res) => {
       reviewerId: req.user.userId,
       reviewDate: new Date(),
       reviewComment: comment || null,
-      officialNumber: officialNumber
+      officialNumber: officialNumber,
+      signatoryId: signatoryId || null
     });
 
     await DocumentLog.create({

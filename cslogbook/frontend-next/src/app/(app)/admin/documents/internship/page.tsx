@@ -1,5 +1,5 @@
 "use client";
-
+// เพิ่ม Component ตัวเลือกผู้ลงนามเข้าไปในหน้าตรวจสอบเอกสาร
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
@@ -18,6 +18,7 @@ import { isCs05PostApproved } from "@/constants/cs05Statuses";
 import btn from "@/styles/shared/buttons.module.css";
 import responsive from "@/styles/shared/responsive.module.css";
 import styles from "@/styles/shared/admin-queue.module.css";
+import SignerSelectField from "@/components/admin/SignerSelectField";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -93,6 +94,7 @@ export default function AdminInternshipDocumentsPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewIds, setReviewIds] = useState<number[]>([]);
   const [officialNumbers, setOfficialNumbers] = useState<Record<number, string>>({});
+  const [signatoryIds, setSignatoryIds] = useState<Record<number, string>>({});
 
   const filters = useMemo(
     () => ({
@@ -224,9 +226,14 @@ export default function AdminInternshipDocumentsPage() {
 
   const handleBulkReview = () => {
     if (!selectedIds.length) return;
-    const initial: Record<number, string> = {};
-    selectedIds.forEach((id) => { initial[id] = ""; });
-    setOfficialNumbers(initial);
+    const initialNumbers: Record<number, string> = {};
+    const initialSignatories: Record<number, string> = {};
+    selectedIds.forEach((id) => { 
+      initialNumbers[id] = ""; 
+      initialSignatories[id] = "";
+    });
+    setOfficialNumbers(initialNumbers);
+    setSignatoryIds(initialSignatories);
     setReviewIds(selectedIds);
     setReviewModalOpen(true);
   };
@@ -274,14 +281,23 @@ export default function AdminInternshipDocumentsPage() {
 
   const handleSingleReview = (document: AdminInternshipDocument) => {
     setOfficialNumbers({ [document.id]: "" });
+    setSignatoryIds({ [document.id]: "" });
     setReviewIds([document.id]);
     setReviewModalOpen(true);
   };
 
   const submitReview = async () => {
-    const allValid = reviewIds.every((id) => /^\d{1,3}$/.test(officialNumbers[id] ?? ""));
-    if (!allValid) {
+    // ตรวจสอบทั้งเลขที่เอกสาร และการเลือกผู้ลงนาม
+    const hasOfficialNumbers = reviewIds.every((id) => /^\d{1,3}$/.test(officialNumbers[id] ?? ""));
+    const hasSignatories = reviewIds.every((id) => signatoryIds[id] && signatoryIds[id] !== "");
+
+    if (!hasOfficialNumbers) {
       setFeedback({ tone: "warning", message: "กรุณากรอกเลขที่เอกสาร (ตัวเลข 1-3 หลัก) ให้ครบทุกรายการ" });
+      return;
+    }
+
+    if (!hasSignatories) {
+      setFeedback({ tone: "warning", message: "กรุณาเลือกผู้ลงนามให้ครบทุกรายการ" });
       return;
     }
 
@@ -293,6 +309,7 @@ export default function AdminInternshipDocumentsPage() {
             documentId,
             documentName: row?.documentName,
             officialNumber: officialNumbers[documentId],
+            signatoryId: signatoryIds[documentId],
           });
         }),
       );
@@ -304,6 +321,7 @@ export default function AdminInternshipDocumentsPage() {
       setReviewModalOpen(false);
       setReviewIds([]);
       setOfficialNumbers({});
+      setSignatoryIds({});
 
       if (failed > 0) {
         setFeedback({ tone: "warning", message: `สำเร็จ ${succeeded} รายการ, ล้มเหลว ${failed} รายการ` });
@@ -799,15 +817,26 @@ export default function AdminInternshipDocumentsPage() {
                       <span className={styles.reviewItemLabel}>
                         {row?.studentName || "-"} ({documentNameLabel(row?.documentName)})
                       </span>
-                      <input
-                        className={`${styles.input} ${styles.reviewItemInput}`}
-                        placeholder="เลข 3 หลัก"
-                        maxLength={3}
-                        value={officialNumbers[id] ?? ""}
-                        onChange={(e) =>
-                          setOfficialNumbers((prev) => ({ ...prev, [id]: e.target.value.replace(/\D/g, "").slice(0, 3) }))
-                        }
-                      />
+                      <div className={styles.reviewItemFields}>
+                        <div className={styles.reviewItemInputGroup}>
+                          <label className={styles.fieldLabel}>เลขที่ อว.</label>
+                          <input
+                            className={`${styles.input} ${styles.reviewItemInput}`}
+                            placeholder="เลข 3 หลัก"
+                            maxLength={3}
+                            value={officialNumbers[id] ?? ""}
+                            onChange={(e) =>
+                              setOfficialNumbers((prev) => ({ ...prev, [id]: e.target.value.replace(/\D/g, "").slice(0, 3) }))
+                            }
+                          />
+                        </div>
+                        <div className={styles.reviewItemSigner}>
+                          <SignerSelectField
+                            value={signatoryIds[id] || ""}
+                            onChange={(val) => setSignatoryIds((prev) => ({ ...prev, [id]: val }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

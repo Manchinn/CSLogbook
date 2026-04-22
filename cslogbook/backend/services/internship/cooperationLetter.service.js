@@ -6,6 +6,7 @@ const {
   InternshipDocument,
   Student,
   User,
+  Signatory,
 } = require("../../models");
 const logger = require("../../utils/logger");
 const { sanitizeFilename } = require("../../utils/sanitizeFilename");
@@ -117,6 +118,35 @@ class InternshipCooperationLetterService {
         startDate: internshipDoc.startDate,
         endDate: internshipDoc.endDate,
       };
+
+      // --- ดึงข้อมูลผู้ลงนาม (Priority: Snapshot > PRIMARY > ANY ACTIVE) ---
+      let signatoryInfo = { 
+        name: cs05Document.signatoryNameSnapshot || "", 
+        title: cs05Document.signatoryTitleSnapshot || "", 
+        signatureUrl: cs05Document.signatorySignatureSnapshot || null 
+      };
+
+      // หากไม่มี Snapshot (เอกสารเก่า) ให้ไปหาจากฐานข้อมูล Signatory
+      if (!signatoryInfo.name) {
+        let activeSignatory = await Signatory.findOne({
+          where: { role: 'PRIMARY', isActive: true }
+        });
+
+        if (!activeSignatory) {
+          activeSignatory = await Signatory.findOne({
+            where: { isActive: true }
+          });
+        }
+
+        if (activeSignatory) {
+          signatoryInfo = {
+            name: activeSignatory.name,
+            title: activeSignatory.title,
+            signatureUrl: activeSignatory.signatureUrl
+          };
+        }
+      }
+      data.signatory = signatoryInfo;
 
       // ===== 4. สร้าง PDF ด้วย pdfkit (layout ตรงกับ referralLetter.service.js) =====
       const PDFDocument = require("pdfkit");
@@ -260,15 +290,38 @@ class InternshipCooperationLetterService {
       y += lineH * 1.5;
       textCenter("ขอแสดงความนับถือ", y);
 
-      y += lineH * 2.5;
+      // พื้นที่สำหรับลายเซ็น (จัดวางในกล่องมาตรฐานเพื่อให้ทุกรูปมีขนาดสม่ำเสมอ)
+      const sigSpace = 90; 
+      const boxW = 180;
+      const boxH = 60;
+      const sigY = y + (sigSpace - boxH) / 2; // พื้นที่ว่างเฉลี่ยบน-ล่างให้เท่ากันพอดี
+
+      const fs = require("fs");
+      if (data.signatory.signatureUrl) {
+        try {
+          const sigPath = path.join(__dirname, "../../", data.signatory.signatureUrl);
+          if (fs.existsSync(sigPath)) {
+            const sigX = ML + (contentWidth - boxW) / 2;
+
+            // ใช้ fit: [boxW, boxH] เพื่อให้รูปอยู่ภายในกรอบที่กำหนดโดยไม่เสียสัดส่วน
+            pdf.image(sigPath, sigX, sigY, { 
+              fit: [boxW, boxH], 
+              align: 'center', 
+              valign: 'center' 
+            });
+          }
+        } catch (sigErr) {
+          logger.warn("Could not load signatory signature image:", sigErr.message);
+        }
+      }
+
+      y += sigSpace;
       pdf.font("Thai-Bold").fontSize(sz);
-      textCenter(
-        `(${DEPARTMENT_INFO.departmentHead.name})`,
-        y
-      );
+      textCenter(`(${data.signatory.name || ""})`, y);
+      
       y += lineH;
       pdf.font("Thai").fontSize(sz);
-      textCenter(DEPARTMENT_INFO.departmentHead.title, y);
+      textCenter(data.signatory.title || "", y);
 
       // ===== Footer =====
       let fy = 750;

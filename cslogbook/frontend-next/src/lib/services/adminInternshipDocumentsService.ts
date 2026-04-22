@@ -223,9 +223,14 @@ export async function reviewInternshipDocumentByStaff(
   documentName?: string,
   comment?: string,
   officialNumber?: string,
+  signatoryId?: number | string,
 ) {
   const normalizedName = (documentName ?? "").toUpperCase();
-  const body = { comment: comment ?? null, officialNumber: officialNumber ?? null };
+  const body = { 
+    comment: comment ?? null, 
+    officialNumber: officialNumber ?? null,
+    signatoryId: signatoryId ?? null
+  };
 
   if (normalizedName === "CS05") {
     return apiFetch(`/internship/cs-05/${documentId}/review`, {
@@ -245,6 +250,8 @@ export async function reviewInternshipDocumentByStaff(
 
   return apiFetch(`/admin/documents/${documentId}/approve`, {
     method: "POST",
+    body: JSON.stringify({ signatoryId: signatoryId ?? null }),
+    headers: { "Content-Type": "application/json" },
   });
 }
 

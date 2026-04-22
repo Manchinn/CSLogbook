@@ -29,6 +29,10 @@ module.exports = (sequelize) => {
                 foreignKey: 'important_deadline_id',
                 as: 'importantDeadline'
             });
+            Document.belongsTo(models.Signatory, {
+                foreignKey: 'signatory_id',
+                as: 'signatory'
+            });
         }
     }
 
@@ -166,6 +170,26 @@ module.exports = (sequelize) => {
             defaultValue: null,
             field: 'submission_delay_minutes',
             comment: 'จำนวนนาทีที่ส่งช้า (null = ส่งทันหรือไม่ได้ track)'
+        },
+        signatoryId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'signatory_id'
+        },
+        signatoryNameSnapshot: {
+            type: DataTypes.STRING(150),
+            allowNull: true,
+            field: 'signatory_name_snapshot'
+        },
+        signatoryTitleSnapshot: {
+            type: DataTypes.STRING(150),
+            allowNull: true,
+            field: 'signatory_title_snapshot'
+        },
+        signatorySignatureSnapshot: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+            field: 'signatory_signature_snapshot'
         }
     }, {
         sequelize,
@@ -207,6 +231,10 @@ module.exports = (sequelize) => {
             {
                 name: 'idx_documents_downloaded_at',
                 fields: ['downloaded_at']
+            },
+            {
+                name: 'idx_documents_signatory_id',
+                fields: ['signatory_id']
             }
         ]
     });

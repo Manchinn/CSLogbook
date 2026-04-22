@@ -75,12 +75,14 @@ export function useAdminInternshipDocumentMutations() {
       documentName,
       comment,
       officialNumber,
+      signatoryId,
     }: {
       documentId: number;
       documentName?: string;
       comment?: string;
       officialNumber?: string;
-    }) => reviewInternshipDocumentByStaff(documentId, documentName, comment, officialNumber),
+      signatoryId?: number | string;
+    }) => reviewInternshipDocumentByStaff(documentId, documentName, comment, officialNumber, signatoryId),
     onSuccess: invalidate,
   });
 

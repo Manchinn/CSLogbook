@@ -428,12 +428,22 @@ async function approveCertificateRequest(requestId, processorId, certificateNumb
             return `ว ${year}/${month}/${random}`;
         };
 
-        // อัปเดตสถานะ
+        // ดึงข้อมูลผู้ลงนามปัจจุบัน (PRIMARY และ Active)
+        const { Signatory } = require('../../models');
+        const activeSignatory = await Signatory.findOne({
+            where: { role: 'PRIMARY', isActive: true }
+        });
+
+        // อัปเดตสถานะพร้อมทำ snapshot ข้อมูลผู้ลงนาม
         await request.update({
             status: 'approved',
             certificateNumber: certificateNumber || generateCertificateNumber(),
             processedAt: new Date(),
             processedBy: processorId,
+            signatoryId: activeSignatory?.id || null,
+            signatoryNameSnapshot: activeSignatory?.name || null,
+            signatoryTitleSnapshot: activeSignatory?.title || null,
+            signatorySignatureSnapshot: activeSignatory?.signatureUrl || null,
         });
 
         // ✅ Update workflow และ Student.internshipStatus — การฝึกงานเสร็จสมบูรณ์
