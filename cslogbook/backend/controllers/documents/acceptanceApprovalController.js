@@ -234,7 +234,7 @@ exports.listForHead = async (req, res) => {
 exports.reviewByStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { comment, officialNumber } = req.body || {};
+    const { comment, officialNumber, signatoryId } = req.body || {};
 
     // Validate officialNumber
     if (!officialNumber || !/^\d{1,3}$/.test(String(officialNumber))) {
@@ -256,7 +256,8 @@ exports.reviewByStaff = async (req, res) => {
       reviewerId: req.user.userId,
       reviewDate: new Date(),
       reviewComment: comment || null,
-      officialNumber: officialNumber
+      officialNumber: officialNumber,
+      signatoryId: signatoryId || null
     });
 
     await DocumentLog.create({
@@ -290,7 +291,34 @@ exports.approveByHead = async (req, res) => {
     }
 
     const prevStatus = doc.status;
-    await doc.update({ status: 'approved', reviewerId: req.user.userId, reviewDate: new Date() });
+
+    // เตรียมข้อมูล Signatory Snapshot
+    const { Signatory } = require('../../models');
+    let snapshotData = {};
+    const signatoryId = doc.signatoryId;
+    
+    if (signatoryId) {
+      try {
+        const signatory = await Signatory.findByPk(signatoryId);
+        if (signatory) {
+          snapshotData = {
+            signatoryId: signatory.id,
+            signatoryNameSnapshot: signatory.name,
+            signatoryTitleSnapshot: signatory.title,
+            signatorySignatureSnapshot: signatory.signatureUrl
+          };
+        }
+      } catch (err) {
+        logger.warn('Failed to Create Signatory Snapshot for Acceptance approval:', err.message);
+      }
+    }
+
+    await doc.update({ 
+      status: 'approved', 
+      reviewerId: req.user.userId, 
+      reviewDate: new Date(),
+      ...snapshotData
+    });
 
     await DocumentLog.create({
       documentId: doc.documentId,

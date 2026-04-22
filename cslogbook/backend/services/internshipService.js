@@ -58,10 +58,32 @@ class InternshipService {
             throw new Error('Document not found');
         }
 
+        // เตรียมข้อมูล Signatory Snapshot
+        let snapshotData = {};
+        const signatoryId = document.signatoryId;
+        
+        if (signatoryId) {
+            const { Signatory } = require('../models');
+            try {
+                const signatory = await Signatory.findByPk(signatoryId);
+                if (signatory) {
+                    snapshotData = {
+                        signatoryId: signatory.id,
+                        signatoryNameSnapshot: signatory.name,
+                        signatoryTitleSnapshot: signatory.title,
+                        signatorySignatureSnapshot: signatory.signatureUrl
+                    };
+                }
+            } catch (err) {
+                logger.warn('Failed to Create Signatory Snapshot for CS05 approval:', err.message);
+            }
+        }
+
         await document.update({
             status: 'approved',
             reviewerId: adminId,
-            reviewDate: new Date()
+            reviewDate: new Date(),
+            ...snapshotData
         }, options.transaction ? { transaction: options.transaction } : undefined);
 
         return document;
