@@ -3,11 +3,14 @@
 import React from 'react';
 import { useSignatories } from '@/hooks/useSignatories';
 import styles from '@/styles/shared/admin-queue.module.css';
-
+//คอมโพเนนต์ Dropdown ที่ดึงรายชื่อผู้ลงนามมาจากฐานข้อมูล
 const SignerSelectField = ({ value, onChange }) => {
     const { useSignatoriesList } = useSignatories({ isActive: true });
     const { data: response, isLoading } = useSignatoriesList();
     const signatories = response?.data || [];
+    
+    // หาว่าใครคือหัวหน้าภาค (PRIMARY) ที่ยัง Active อยู่
+    const primarySigner = signatories.find(sig => sig.role === 'PRIMARY');
 
     return (
         <div className={styles.field}>
@@ -17,8 +20,9 @@ const SignerSelectField = ({ value, onChange }) => {
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={isLoading}
+                required
             >
-                <option value="">-- ใช้ค่าเริ่มต้น (หัวหน้าภาค) --</option>
+                <option value="" disabled>-- กรุณาเลือกผู้ลงนาม --</option>
                 {signatories.map((sig) => (
                     <option key={sig.id} value={sig.id}>
                         {sig.name} ({sig.title})

@@ -1,5 +1,5 @@
 "use client";
-
+// เพิ่ม Component ตัวเลือกผู้ลงนามเข้าไปในหน้าตรวจสอบเอกสาร
 import { useMemo, useState } from "react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
@@ -287,9 +287,17 @@ export default function AdminInternshipDocumentsPage() {
   };
 
   const submitReview = async () => {
-    const allValid = reviewIds.every((id) => /^\d{1,3}$/.test(officialNumbers[id] ?? ""));
-    if (!allValid) {
+    // ตรวจสอบทั้งเลขที่เอกสาร และการเลือกผู้ลงนาม
+    const hasOfficialNumbers = reviewIds.every((id) => /^\d{1,3}$/.test(officialNumbers[id] ?? ""));
+    const hasSignatories = reviewIds.every((id) => signatoryIds[id] && signatoryIds[id] !== "");
+
+    if (!hasOfficialNumbers) {
       setFeedback({ tone: "warning", message: "กรุณากรอกเลขที่เอกสาร (ตัวเลข 1-3 หลัก) ให้ครบทุกรายการ" });
+      return;
+    }
+
+    if (!hasSignatories) {
+      setFeedback({ tone: "warning", message: "กรุณาเลือกผู้ลงนามให้ครบทุกรายการ" });
       return;
     }
 
@@ -809,15 +817,26 @@ export default function AdminInternshipDocumentsPage() {
                       <span className={styles.reviewItemLabel}>
                         {row?.studentName || "-"} ({documentNameLabel(row?.documentName)})
                       </span>
-                      <input
-                        className={`${styles.input} ${styles.reviewItemInput}`}
-                        placeholder="เลข 3 หลัก"
-                        maxLength={3}
-                        value={officialNumbers[id] ?? ""}
-                        onChange={(e) =>
-                          setOfficialNumbers((prev) => ({ ...prev, [id]: e.target.value.replace(/\D/g, "").slice(0, 3) }))
-                        }
-                      />
+                      <div className={styles.reviewItemFields}>
+                        <div className={styles.reviewItemInputGroup}>
+                          <label className={styles.fieldLabel}>เลขที่ อว.</label>
+                          <input
+                            className={`${styles.input} ${styles.reviewItemInput}`}
+                            placeholder="เลข 3 หลัก"
+                            maxLength={3}
+                            value={officialNumbers[id] ?? ""}
+                            onChange={(e) =>
+                              setOfficialNumbers((prev) => ({ ...prev, [id]: e.target.value.replace(/\D/g, "").slice(0, 3) }))
+                            }
+                          />
+                        </div>
+                        <div className={styles.reviewItemSigner}>
+                          <SignerSelectField
+                            value={signatoryIds[id] || ""}
+                            onChange={(val) => setSignatoryIds((prev) => ({ ...prev, [id]: val }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

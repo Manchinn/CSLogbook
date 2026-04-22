@@ -4,6 +4,8 @@
               topic-exam/results, project-exam/results,
               project1/kp02-queue, system-test/staff-queue,
               thesis/staff-queue, thesis/exam-results
+              
+              ปรับแต่ง CSS เพื่อให้ฟิลด์ที่เพิ่มเข้ามาใหม่จัดวาง
    ═══════════════════════════════════════════════════════ */
 
 /* ─── Page Layout ─── */
@@ -580,9 +582,17 @@
 
 .reviewItem {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.reviewItem:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .reviewItemLabel {
@@ -590,8 +600,32 @@
   font-size: 0.875rem;
 }
 
+.reviewItemFields {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.reviewItemInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
 .reviewItemInput {
-  width: 180px;
+  width: 120px;
+}
+
+.reviewItemSigner {
+  flex: 1;
+  min-width: 250px;
 }
 
 .reviewModalActions {
