@@ -119,25 +119,32 @@ class InternshipCooperationLetterService {
         endDate: internshipDoc.endDate,
       };
 
-      // --- ดึงข้อมูลผู้ลงนาม (Dynamic: PRIMARY > ANY ACTIVE) ---
-      let signatoryInfo = { name: "", title: "", signatureUrl: null };
-      let activeSignatory = await Signatory.findOne({
-        where: { role: 'PRIMARY', isActive: true }
-      });
+      // --- ดึงข้อมูลผู้ลงนาม (Priority: Snapshot > PRIMARY > ANY ACTIVE) ---
+      let signatoryInfo = { 
+        name: cs05Document.signatoryNameSnapshot || "", 
+        title: cs05Document.signatoryTitleSnapshot || "", 
+        signatureUrl: cs05Document.signatorySignatureSnapshot || null 
+      };
 
-      // หากไม่มี PRIMARY ให้หาใครก็ได้ที่ Active
-      if (!activeSignatory) {
-        activeSignatory = await Signatory.findOne({
-          where: { isActive: true }
+      // หากไม่มี Snapshot (เอกสารเก่า) ให้ไปหาจากฐานข้อมูล Signatory
+      if (!signatoryInfo.name) {
+        let activeSignatory = await Signatory.findOne({
+          where: { role: 'PRIMARY', isActive: true }
         });
-      }
 
-      if (activeSignatory) {
-        signatoryInfo = {
-          name: activeSignatory.name,
-          title: activeSignatory.title,
-          signatureUrl: activeSignatory.signatureUrl
-        };
+        if (!activeSignatory) {
+          activeSignatory = await Signatory.findOne({
+            where: { isActive: true }
+          });
+        }
+
+        if (activeSignatory) {
+          signatoryInfo = {
+            name: activeSignatory.name,
+            title: activeSignatory.title,
+            signatureUrl: activeSignatory.signatureUrl
+          };
+        }
       }
       data.signatory = signatoryInfo;
 

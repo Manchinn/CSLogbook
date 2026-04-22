@@ -232,13 +232,13 @@ class InternshipReferralLetterService {
       // 5. เตรียมข้อมูล
       const yearInfo = calculateStudentYear(student.studentCode);
 
-      // ดึงข้อมูลผู้ลงนาม (Snapshot > Active PRIMARY > Config Default - Empty)
+      // ดึงข้อมูลผู้ลงนาม (Snapshot > Active PRIMARY > Any Active)
       // ใช้ข้อมูลผู้ลงนามจาก Acceptance Letter ที่ถูก Snapshot ไว้ตอนอนุมัติ หรือดึงใหม่จากฐานข้อมูล
       const { Signatory } = require("../../models");
       let signatoryInfo = {
-        name: acceptanceLetter.signatoryNameSnapshot,
-        title: acceptanceLetter.signatoryTitleSnapshot,
-        signatureUrl: acceptanceLetter.signatorySignatureSnapshot
+        name: acceptanceLetter.signatoryNameSnapshot || "",
+        title: acceptanceLetter.signatoryTitleSnapshot || "",
+        signatureUrl: acceptanceLetter.signatorySignatureSnapshot || null
       };
 
       // หากไม่มี Snapshot ให้ดึงจากฐานข้อมูล (PRIMARY > ANY ACTIVE)
