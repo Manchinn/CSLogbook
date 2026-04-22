@@ -833,7 +833,7 @@ export default function AdminInternshipDocumentsPage() {
                         <div className={styles.reviewItemSigner}>
                           <SignerSelectField
                             value={signatoryIds[id] || ""}
-                            onChange={(val) => setSignatoryIds((prev) => ({ ...prev, [id]: val }))}
+                            onChange={(val: string) => setSignatoryIds((prev) => ({ ...prev, [id]: val }))}
                           />
                         </div>
                       </div>
