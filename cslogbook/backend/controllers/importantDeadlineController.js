@@ -1,8 +1,48 @@
 const importantDeadlineService = require('../services/importantDeadlineService');
+const { listActiveOverridesForStudent } = require('../services/deadlineOverrideService');
 const { computeStatus, computeDaysLeft } = require('../utils/deadlineStatusUtil');
 const { Document } = require('../models');
 const { ExcelExportBuilder, formatThaiDate } = require('../utils/excelExportBuilder');
 const logger = require('../utils/logger');
+
+/**
+ * ปรับ mapped deadline object ให้สะท้อน per-student override
+ * - bypassLock=true → lockAfterDeadline=false, allowLate=true, locked=false
+ * - extendedUntil > deadlineAt → ขยาย deadlineAt + effectiveDeadlineAt + grace=0
+ * - แนบ bypassActive/bypassReason สำหรับ frontend แสดง badge ภายหลัง
+ *
+ * Mutates obj และคืน obj
+ */
+function applyOverrideToMappedDeadline(obj, override, now = new Date()) {
+  if (!obj || !override) return obj;
+
+  if (override.extendedUntil) {
+    const ext = new Date(override.extendedUntil);
+    const origMs = obj.deadlineAt ? new Date(obj.deadlineAt).getTime() : 0;
+    if (ext.getTime() > origMs) {
+      obj.deadlineAt = override.extendedUntil;
+      obj.effectiveDeadlineAt = override.extendedUntil;
+      obj.gracePeriodMinutes = 0;
+      obj.locked = obj.lockAfterDeadline && now.getTime() > ext.getTime();
+      const local = new Date(ext.getTime() + 7 * 60 * 60 * 1000);
+      const pad = (n) => n.toString().padStart(2, '0');
+      obj.deadlineDate = `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`;
+      obj.deadlineTime = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
+    }
+  }
+
+  if (override.bypassLock) {
+    obj.lockAfterDeadline = false;
+    obj.allowLate = true;
+    obj.locked = false;
+  }
+
+  obj.bypassActive = true;
+  obj.bypassReason = override.reason || null;
+  obj.bypassExtendedUntil = override.extendedUntil || null;
+  obj.bypassLockApplied = Boolean(override.bypassLock);
+  return obj;
+}
 
 const resolveDocumentCreatedAttribute = () => {
   const attrs = Document?.rawAttributes;
@@ -266,6 +306,7 @@ module.exports.getUpcomingForStudent = async (req, res) => {
     const now = new Date();
     const upper = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
     const all = await importantDeadlineService.getAll({});
+    const overrides = await listActiveOverridesForStudent({ userId: req.user?.userId || req.user?.id });
     // filter เฉพาะที่ยังไม่ผ่าน deadlineAt และภายในช่วง upper
     const upcoming = all.filter(d => d.deadlineAt && new Date(d.deadlineAt) >= now && new Date(d.deadlineAt) <= upper);
     const enriched = upcoming.map(d => {
@@ -281,6 +322,7 @@ module.exports.getUpcomingForStudent = async (req, res) => {
       obj.deadlineTime = `${pad(ld.getUTCHours())}:${pad(ld.getUTCMinutes())}:${pad(ld.getUTCSeconds())}`;
       obj.daysLeft = daysLeft;
       obj.hoursLeft = hoursLeft;
+      applyOverrideToMappedDeadline(obj, overrides.get(obj.id), now);
       return obj;
     }).sort((a,b)=> new Date(a.deadlineAt) - new Date(b.deadlineAt));
     res.json({ success: true, data: enriched });
@@ -299,7 +341,9 @@ module.exports.getAllForStudent = async (req, res) => {
       { academicYear },
       studentId
     );
-    
+
+    const overrides = await listActiveOverridesForStudent({ userId: req.user?.userId || req.user?.id });
+
     const now = new Date();
     const visible = deadlines.filter(d => isPublishedForAudience(d, now));
 
@@ -307,7 +351,8 @@ module.exports.getAllForStudent = async (req, res) => {
       .map(d => {
         const document = documentsByDeadline.get(d.id);
         const mapped = mapDeadlineForResponse(d, { document, now });
-        
+        applyOverrideToMappedDeadline(mapped, overrides.get(d.id), now);
+
         // เพิ่มข้อมูลสำหรับ frontend ในรูปแบบที่ normalize function คาดหวัง
         if (document) {
           mapped.hasSubmission = true;

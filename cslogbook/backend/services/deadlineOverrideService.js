@@ -364,10 +364,68 @@ async function listOverridesByDeadline(deadlineId) {
     });
 }
 
+/**
+ * คืน Map<deadlineId, override> สำหรับ active overrides ทั้งหมดของ student
+ * ใช้ตอนตอบ endpoint ฝั่ง student — fetch แค่ครั้งเดียวต่อ request
+ *
+ * รับ studentId หรือ userId — อย่างใดอย่างหนึ่ง (resolve studentId ภายใน)
+ */
+async function listActiveOverridesForStudent({ studentId, userId } = {}) {
+  if (!studentId && !userId) return new Map();
+
+  const { StudentDeadlineStatus, Student } = require('../models');
+  if (!StudentDeadlineStatus) return new Map();
+
+  let resolvedStudentId = studentId;
+  if (!resolvedStudentId && userId && Student) {
+    try {
+      const s = await Student.findOne({ where: { userId }, attributes: ['studentId'] });
+      resolvedStudentId = s ? s.get('studentId') : null;
+    } catch (err) {
+      logger.warn('listActiveOverridesForStudent: Student lookup failed', {
+        userId,
+        error: err.message
+      });
+      return new Map();
+    }
+  }
+  if (!resolvedStudentId) return new Map();
+
+  let rows;
+  try {
+    rows = await StudentDeadlineStatus.findAll({
+      where: { studentId: resolvedStudentId, revokedAt: null }
+    });
+  } catch (err) {
+    logger.warn('listActiveOverridesForStudent: query failed, returning empty', {
+      studentId: resolvedStudentId,
+      error: err.message
+    });
+    return new Map();
+  }
+
+  const map = new Map();
+  for (const row of rows) {
+    if (!row.get('grantedAt')) continue;
+    const extendedUntil = row.get('extendedUntil');
+    const bypassLock = row.get('bypassLock');
+    if (!extendedUntil && !bypassLock) continue;
+    map.set(row.get('importantDeadlineId'), {
+      extendedUntil: extendedUntil || null,
+      bypassLock: Boolean(bypassLock),
+      grantedBy: row.get('grantedBy'),
+      grantedAt: row.get('grantedAt'),
+      reason: row.get('reason')
+    });
+  }
+  return map;
+}
+
 module.exports = {
   resolveOverride,
   grantOverride,
   revokeOverride,
   listOverridesByDeadline,
+  listActiveOverridesForStudent,
   applyOverrideToDeadline
 };
