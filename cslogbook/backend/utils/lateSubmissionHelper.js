@@ -11,12 +11,46 @@ const { ImportantDeadline } = require('../models');
 const { findApplicableDeadline, computeSubmissionStatus } = require('./requestDeadlineChecker');
 
 /**
+ * Helper: ถ้ามี studentId + deadline → resolve override + apply ก่อน computeSubmissionStatus
+ * คืน object รูปแบบเดียวกับ computeSubmissionStatus เสมอ
+ */
+async function computeWithOverride(submittedAt, deadline, studentId) {
+  if (!studentId || !deadline || !deadline.id) {
+    return computeSubmissionStatus(submittedAt, deadline);
+  }
+  try {
+    const { resolveOverride, applyOverrideToDeadline } = require('../services/deadlineOverrideService');
+    const override = await resolveOverride({ studentId, deadlineId: deadline.id });
+    if (!override) {
+      return computeSubmissionStatus(submittedAt, deadline);
+    }
+    const effective = applyOverrideToDeadline(deadline, override);
+    const result = computeSubmissionStatus(submittedAt, effective);
+    if (result && result.deadlineInfo) {
+      result.deadlineInfo.override = {
+        extendedUntil: override.extendedUntil,
+        bypassLock: override.bypassLock,
+        grantedBy: override.grantedBy
+      };
+    }
+    return result;
+  } catch (err) {
+    logger.warn('lateSubmissionHelper: override resolution failed, using base deadline', {
+      studentId,
+      deadlineId: deadline.id,
+      error: err.message
+    });
+    return computeSubmissionStatus(submittedAt, deadline);
+  }
+}
+
+/**
  * คำนวณสถานะการส่งช้าสำหรับ Project Topic Submission (บันทึกหัวข้อโครงงาน)
  * @param {Date} submittedAt - วันที่บันทึกหัวข้อ
  * @param {Object} project - Project object { academicYear, semester }
  * @returns {Promise<Object>} { submitted_late, submission_delay_minutes, important_deadline_id }
  */
-async function calculateTopicSubmissionLate(submittedAt, project = {}) {
+async function calculateTopicSubmissionLate(submittedAt, project = {}, studentId = null) {
   try {
     if (!submittedAt) {
       return {
@@ -43,7 +77,7 @@ async function calculateTopicSubmissionLate(submittedAt, project = {}) {
       };
     }
 
-    const status = computeSubmissionStatus(submittedAt, deadline);
+    const status = await computeWithOverride(submittedAt, deadline, studentId);
 
     return {
       submitted_late: status.isLate,
@@ -68,7 +102,7 @@ async function calculateTopicSubmissionLate(submittedAt, project = {}) {
  * @param {Object} project - Project object { academicYear, semester }
  * @returns {Promise<Object>} { submitted_late, submission_delay_minutes, important_deadline_id }
  */
-async function calculateDefenseRequestLate(submittedAt, defenseType, project = {}) {
+async function calculateDefenseRequestLate(submittedAt, defenseType, project = {}, studentId = null) {
   try {
     if (!submittedAt) {
       return {
@@ -102,7 +136,7 @@ async function calculateDefenseRequestLate(submittedAt, defenseType, project = {
       };
     }
 
-    const status = computeSubmissionStatus(submittedAt, deadline);
+    const status = await computeWithOverride(submittedAt, deadline, studentId);
 
     return {
       submitted_late: status.isLate,
@@ -125,7 +159,7 @@ async function calculateDefenseRequestLate(submittedAt, defenseType, project = {
  * @param {Object} project - Project object { academicYear, semester }
  * @returns {Promise<Object>} { submitted_late, submission_delay_minutes, important_deadline_id }
  */
-async function calculateSystemTestRequestLate(submittedAt, project = {}) {
+async function calculateSystemTestRequestLate(submittedAt, project = {}, studentId = null) {
   try {
     if (!submittedAt) {
       return {
@@ -151,7 +185,7 @@ async function calculateSystemTestRequestLate(submittedAt, project = {}) {
       };
     }
 
-    const status = computeSubmissionStatus(submittedAt, deadline);
+    const status = await computeWithOverride(submittedAt, deadline, studentId);
 
     return {
       submitted_late: status.isLate,

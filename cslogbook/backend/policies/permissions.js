@@ -11,6 +11,12 @@ module.exports = {
     manage: ['admin']
   },
 
+  deadlineOverride: {
+    grant: ['admin', 'teacher:support'],
+    revoke: ['admin', 'teacher:support'],
+    view: ['admin', 'teacher:support', 'teacher']
+  },
+
   documents: {
     studentSubmit: ['student'],
     staffReview: ['admin', 'teacher']

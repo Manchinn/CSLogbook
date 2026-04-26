@@ -34,6 +34,7 @@ import {
 } from "@/lib/services/importantDeadlineService";
 import { useAcademicYears } from "@/hooks/useAcademicYears";
 import { DeadlineTimeline } from "@/components/admin/DeadlineTimeline";
+import { DeadlineOverridePanel } from "@/components/admin/DeadlineOverridePanel";
 import { exportAcademicDeadlines } from "@/lib/services/reportService";
 import btn from "@/styles/shared/buttons.module.css";
 import styles from "../settings.module.css";
@@ -185,6 +186,39 @@ export default function AcademicSettingsPage() {
   const [messageTone, setMessageTone] = useState<"info" | "warning" | "success">("info");
   const [deadlineStats, setDeadlineStats] = useState<Record<string, unknown> | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [overridePanel, setOverridePanel] = useState<{ id: number; name: string } | null>(null);
+  const [togglingLockId, setTogglingLockId] = useState<number | null>(null);
+
+  const handleToggleLock = async (deadline: ImportantDeadline) => {
+    const next = !deadline.lockAfterDeadline;
+    setTogglingLockId(deadline.id);
+    // optimistic update
+    setDeadlines((prev) =>
+      prev.map((d) => (d.id === deadline.id ? { ...d, lockAfterDeadline: next } : d)),
+    );
+    try {
+      await updateDeadlinePolicy(deadline.id, {
+        lockAfterDeadline: next,
+        allowLate: deadline.allowLate ?? false,
+        gracePeriodMinutes: deadline.gracePeriodMinutes ?? null,
+      });
+      setMessageTone("success");
+      setMessage(
+        next
+          ? "ล็อกหลังหมดเวลา: เปิด — ทุกคนต้องส่งภายในกำหนด"
+          : "ล็อกหลังหมดเวลา: ปิด — ทุกคนสามารถส่งหลังกำหนดได้",
+      );
+    } catch (err) {
+      // rollback
+      setDeadlines((prev) =>
+        prev.map((d) => (d.id === deadline.id ? { ...d, lockAfterDeadline: !next } : d)),
+      );
+      setMessageTone("warning");
+      setMessage(err instanceof Error ? err.message : "ไม่สามารถเปลี่ยนสถานะล็อกได้");
+    } finally {
+      setTogglingLockId(null);
+    }
+  };
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [deadlineIssues, setDeadlineIssues] = useState<string[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<"schedule" | "deadline">("schedule");
@@ -1296,6 +1330,7 @@ export default function AcademicSettingsPage() {
                   <th>หมวด</th>
                   <th>ประเภท</th>
                   <th>กำหนดส่ง</th>
+                  <th>ล็อก</th>
                   <th>จัดการ</th>
                 </tr>
               </thead>
@@ -1311,6 +1346,58 @@ export default function AcademicSettingsPage() {
                     <td><span className={styles.badge}>{deadline.deadlineType === "SUBMISSION" ? "ส่งเอกสาร" : deadline.deadlineType === "ANNOUNCEMENT" ? "ประกาศ" : deadline.deadlineType === "MILESTONE" ? "เหตุการณ์" : deadline.deadlineType ?? "-"}</span></td>
                     <td>{formatThaiDateShort(deadline.deadlineDate)}{deadline.deadlineTime ? ` ${deadline.deadlineTime} น.` : ""}</td>
                     <td>
+                      <label
+                        title={
+                          deadline.lockAfterDeadline
+                            ? "ล็อกอยู่ — ส่งหลังกำหนดไม่ได้ (คลิกเพื่อปลดล็อกทุกคน)"
+                            : "ปลดล็อก — ทุกคนส่งหลังกำหนดได้ (คลิกเพื่อล็อกกลับ)"
+                        }
+                        style={{
+                          position: "relative",
+                          display: "inline-block",
+                          width: 40,
+                          height: 22,
+                          cursor: togglingLockId === deadline.id ? "wait" : "pointer",
+                          opacity: togglingLockId === deadline.id ? 0.6 : 1,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Boolean(deadline.lockAfterDeadline)}
+                          disabled={togglingLockId === deadline.id}
+                          onChange={() => handleToggleLock(deadline)}
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: deadline.lockAfterDeadline ? "#2563eb" : "#cbd5e1",
+                            borderRadius: 22,
+                            transition: "background .2s",
+                          }}
+                        />
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            top: 3,
+                            left: deadline.lockAfterDeadline ? 21 : 3,
+                            width: 16,
+                            height: 16,
+                            background: "white",
+                            borderRadius: "50%",
+                            transition: "left .2s",
+                            boxShadow: "0 1px 2px rgba(0,0,0,.2)",
+                          }}
+                        />
+                      </label>
+                      <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: 2 }}>
+                        {deadline.lockAfterDeadline ? "ล็อก" : "ปลดล็อก"}
+                      </div>
+                    </td>
+                    <td>
                       <div className={styles.actions}>
                         <button type="button" className={btn.button} onClick={() => handleDeadlineEdit(deadline)}>
                           แก้ไข
@@ -1321,6 +1408,13 @@ export default function AcademicSettingsPage() {
                           onClick={() => handleDeadlineStats(deadline.id)}
                         >
                           สถิติ
+                        </button>
+                        <button
+                          type="button"
+                          className={btn.button}
+                          onClick={() => setOverridePanel({ id: deadline.id, name: deadline.name })}
+                        >
+                          ผ่อนผัน
                         </button>
                         <button
                           type="button"
@@ -1374,6 +1468,14 @@ export default function AcademicSettingsPage() {
           onConfirm={handleDeadlineDeleteConfirmed}
           onCancel={() => setConfirmDeleteId(null)}
         />
+
+        {overridePanel && (
+          <DeadlineOverridePanel
+            deadlineId={overridePanel.id}
+            deadlineName={overridePanel.name}
+            onClose={() => setOverridePanel(null)}
+          />
+        )}
       </div>
   );
 }

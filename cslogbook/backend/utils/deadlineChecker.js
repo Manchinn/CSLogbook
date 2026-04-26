@@ -324,8 +324,78 @@ async function findDeadlineWithFallback(params) {
   return genericDeadline;
 }
 
+/**
+ * Apply per-student override (Phase 1) ลงบน deadline แล้วเรียก checkDeadlineStatus
+ *
+ * - ถ้าไม่มี override หรือไม่มี student identification → pass-through ของเดิม
+ * - extendedUntil > deadlineAt+grace → ใช้ extended เป็น hard cutoff (grace = 0)
+ * - bypassLock = true → ตั้ง lockAfterDeadline=false + allowLate=true
+ *   (ยังคำนวณ late ได้แต่ไม่ block)
+ *
+ * คืนค่ารูปแบบเดียวกับ checkDeadlineStatus + เพิ่ม metadata.override เมื่อมี
+ *
+ * @param {Object} deadline ImportantDeadline record (Sequelize instance หรือ plain)
+ * @param {{ studentId?: number, userId?: number }} student - identification
+ * @param {Object} [context] - logging context
+ * @returns {Promise<Object>}
+ */
+async function checkDeadlineStatusForStudent(deadline, student = {}, context = {}) {
+  if (!deadline) {
+    return checkDeadlineStatus(deadline, context);
+  }
+
+  const { studentId, userId } = student;
+  if (!studentId && !userId) {
+    return checkDeadlineStatus(deadline, context);
+  }
+
+  let override = null;
+  try {
+    const { resolveOverride } = require('../services/deadlineOverrideService');
+    override = await resolveOverride({
+      studentId,
+      userId,
+      deadlineId: deadline.id || (deadline.get && deadline.get('id'))
+    });
+  } catch (err) {
+    logger.warn('checkDeadlineStatusForStudent: override resolution failed, falling back', {
+      ...context,
+      error: err.message
+    });
+    return checkDeadlineStatus(deadline, context);
+  }
+
+  if (!override) {
+    return checkDeadlineStatus(deadline, context);
+  }
+
+  const { applyOverrideToDeadline } = require('../services/deadlineOverrideService');
+  const effective = applyOverrideToDeadline(deadline, override);
+
+  const result = checkDeadlineStatus(effective, { ...context, hasOverride: true });
+  result.metadata = { ...(result.metadata || {}), override: {
+    extendedUntil: override.extendedUntil,
+    bypassLock: override.bypassLock,
+    grantedBy: override.grantedBy,
+    reason: override.reason
+  } };
+
+  logger.info('Deadline override applied', {
+    ...context,
+    deadlineId: deadline.id,
+    studentId: override.studentId,
+    extendedUntil: override.extendedUntil,
+    bypassLock: override.bypassLock,
+    resultAllowed: result.allowed,
+    resultIsLate: result.isLate
+  });
+
+  return result;
+}
+
 module.exports = {
   checkDeadlineStatus,
+  checkDeadlineStatusForStudent,
   handleDeadlineCheckResult,
   buildDeadlineOrderClause,
   findDeadlineWithFallback

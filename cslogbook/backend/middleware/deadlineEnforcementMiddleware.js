@@ -12,11 +12,12 @@ const { ProjectWorkflowState, ProjectDocument, ImportantDeadline } = require('..
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { getWorkflowTypeFromPhase, getDeadlineMappingForPhase } = require('../constants/workflowDeadlineMapping');
-const { 
-  checkDeadlineStatus, 
+const {
+  checkDeadlineStatus,
+  checkDeadlineStatusForStudent,
   handleDeadlineCheckResult,
   buildDeadlineOrderClause,
-  findDeadlineWithFallback 
+  findDeadlineWithFallback
 } = require('../utils/deadlineChecker');
 
 /**
@@ -165,14 +166,21 @@ const checkDeadlineBeforeSubmission = (actionType = 'SUBMISSION') => {
         return next();
       }
 
-      // ใช้ shared utility function ตรวจสอบ deadline
-      const checkResult = checkDeadlineStatus(deadline, {
-        type: 'project',
-        projectId: parsedProjectId,
-        phase,
-        relatedTo,
-        userId: req.user?.userId
-      });
+      // ใช้ wrapper ที่ apply per-student override ก่อน
+      const checkResult = await checkDeadlineStatusForStudent(
+        deadline,
+        {
+          studentId: req.student?.studentId,
+          userId: req.student?.userId || req.user?.userId
+        },
+        {
+          type: 'project',
+          projectId: parsedProjectId,
+          phase,
+          relatedTo,
+          userId: req.user?.userId
+        }
+      );
 
       // จัดการผลการตรวจสอบ
       return handleDeadlineCheckResult(checkResult, req, res, next);
@@ -232,13 +240,20 @@ const warnIfPastDeadline = (actionType = 'SUBMISSION') => {
       });
 
       if (deadline) {
-        // ใช้ shared utility function แต่จับเฉพาะ metadata
-        const checkResult = checkDeadlineStatus(deadline, {
-          type: 'project_warning',
-          projectId: req.params.id || req.params.projectId,
-          phase: state.currentPhase,
-          userId: req.user?.userId
-        });
+        // ใช้ wrapper เพื่อให้ warning เคารพ override ด้วย
+        const checkResult = await checkDeadlineStatusForStudent(
+          deadline,
+          {
+            studentId: req.student?.studentId,
+            userId: req.student?.userId || req.user?.userId
+          },
+          {
+            type: 'project_warning',
+            projectId: req.params.id || req.params.projectId,
+            phase: state.currentPhase,
+            userId: req.user?.userId
+          }
+        );
 
         if (checkResult.isLate && checkResult.metadata.deadlineInfo) {
           req.isPastDeadline = true;

@@ -561,7 +561,7 @@ class ProjectDocumentService {
       const lateStatus = await calculateTopicSubmissionLate(activatedAt, {
         academicYear: project.academicYear,
         semester: project.semester
-      });
+      }, actorStudentId);
 
       await ProjectDocument.update({
         status: 'in_progress',

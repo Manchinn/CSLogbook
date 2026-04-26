@@ -157,6 +157,15 @@ router.patch('/important-deadlines/:id/policy', adminAuth, importantDeadlineCont
 router.get('/important-deadlines/:id/stats', adminAuth, importantDeadlineController.getStats); // ดูสถิติการส่งเอกสาร
 router.delete('/important-deadlines/:id', adminAuth, importantDeadlineController.remove);
 
+// === Per-student deadline override (Phase 2) ===
+const deadlineOverrideController = require('../controllers/deadlineOverrideController');
+const overrideViewAuth = [authenticateToken, authorize('deadlineOverride', 'view')];
+const overrideGrantAuth = [authenticateToken, authorize('deadlineOverride', 'grant')];
+const overrideRevokeAuth = [authenticateToken, authorize('deadlineOverride', 'revoke')];
+router.get('/important-deadlines/:id/overrides', overrideViewAuth, deadlineOverrideController.list);
+router.post('/important-deadlines/:id/overrides', overrideGrantAuth, deadlineOverrideController.grant);
+router.delete('/important-deadlines/:id/overrides/:studentId', overrideRevokeAuth, deadlineOverrideController.revoke);
+
 // === เพิ่ม Admin Eligibility Update Routes ===
 router.post('/eligibility/update-all', adminAuth, adminController.updateAllStudentsEligibility);
 router.post('/eligibility/update/:studentCode', adminAuth, adminController.updateStudentEligibility);

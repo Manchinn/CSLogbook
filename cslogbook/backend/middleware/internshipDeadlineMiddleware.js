@@ -14,8 +14,9 @@ const { ImportantDeadline, Student } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { getCurrentAcademicYear, getCurrentSemester } = require('../utils/studentUtils');
-const { 
-  checkDeadlineStatus, 
+const {
+  checkDeadlineStatus,
+  checkDeadlineStatusForStudent,
   handleDeadlineCheckResult
 } = require('../utils/deadlineChecker');
 
@@ -107,12 +108,19 @@ const checkInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION') => 
         return next();
       }
 
-      // ใช้ shared utility function ตรวจสอบ deadline
-      const checkResult = checkDeadlineStatus(deadline, {
-        type: 'internship',
-        documentSubtype,
-        userId: req.user?.userId
-      });
+      // ใช้ wrapper ที่ apply per-student override ก่อน
+      const checkResult = await checkDeadlineStatusForStudent(
+        deadline,
+        {
+          studentId: req.student?.studentId,
+          userId: req.student?.userId || req.user?.userId
+        },
+        {
+          type: 'internship',
+          documentSubtype,
+          userId: req.user?.userId
+        }
+      );
 
       // จัดการผลการตรวจสอบ
       return handleDeadlineCheckResult(checkResult, req, res, next);
@@ -167,12 +175,19 @@ const warnIfPastInternshipDeadline = (documentSubtype, actionType = 'SUBMISSION'
       const deadline = mapping ? mapping.deadline : null;
 
       if (deadline) {
-        // ใช้ shared utility function แต่จับเฉพาะ metadata
-        const checkResult = checkDeadlineStatus(deadline, {
-          type: 'internship_warning',
-          documentSubtype,
-          userId: req.user?.userId
-        });
+        // ใช้ wrapper เพื่อให้ warning เคารพ override ด้วย
+        const checkResult = await checkDeadlineStatusForStudent(
+          deadline,
+          {
+            studentId: req.student?.studentId,
+            userId: req.student?.userId || req.user?.userId
+          },
+          {
+            type: 'internship_warning',
+            documentSubtype,
+            userId: req.user?.userId
+          }
+        );
 
         if (checkResult.isLate && checkResult.metadata.deadlineInfo) {
           req.isPastDeadline = true;

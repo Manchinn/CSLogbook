@@ -290,7 +290,7 @@ class ProjectSystemTestService {
       const lateStatus = await calculateSystemTestRequestLate(submittedAt, {
         academicYear: project.academicYear,
         semester: project.semester
-      });
+      }, actor?.studentId || null);
       
       const record = await ProjectTestRequest.create({
         projectId: project.projectId,

@@ -529,7 +529,7 @@ class ProjectDefenseRequestService {
       const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_PROJECT1, {
         academicYear: project.academicYear,
         semester: project.semester
-      });
+      }, actorStudentId);
       
       const basePayload = {
         formPayload: cleanedPayload,
@@ -696,7 +696,7 @@ class ProjectDefenseRequestService {
       const lateStatus = await calculateDefenseRequestLate(now, DEFENSE_TYPE_THESIS, {
         academicYear: project.academicYear,
         semester: project.semester
-      });
+      }, actorStudentId);
       
       const basePayload = {
         formPayload: cleanedPayload,
