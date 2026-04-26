@@ -344,6 +344,38 @@ module.exports.getAllForStudent = async (req, res) => {
 
     const overrides = await listActiveOverridesForStudent({ userId: req.user?.userId || req.user?.id });
 
+    // รวม deadline ที่นักศึกษามี active override อยู่แม้ academicYear ไม่ตรงกับ filter
+    // (Officer grant ผ่อนผันบน deadline ปีอื่น → ต้อง expose ให้ frontend match step ได้)
+    if (overrides.size) {
+      const presentIds = new Set(deadlines.map(d => d.id));
+      const missingIds = [...overrides.keys()].filter(id => !presentIds.has(id));
+      if (missingIds.length) {
+        try {
+          const { ImportantDeadline, Document } = require('../models');
+          const { Op } = require('sequelize');
+          const extra = await ImportantDeadline.findAll({ where: { id: { [Op.in]: missingIds } } });
+          deadlines.push(...extra);
+
+          if (studentId && extra.length) {
+            const extraDocs = await Document.findAll({
+              where: { userId: studentId, importantDeadlineId: { [Op.in]: missingIds } }
+            }).catch(() => []);
+            const getTs = (r) => {
+              const ts = r.created_at || r.createdAt || r.updated_at || r.updatedAt || r.submittedAt;
+              return ts ? new Date(ts).getTime() : 0;
+            };
+            for (const doc of extraDocs.sort((a, b) => getTs(b) - getTs(a))) {
+              if (!documentsByDeadline.has(doc.importantDeadlineId)) {
+                documentsByDeadline.set(doc.importantDeadlineId, doc);
+              }
+            }
+          }
+        } catch (err) {
+          logger.warn('[getAllForStudent] failed to merge override deadlines', { error: err.message });
+        }
+      }
+    }
+
     const now = new Date();
     const visible = deadlines.filter(d => isPublishedForAudience(d, now));
 
