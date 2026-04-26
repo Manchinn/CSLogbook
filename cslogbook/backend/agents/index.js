@@ -7,7 +7,6 @@ const deadlineReminderAgent = require('./schedulers/deadlineReminderAgent');
 const documentStatusMonitor = require('./monitors/documentStatusMonitor');
 const eligibilityScheduler = require('./schedulers/eligibilityScheduler');
 const projectPurgeScheduler = require('./schedulers/projectPurgeScheduler');
-const academicSemesterScheduler = require('./schedulers/academicSemesterScheduler');
 const projectDeadlineMonitor = require('./projectDeadlineMonitor');
 const internshipLifecycleMonitor = require('./internshipLifecycleMonitor');
 const tokenCleanupScheduler = require('./schedulers/tokenCleanupScheduler');
@@ -53,19 +52,6 @@ class AgentManager {
           return true;
         },
         get isRunning() { return this._isRunning; }
-      },
-      academicSemesterScheduler: {
-        start: () => {
-          logger.info('Starting academic semester scheduler');
-          return academicSemesterScheduler.start();
-        },
-        stop: () => {
-          logger.info('Stopping academic semester scheduler');
-          return academicSemesterScheduler.stop();
-        },
-        get isRunning() {
-          return academicSemesterScheduler.isRunning;
-        }
       },
       projectDeadlineMonitor: {
         start: () => {

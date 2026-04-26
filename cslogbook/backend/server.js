@@ -391,29 +391,11 @@ server.listen(ENV.PORT, () => {
 
   // เริ่มการทำงานของ Agent หลังจาก server เริ่มทำงาน
   const enableAllAgents = process.env.ENABLE_AGENTS === 'true' || ENV.NODE_ENV === 'production';
-  const enableAcademicSchedulerOnly = !enableAllAgents && (process.env.ACADEMIC_AUTO_UPDATE_ENABLED || '').toLowerCase() === 'true';
 
   if (enableAllAgents) {
     logger.info('Starting CSLogbook Agents...');
-    // เริ่ม Agent ทุกตัวพร้อมกัน
     agentManager.startAllAgents();
-
-    // หรือจะเริ่มทีละ Agent ก็ได้
-    // agentManager.startAgent('deadlineReminder');
-    // agentManager.startAgent('documentMonitor');
-    // agentManager.startAgent('securityMonitor');
-    // agentManager.startAgent('logbookQualityMonitor');
-    // agentManager.startAgent('eligibilityChecker');
-
     logger.info('CSLogbook Agents started successfully');
-  } else if (enableAcademicSchedulerOnly) {
-    logger.info('Starting Academic Semester Scheduler (auto-update only)...');
-    try {
-      agentManager.startAgent('academicSemesterScheduler');
-      logger.info('Academic Semester Scheduler started');
-    } catch (error) {
-      logger.error('Failed to start Academic Semester Scheduler:', error.message);
-    }
   }
 });
 

@@ -119,7 +119,6 @@ class AgentStatusService {
             documentMonitor: 'ตัวตรวจสอบสถานะเอกสาร',
             eligibilityScheduler: 'ตัวจัดการสิทธิ์อัตโนมัติ',
             projectPurgeScheduler: 'ตัวล้างข้อมูลโครงงาน',
-            academicSemesterScheduler: 'ตัวจัดการภาคการศึกษา',
             projectDeadlineMonitor: 'ตัวตรวจสอบ Deadline โครงงาน',
             internshipLifecycleMonitor: 'ตัวจัดการ Lifecycle การฝึกงาน',
             tokenCleanupScheduler: 'ตัวล้าง Token หมดอายุ'
@@ -139,7 +138,6 @@ class AgentStatusService {
             documentMonitor: 'ตรวจสอบเอกสารที่ค้างการตรวจสอบเป็นเวลานาน',
             eligibilityScheduler: 'อัปเดตสิทธิ์ของนักศึกษาอัตโนมัติตามเงื่อนไข',
             projectPurgeScheduler: 'ล้างข้อมูลโครงงานที่หมดอายุออกจากระบบ',
-            academicSemesterScheduler: 'จัดการข้อมูลภาคการศึกษาและปีการศึกษาอัตโนมัติ',
             projectDeadlineMonitor: 'ตรวจสอบและอัปเดตสถานะโครงงานที่เลย deadline',
             internshipLifecycleMonitor: 'อัปเดตสถานะและ workflow การฝึกงานอัตโนมัติ (status + summary pending)',
             tokenCleanupScheduler: 'ลบ ApprovalToken ที่หมดอายุแล้วออกจากระบบ'
@@ -159,7 +157,6 @@ class AgentStatusService {
             documentMonitor: 'ทุก 30 นาที',
             eligibilityScheduler: 'ทุกเดือน (วันที่ 1 เวลา 00:00 น.)',
             projectPurgeScheduler: 'ทุกวัน (เวลา 02:15 น.)',
-            academicSemesterScheduler: 'ทุกวัน (เวลา 00:05 น.)',
             projectDeadlineMonitor: 'ทุกชั่วโมง',
             internshipLifecycleMonitor: 'ทุกวัน (เวลา 02:00 น.)',
             tokenCleanupScheduler: 'ทุกวัน (เวลา 03:00 น.)'

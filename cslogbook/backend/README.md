@@ -321,7 +321,6 @@ npm run db:check:all
 ### Schedulers
 - **deadlineReminderAgent**: ส่งแจ้งเตือน deadlines
 - **eligibilityScheduler**: อัพเดทคุณสมบัติของนักศึกษา
-- **academicSemesterScheduler**: อัพเดทภาคเรียนปัจจุบันอัตโนมัติ
 - **projectPurgeScheduler**: ลบข้อมูลโครงงานที่หมดอายุ
 
 ### Monitors
@@ -333,8 +332,6 @@ npm run db:check:all
 ตั้งค่า environment variable:
 ```bash
 ENABLE_AGENTS=true
-# หรือเปิดเฉพาะ agent
-ACADEMIC_AUTO_UPDATE_ENABLED=true
 ```
 
 ## 📜 Utility Scripts
